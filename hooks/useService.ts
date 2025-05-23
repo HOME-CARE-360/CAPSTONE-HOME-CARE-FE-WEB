@@ -1,64 +1,42 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  // useMutation,
+  useQuery,
+  //  useQueryClient
+} from '@tanstack/react-query';
 import serviceService, {
-  ServiceResponse,
+  ServiceListResponse,
   ServiceSearchParams,
-  Service,
-  ActionServiceResponse,
-  ServiceDetailRequest,
   ServiceDetailResponse,
+  // Service,
 } from '@/lib/api/services/fetchService';
 
 /**
  * Hook to fetch services with filters
  */
 export function useServices(filters?: ServiceSearchParams) {
-  // const isAuthenticated = useAuthStore(state => state.isAuthenticated);
-
-  const { isLoading, isError, data, error, refetch, isFetching } = useQuery({
+  return useQuery({
     queryKey: ['services', 'list', filters ? JSON.stringify(filters) : 'all'],
     queryFn: () => serviceService.getServices(filters),
-    // enabled: isAuthenticated,
-    select: (data: ServiceResponse) => ({
-      services: data.data?.services || [],
-      count: data.data?.count || 0,
-      limit: data.data?.limit || 10,
-      page: data.data?.page || 1,
-      totalPages: data.data?.totalPages || 1,
-      status: data.status,
-      message: data.message,
+    select: (response: ServiceListResponse) => ({
+      services: response.data || [],
+      totalItems: response.totalItems || 0,
+      limit: response.limit || 10,
+      page: response.page || 1,
+      totalPages: response.totalPages || 1,
     }),
   });
-
-  return {
-    isLoading,
-    isError,
-    data,
-    error,
-    refetch,
-    isFetching,
-    services: data?.services || [],
-    count: data?.count || 0,
-    page: data?.page || 1,
-    limit: data?.limit || 10,
-    totalPages: data?.totalPages || 1,
-    status: data?.status,
-    message: data?.message,
-  };
 }
 
 /**
  * Hook to fetch a single service by ID
  */
-export function useService(id?: string) {
+export function useService(id?: string | number) {
   return useQuery({
     queryKey: ['services', 'detail', id],
     queryFn: () => serviceService.getService(id!),
-    // enabled: !!id && isAuthenticated,
-    select: (data: ServiceDetailResponse) => ({
-      service: data.data,
-      status: data.status,
-      message: data.message,
-      data: data.data,
+    enabled: !!id,
+    select: (response: ServiceDetailResponse) => ({
+      service: response.data,
     }),
   });
 }
@@ -79,53 +57,53 @@ export function useService(id?: string) {
 /**
  * Hook to create a new property
  */
-export function useCreateProperty() {
-  const queryClient = useQueryClient();
+// export function useCreateService() {
+//  const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: (newService: Partial<ServiceDetailRequest>) =>
-      serviceService.createService(newService),
-    onSuccess: (data: ActionServiceResponse) => {
-      if (data.status) {
-        queryClient.invalidateQueries({ queryKey: ['services', 'list'] });
-      }
-    },
-  });
-}
+//  return useMutation({
+//    mutationFn: (newService: Partial<ServiceDetailRequest>) =>
+//      serviceApi.createService(newService),
+//    onSuccess: (data: ActionServiceResponse) => {
+//      if (data.status) {
+//        queryClient.invalidateQueries({ queryKey: ['services', 'list'] });
+//      }
+//    },
+//  });
+// }
 
 /**
  * Hook to update an existing property
  */
-export function useUpdateProperty() {
-  const queryClient = useQueryClient();
+// export function useUpdateProperty() {
+//   const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: ({ id, ...updateData }: Partial<Service> & { id: string }) =>
-      serviceService.updateService(id, updateData),
-    onSuccess: (data: ActionServiceResponse) => {
-      if (data.status && data.data && data.data.length > 0) {
-        queryClient.invalidateQueries({
-          queryKey: ['properties', 'detail', 'updated', data.data],
-        });
-        queryClient.invalidateQueries({ queryKey: ['properties', 'list'] });
-      }
-    },
-  });
-}
+//   return useMutation({
+//     mutationFn: ({ id, ...updateData }: Partial<Service> & { id: string }) =>
+//       serviceApi.updateService(id, updateData),
+//     onSuccess: (data: ActionServiceResponse) => {
+//       if (data.status && data.data && data.data.length > 0) {
+//         queryClient.invalidateQueries({
+//           queryKey: ['properties', 'detail', 'updated', data.data],
+//         });
+//         queryClient.invalidateQueries({ queryKey: ['properties', 'list'] });
+//       }
+//     },
+//   });
+// }
 
 /**
  * Hook to delete a property
  */
-export function useDeleteProperty() {
-  const queryClient = useQueryClient();
+// export function useDeleteProperty() {
+//   const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: (id: string) => serviceService.deleteService(id),
-    onSuccess: (data: ActionServiceResponse, id: string) => {
-      if (data.status) {
-        queryClient.removeQueries({ queryKey: ['services', 'detail', 'deleted', id] });
-        queryClient.invalidateQueries({ queryKey: ['services', 'list'] });
-      }
-    },
-  });
-}
+//   return useMutation({
+//     mutationFn: (id: string) => serviceApi.deleteService(id),
+//     onSuccess: (data: ActionServiceResponse, id: string) => {
+//       if (data.status) {
+//         queryClient.removeQueries({ queryKey: ['services', 'detail', 'deleted', id] });
+//         queryClient.invalidateQueries({ queryKey: ['services', 'list'] });
+//       }
+//     },
+//   });
+// }

@@ -14,18 +14,18 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const service = response.data;
 
     return {
-      title: `${service.name} | ${service.type} in ${service.location.city}`,
+      title: `${service.name} | ${service.provider}`,
       description: service.description,
       openGraph: {
-        title: `${service.name} | ${service.type} in ${service.location.city}`,
+        title: `${service.name} | ${service.provider}`,
         description: service.description,
-        images: service.imageUrls[0] ? [service.imageUrls[0]] : [],
+        images: service.images[0] ? [service.images[0]] : [],
       },
       twitter: {
         card: 'summary_large_image',
-        title: `${service.name} | ${service.type} in ${service.location.city}`,
+        title: `${service.name} | ${service.provider}`,
         description: service.description,
-        images: service.imageUrls[0] ? [service.imageUrls[0]] : [],
+        images: service.images[0] ? [service.images[0]] : [],
       },
     };
   } catch (error) {

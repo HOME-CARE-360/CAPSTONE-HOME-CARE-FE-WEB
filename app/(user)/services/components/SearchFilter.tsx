@@ -1,22 +1,11 @@
 import { useState, useEffect } from 'react';
-import {
-  MapPin,
-  DollarSign,
-  Ruler,
-  Building,
-  //Calendar,
-  SlidersHorizontal,
-  X,
-  Home,
-} from 'lucide-react';
+import { SlidersHorizontal, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
-  // SelectGroup,
   SelectItem,
-  // SelectLabel,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
@@ -26,8 +15,6 @@ import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/components/ui/s
 import { Separator } from '@/components/ui/separator';
 import { useTranslation } from 'react-i18next';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { TransactionType } from '@/lib/api/services/fetchService';
-import Image from 'next/image';
 
 // Define interfaces for location data
 interface Province {
@@ -53,10 +40,12 @@ interface FilterValues {
   district?: string;
   ward?: string;
   propertyType?: string;
-  transactionType?: TransactionType;
+  transactionType?: string;
   priceRange?: string;
   propertySize?: string;
   buildYear?: string;
+  searchTerm?: string;
+  category?: string;
   [key: string]: string | undefined;
 }
 
@@ -69,40 +58,57 @@ interface FilterValues {
 // };
 
 // Add these constants at the top of the file
-const CENTRAL_CITIES = [
-  {
-    code: '1',
-    name: 'Hà Nội',
-    image:
-      'https://www.atlys.com/_next/image?url=https%3A%2F%2Fimagedelivery.net%2FW3Iz4WACAy2J0qT0cCT3xA%2Fdidi%2Farticles%2Frlopvfixv5sap0yupj9osxaa%2Fpublic&w=1920&q=75',
-    icon: '🏛️',
-  },
-  {
-    code: '79',
-    name: 'TP. Hồ Chí Minh',
-    image:
-      'https://media.vneconomy.vn/images/upload/2024/05/20/tphcm-16726501373541473396704-16994302498261147920222.jpg',
-    icon: '🌆',
-  },
-  {
-    code: '48',
-    name: 'Đà Nẵng',
-    image:
-      'https://vcdn1-dulich.vnecdn.net/2022/06/03/cauvang-1654247842-9403-1654247849.jpg?w=1200&h=0&q=100&dpr=1&fit=crop&s=Swd6JjpStebEzT6WARcoOA',
-    icon: '🏖️',
-  },
-  {
-    code: '92',
-    name: 'Cần Thơ',
-    image: 'https://ik.imagekit.io/tvlk/blog/2021/11/dia-diem-du-lich-can-tho-cover.jpg',
-    icon: '🌾',
-  },
-  {
-    code: '31',
-    name: 'Hải Phòng',
-    image: 'https://heza.gov.vn/wp-content/uploads/2023/09/hai_phong-scaled.jpg',
-    icon: '⚓',
-  },
+// const CENTRAL_CITIES = [
+//   {
+//     code: '1',
+//     name: 'Hà Nội',
+//     image:
+//       'https://www.atlys.com/_next/image?url=https%3A%2F%2Fimagedelivery.net%2FW3Iz4WACAy2J0qT0cCT3xA%2Fdidi%2Farticles%2Frlopvfixv5sap0yupj9osxaa%2Fpublic&w=1920&q=75',
+//     icon: '🏛️',
+//   },
+//   {
+//     code: '79',
+//     name: 'TP. Hồ Chí Minh',
+//     image:
+//       'https://media.vneconomy.vn/images/upload/2024/05/20/tphcm-16726501373541473396704-16994302498261147920222.jpg',
+//     icon: '🌆',
+//   },
+//   {
+//     code: '48',
+//     name: 'Đà Nẵng',
+//     image:
+//       'https://vcdn1-dulich.vnecdn.net/2022/06/03/cauvang-1654247842-9403-1654247849.jpg?w=1200&h=0&q=100&dpr=1&fit=crop&s=Swd6JjpStebEzT6WARcoOA',
+//     icon: '🏖️',
+//   },
+//   {
+//     code: '92',
+//     name: 'Cần Thơ',
+//     image: 'https://ik.imagekit.io/tvlk/blog/2021/11/dia-diem-du-lich-can-tho-cover.jpg',
+//     icon: '🌾',
+//   },
+//   {
+//     code: '31',
+//     name: 'Hải Phòng',
+//     image: 'https://heza.gov.vn/wp-content/uploads/2023/09/hai_phong-scaled.jpg',
+//     icon: '⚓',
+//   },
+// ];
+
+// Price range mapping
+const priceRangeMap: Record<string, string> = {
+  '100k-300k': '100.000đ - 300.000đ',
+  '300k-500k': '300.000đ - 500.000đ',
+  '500k-750k': '500.000đ - 750.000đ',
+  '750k-1m': '750.000đ - 1.000.000đ',
+  '1m-plus': 'Trên 1.000.000đ',
+};
+
+// Service categories
+const serviceCategories = [
+  { value: 'cleaning', label: 'Dọn dẹp' },
+  { value: 'massage', label: 'Massage' },
+  { value: 'cooking', label: 'Nấu ăn' },
+  { value: 'nursing', label: 'Điều dưỡng' },
 ];
 
 export default function SearchFilter() {
@@ -119,7 +125,7 @@ export default function SearchFilter() {
   const [districts, setDistricts] = useState<District[]>([]);
   const [wards, setWards] = useState<Ward[]>([]);
   const [loading, setLoading] = useState(false);
-  console.log(loading);
+
   const [selectedProvince, setSelectedProvince] = useState<string>('');
   const [selectedDistrict, setSelectedDistrict] = useState<string>('');
   const [selectedWard, setSelectedWard] = useState<string>('');
@@ -141,13 +147,12 @@ export default function SearchFilter() {
     if (params.has('buildYear')) initialFilters.buildYear = params.get('buildYear') || undefined;
     if (params.has('transactionType')) {
       const transactionType = params.get('transactionType');
-      if (
-        transactionType === TransactionType.FOR_SALE ||
-        transactionType === TransactionType.FOR_RENT
-      ) {
+      if (transactionType === 'FOR_SALE' || transactionType === 'FOR_RENT') {
         initialFilters.transactionType = transactionType;
       }
     }
+    if (params.has('searchTerm')) initialFilters.searchTerm = params.get('searchTerm') || undefined;
+    if (params.has('category')) initialFilters.category = params.get('category') || undefined;
 
     // Set initial search query if present
     if (params.has('searchTerm')) {
@@ -325,6 +330,9 @@ export default function SearchFilter() {
             <Button variant="outline" size="sm" onClick={clearFilters}>
               {t('services.search_filter.reset')}
             </Button>
+            {loading && (
+              <div className="w-4 h-4 rounded-full border-2 border-background border-t-transparent animate-spin mr-2"></div>
+            )}
             <SheetClose asChild>
               <Button size="sm" onClick={handleSearch}>
                 {t('services.search_filter.done')}
@@ -335,241 +343,20 @@ export default function SearchFilter() {
 
         <div className="space-y-6 overflow-y-auto h-[calc(85vh-120px)] pb-20">
           <div className="space-y-4">
-            <h4 className="font-medium">{t('services.search_filter.location')}</h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-              <Select
-                value={selectedProvince || selectedDistrict || selectedWard ? 'selected' : ''}
-                onValueChange={() => {}}
-              >
-                <SelectTrigger className="h-12 border-muted/50">
-                  <div className="flex items-center">
-                    <MapPin className="mr-2 h-4 w-4 text-muted-foreground" />
-                    <SelectValue placeholder={t('services.search_filter.location')}>
-                      {selectedProvince && (
-                        <span className="flex items-center gap-2">
-                          {provinces.find(p => p.code.toString() === selectedProvince)?.name}
-                          {selectedDistrict && (
-                            <>
-                              <span className="text-muted-foreground">/</span>
-                              {districts.find(d => d.code.toString() === selectedDistrict)?.name}
-                              {selectedWard && (
-                                <>
-                                  <span className="text-muted-foreground">/</span>
-                                  {wards.find(w => w.code.toString() === selectedWard)?.name}
-                                </>
-                              )}
-                            </>
-                          )}
-                        </span>
-                      )}
-                    </SelectValue>
-                  </div>
-                </SelectTrigger>
-                <SelectContent className="p-4 w-[1200px]">
-                  <div className="space-y-6">
-                    {/* Location Selection Tabs */}
-                    <div className="flex gap-2 border-b">
-                      <button
-                        onClick={() => {
-                          setSelectedProvince('');
-                          setSelectedDistrict('');
-                          setSelectedWard('');
-                        }}
-                        className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                          !selectedProvince
-                            ? 'border-primary text-primary'
-                            : 'border-transparent text-muted-foreground hover:text-foreground'
-                        }`}
-                      >
-                        Tỉnh/Thành phố
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (selectedProvince) {
-                            setSelectedDistrict('');
-                            setSelectedWard('');
-                          }
-                        }}
-                        className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                          selectedProvince && !selectedDistrict
-                            ? 'border-primary text-primary'
-                            : 'border-transparent text-muted-foreground hover:text-foreground'
-                        } ${!selectedProvince ? 'opacity-50 cursor-not-allowed' : ''}`}
-                      >
-                        Quận/Huyện
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (selectedDistrict) {
-                            setSelectedWard('');
-                          }
-                        }}
-                        className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                          selectedDistrict && !selectedWard
-                            ? 'border-primary text-primary'
-                            : 'border-transparent text-muted-foreground hover:text-foreground'
-                        } ${!selectedDistrict ? 'opacity-50 cursor-not-allowed' : ''}`}
-                      >
-                        Phường/Xã
-                      </button>
-                    </div>
-
-                    {/* Location Selection Content */}
-                    <div className="space-y-6">
-                      {/* Province Selection */}
-                      {!selectedProvince && (
-                        <div className="space-y-6">
-                          {/* Central Cities Section */}
-                          <div className="space-y-4">
-                            <h4 className="font-medium text-sm text-muted-foreground">
-                              Thành phố trực thuộc trung ương
-                            </h4>
-                            <div className="grid grid-cols-5 gap-4">
-                              {CENTRAL_CITIES.map(city => (
-                                <button
-                                  key={city.code}
-                                  onClick={() => {
-                                    handleLocationChange('province', city.code);
-                                    setSelectedDistrict('');
-                                    setSelectedWard('');
-                                  }}
-                                  className={`relative group rounded-lg overflow-hidden border-2 transition-all ${
-                                    selectedProvince === city.code
-                                      ? 'border-primary shadow-lg scale-105'
-                                      : 'border-transparent hover:border-primary/50'
-                                  }`}
-                                >
-                                  <div className="aspect-[4/3] relative">
-                                    <Image
-                                      src={city.image}
-                                      alt={city.name}
-                                      fill
-                                      className="object-cover"
-                                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                                    />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                                    <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
-                                      <div className="flex items-center gap-2">
-                                        <span className="text-xl">{city.icon}</span>
-                                        <span className="font-medium">{city.name}</span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-
-                          {/* Other Cities Grid */}
-                          <div className="space-y-4">
-                            <h4 className="font-medium text-sm text-muted-foreground">
-                              Tỉnh/Thành phố khác
-                            </h4>
-                            <div className="grid grid-cols-5 gap-2">
-                              {provinces
-                                .filter(
-                                  province =>
-                                    !CENTRAL_CITIES.find(
-                                      city => city.code === province.code.toString()
-                                    )
-                                )
-                                .map(province => (
-                                  <button
-                                    key={province.code}
-                                    onClick={() => {
-                                      handleLocationChange('province', province.code.toString());
-                                      setSelectedDistrict('');
-                                      setSelectedWard('');
-                                    }}
-                                    className={`w-full p-2 rounded-md hover:bg-muted flex items-center gap-2 ${
-                                      selectedProvince === province.code.toString()
-                                        ? 'bg-primary text-primary-foreground'
-                                        : ''
-                                    }`}
-                                  >
-                                    <span className="text-xl">🏘️</span>
-                                    <span className="text-sm">{province.name}</span>
-                                  </button>
-                                ))}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* District Selection */}
-                      {selectedProvince && !selectedDistrict && (
-                        <div className="space-y-4">
-                          <h4 className="font-medium text-sm text-muted-foreground">Quận/Huyện</h4>
-                          <div className="grid grid-cols-5 gap-2">
-                            {districts.map(district => (
-                              <button
-                                key={district.code}
-                                onClick={() => {
-                                  handleLocationChange('district', district.code.toString());
-                                  setSelectedWard('');
-                                }}
-                                className={`w-full p-2 rounded-md hover:bg-muted flex items-center gap-2 ${
-                                  selectedDistrict === district.code.toString()
-                                    ? 'bg-primary text-primary-foreground'
-                                    : ''
-                                }`}
-                              >
-                                <span className="text-xl">🏢</span>
-                                <span className="text-sm">{district.name}</span>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Ward Selection */}
-                      {selectedDistrict && !selectedWard && (
-                        <div className="space-y-4">
-                          <h4 className="font-medium text-sm text-muted-foreground">Phường/Xã</h4>
-                          <div className="grid grid-cols-5 gap-2">
-                            {wards.map(ward => (
-                              <button
-                                key={ward.code}
-                                onClick={() => handleLocationChange('ward', ward.code.toString())}
-                                className={`w-full p-2 rounded-md hover:bg-muted flex items-center gap-2 ${
-                                  selectedWard === ward.code.toString()
-                                    ? 'bg-primary text-primary-foreground'
-                                    : ''
-                                }`}
-                              >
-                                <span className="text-xl">🏠</span>
-                                <span className="text-sm">{ward.name}</span>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <Separator />
-
-          <div className="space-y-4">
-            <h4 className="font-medium">{t('services.search_filter.property_type')}</h4>
+            <h4 className="font-medium">{t('services.search_filter.categories')}</h4>
             <Select
-              value={activeFilters.propertyType}
-              onValueChange={value => handleFilterChange('propertyType', value)}
+              value={activeFilters.category}
+              onValueChange={value => handleFilterChange('category', value)}
             >
               <SelectTrigger className="h-12 border-muted/50">
-                <div className="flex items-center">
-                  <Building className="mr-2 h-4 w-4 text-muted-foreground" />
-                  <SelectValue placeholder={t('services.search_filter.property_type')} />
-                </div>
+                <SelectValue placeholder={t('services.search_filter.select_category')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="apartment">Căn hộ</SelectItem>
-                <SelectItem value="villa">Biệt thự</SelectItem>
-                <SelectItem value="land_plot">Đất</SelectItem>
-                <SelectItem value="shop_house">Nhà phố</SelectItem>
+                {serviceCategories.map(category => (
+                  <SelectItem key={category.value} value={category.value}>
+                    {category.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -583,65 +370,36 @@ export default function SearchFilter() {
               onValueChange={value => handleFilterChange('priceRange', value)}
             >
               <SelectTrigger className="h-12 border-muted/50">
-                <div className="flex items-center">
-                  <DollarSign className="mr-2 h-4 w-4 text-muted-foreground" />
-                  <SelectValue placeholder={t('services.search_filter.price_range')} />
-                </div>
+                <SelectValue placeholder={t('services.search_filter.select_price')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="100k-300k">100 - 300 VND</SelectItem>
-                <SelectItem value="300k-500k">300 - 500 VND</SelectItem>
-                <SelectItem value="500k-750k">500 - 750 VND</SelectItem>
-                <SelectItem value="750k-1m">750 - 1M VND</SelectItem>
-                <SelectItem value="1m-plus">1M+ VND</SelectItem>
+                {Object.entries(priceRangeMap).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
 
-          <Separator />
-
-          <div className="space-y-4">
-            <h4 className="font-medium">{t('services.search_filter.property_size')}</h4>
+          {/* Add Ward Selection */}
+          {selectedDistrict && (
             <Select
-              value={activeFilters.propertySize}
-              onValueChange={value => handleFilterChange('propertySize', value)}
+              value={selectedWard}
+              onValueChange={value => handleLocationChange('ward', value)}
             >
               <SelectTrigger className="h-12 border-muted/50">
-                <div className="flex items-center">
-                  <Ruler className="mr-2 h-4 w-4 text-muted-foreground" />
-                  <SelectValue placeholder={t('services.search_filter.property_size')} />
-                </div>
+                <SelectValue placeholder={t('services.search_filter.select_ward')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="500-1000">500 - 1,000 m2</SelectItem>
-                <SelectItem value="1000-1500">1,000 - 1,500 m2</SelectItem>
-                <SelectItem value="1500-2000">1,500 - 2,000 m2</SelectItem>
-                <SelectItem value="2000-3000">2,000 - 3,000 m2</SelectItem>
-                <SelectItem value="3000-plus">3,000+ m2</SelectItem>
+                {wards.map(ward => (
+                  <SelectItem key={ward.code} value={ward.code.toString()}>
+                    {ward.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
-          </div>
-
-          <Separator />
-
-          <div className="space-y-4">
-            <h4 className="font-medium">Loại</h4>
-            <Select
-              value={activeFilters.transactionType}
-              onValueChange={value => handleFilterChange('transactionType', value)}
-            >
-              <SelectTrigger className="h-12 border-muted/50">
-                <div className="flex items-center">
-                  <Home className="mr-2 h-4 w-4 text-muted-foreground" />
-                  <SelectValue placeholder="Loại" />
-                </div>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={TransactionType.FOR_SALE}>Bán</SelectItem>
-                <SelectItem value={TransactionType.FOR_RENT}>Cho thuê</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          )}
         </div>
       </SheetContent>
     </Sheet>
@@ -731,334 +489,51 @@ export default function SearchFilter() {
                   <span className="text-sm font-medium text-muted-foreground mr-2">
                     {t('services.search_filter.active_filters')}:
                   </span>
-                  {activeFilters.city && (
-                    <Badge variant="secondary" className="py-1.5 flex items-center gap-1 text-sm">
-                      {activeFilters.city}
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-5 w-5 p-0 ml-1 hover:bg-transparent"
-                        onClick={() => {
-                          handleFilterChange('city', '');
-                          setSelectedProvince('');
-                          setSelectedDistrict('');
-                          setSelectedWard('');
-                        }}
+                  {Object.entries(activeFilters).map(([key, value]) => {
+                    if (!value) return null;
+                    let displayValue = value;
+                    if (key === 'category') {
+                      const category = serviceCategories.find(c => c.value === value);
+                      displayValue = category?.label || value;
+                    } else if (key === 'priceRange') {
+                      displayValue = priceRangeMap[value] || value;
+                    }
+                    return (
+                      <Badge
+                        key={key}
+                        variant="secondary"
+                        className="py-1.5 flex items-center gap-1 text-sm"
                       >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </Badge>
-                  )}
-                  {activeFilters.district && (
-                    <Badge variant="secondary" className="py-1.5 flex items-center gap-1 text-sm">
-                      {activeFilters.district}
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-5 w-5 p-0 ml-1 hover:bg-transparent"
-                        onClick={() => {
-                          handleFilterChange('district', '');
-                          setSelectedDistrict('');
-                          setSelectedWard('');
-                        }}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </Badge>
-                  )}
-                  {activeFilters.ward && (
-                    <Badge variant="secondary" className="py-1.5 flex items-center gap-1 text-sm">
-                      {activeFilters.ward}
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-5 w-5 p-0 ml-1 hover:bg-transparent"
-                        onClick={() => {
-                          handleFilterChange('ward', '');
-                          setSelectedWard('');
-                        }}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </Badge>
-                  )}
-                  {activeFilters.transactionType && (
-                    <Badge variant="secondary" className="py-1.5 flex items-center gap-1 text-sm">
-                      {activeFilters.transactionType === TransactionType.FOR_SALE
-                        ? 'Bán'
-                        : 'Cho thuê'}
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-5 w-5 p-0 ml-1 hover:bg-transparent"
-                        onClick={() => handleFilterChange('transactionType', '')}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </Badge>
-                  )}
-                  {Object.entries(activeFilters).map(
-                    ([key, value]) =>
-                      value &&
-                      !['city', 'district', 'ward', 'transactionType'].includes(key) && (
-                        <Badge
-                          key={key}
-                          variant="secondary"
-                          className="py-1.5 flex items-center gap-1 text-sm"
+                        {displayValue}
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-5 w-5 p-0 ml-1 hover:bg-transparent"
+                          onClick={() => handleFilterChange(key, '')}
                         >
-                          {String(value).replace(/-/g, ' ')}
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-5 w-5 p-0 ml-1 hover:bg-transparent"
-                            onClick={() => handleFilterChange(key, '')}
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </Badge>
-                      )
-                  )}
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </Badge>
+                    );
+                  })}
                 </div>
               )}
 
               {isFilterExpanded && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mt-6 pt-6 border-t">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 mt-6 pt-6 border-t">
                   <Select
-                    value={selectedProvince || selectedDistrict || selectedWard ? 'selected' : ''}
-                    onValueChange={() => {}}
+                    value={activeFilters.category}
+                    onValueChange={value => handleFilterChange('category', value)}
                   >
                     <SelectTrigger className="h-12 border-muted/50">
-                      <div className="flex items-center">
-                        <MapPin className="mr-2 h-4 w-4 text-muted-foreground" />
-                        <SelectValue placeholder={t('services.search_filter.location')}>
-                          {selectedProvince && (
-                            <span className="flex items-center gap-2">
-                              {provinces.find(p => p.code.toString() === selectedProvince)?.name}
-                              {/* {selectedDistrict && (
-                                <>
-                                  <span className="text-muted-foreground">/</span>
-                                  {districts.find(d => d.code.toString() === selectedDistrict)?.name}
-                                  {selectedWard && (
-                                    <>
-                                      <span className="text-muted-foreground">/</span>
-                                      {wards.find(w => w.code.toString() === selectedWard)?.name}
-                                    </>
-                                  )}
-                                </>
-                              )} */}
-                            </span>
-                          )}
-                        </SelectValue>
-                      </div>
-                    </SelectTrigger>
-                    <SelectContent className="p-4 w-[1200px]">
-                      <div className="space-y-6">
-                        {/* Location Selection Tabs */}
-                        <div className="flex gap-2 border-b">
-                          <button
-                            onClick={() => {
-                              setSelectedProvince('');
-                              setSelectedDistrict('');
-                              setSelectedWard('');
-                            }}
-                            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                              !selectedProvince
-                                ? 'border-primary text-primary'
-                                : 'border-transparent text-muted-foreground hover:text-foreground'
-                            }`}
-                          >
-                            Tỉnh/Thành phố
-                          </button>
-                          <button
-                            onClick={() => {
-                              if (selectedProvince) {
-                                setSelectedDistrict('');
-                                setSelectedWard('');
-                              }
-                            }}
-                            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                              selectedProvince && !selectedDistrict
-                                ? 'border-primary text-primary'
-                                : 'border-transparent text-muted-foreground hover:text-foreground'
-                            } ${!selectedProvince ? 'opacity-50 cursor-not-allowed' : ''}`}
-                          >
-                            Quận/Huyện
-                          </button>
-                          <button
-                            onClick={() => {
-                              if (selectedDistrict) {
-                                setSelectedWard('');
-                              }
-                            }}
-                            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                              selectedDistrict && !selectedWard
-                                ? 'border-primary text-primary'
-                                : 'border-transparent text-muted-foreground hover:text-foreground'
-                            } ${!selectedDistrict ? 'opacity-50 cursor-not-allowed' : ''}`}
-                          >
-                            Phường/Xã
-                          </button>
-                        </div>
-
-                        {/* Location Selection Content */}
-                        <div className="space-y-6">
-                          {/* Province Selection */}
-                          {!selectedProvince && (
-                            <div className="space-y-6">
-                              {/* Central Cities Section */}
-                              <div className="space-y-4">
-                                <h4 className="font-medium text-sm text-muted-foreground">
-                                  Thành phố trực thuộc trung ương
-                                </h4>
-                                <div className="grid grid-cols-5 gap-4">
-                                  {CENTRAL_CITIES.map(city => (
-                                    <button
-                                      key={city.code}
-                                      onClick={() => {
-                                        handleLocationChange('province', city.code);
-                                        setSelectedDistrict('');
-                                        setSelectedWard('');
-                                      }}
-                                      className={`relative group rounded-lg overflow-hidden border-2 transition-all ${
-                                        selectedProvince === city.code
-                                          ? 'border-primary shadow-lg scale-105'
-                                          : 'border-transparent hover:border-primary/50'
-                                      }`}
-                                    >
-                                      <div className="aspect-[4/3] relative">
-                                        <Image
-                                          src={city.image}
-                                          alt={city.name}
-                                          fill
-                                          className="object-cover"
-                                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                                        />
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                                        <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
-                                          <div className="flex items-center gap-2">
-                                            <span className="text-xl">{city.icon}</span>
-                                            <span className="font-medium">{city.name}</span>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
-
-                              {/* Other Cities Grid */}
-                              <div className="space-y-4">
-                                <h4 className="font-medium text-sm text-muted-foreground">
-                                  Tỉnh/Thành phố khác
-                                </h4>
-                                <div className="grid grid-cols-5 gap-2">
-                                  {provinces
-                                    .filter(
-                                      province =>
-                                        !CENTRAL_CITIES.find(
-                                          city => city.code === province.code.toString()
-                                        )
-                                    )
-                                    .map(province => (
-                                      <button
-                                        key={province.code}
-                                        onClick={() => {
-                                          handleLocationChange(
-                                            'province',
-                                            province.code.toString()
-                                          );
-                                          setSelectedDistrict('');
-                                          setSelectedWard('');
-                                        }}
-                                        className={`w-full p-2 rounded-md hover:bg-muted flex items-center gap-2 ${
-                                          selectedProvince === province.code.toString()
-                                            ? 'bg-primary text-primary-foreground'
-                                            : ''
-                                        }`}
-                                      >
-                                        <span className="text-xl">🏘️</span>
-                                        <span className="text-sm">{province.name}</span>
-                                      </button>
-                                    ))}
-                                </div>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* District Selection */}
-                          {selectedProvince && !selectedDistrict && (
-                            <div className="space-y-4">
-                              <h4 className="font-medium text-sm text-muted-foreground">
-                                Quận/Huyện
-                              </h4>
-                              <div className="grid grid-cols-5 gap-2">
-                                {districts.map(district => (
-                                  <button
-                                    key={district.code}
-                                    onClick={() => {
-                                      handleLocationChange('district', district.code.toString());
-                                      setSelectedWard('');
-                                    }}
-                                    className={`w-full p-2 rounded-md hover:bg-muted flex items-center gap-2 ${
-                                      selectedDistrict === district.code.toString()
-                                        ? 'bg-primary text-primary-foreground'
-                                        : ''
-                                    }`}
-                                  >
-                                    <span className="text-xl">🏢</span>
-                                    <span className="text-sm">{district.name}</span>
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Ward Selection */}
-                          {selectedDistrict && !selectedWard && (
-                            <div className="space-y-4">
-                              <h4 className="font-medium text-sm text-muted-foreground">
-                                Phường/Xã
-                              </h4>
-                              <div className="grid grid-cols-5 gap-2">
-                                {wards.map(ward => (
-                                  <button
-                                    key={ward.code}
-                                    onClick={() =>
-                                      handleLocationChange('ward', ward.code.toString())
-                                    }
-                                    className={`w-full p-2 rounded-md hover:bg-muted flex items-center gap-2 ${
-                                      selectedWard === ward.code.toString()
-                                        ? 'bg-primary text-primary-foreground'
-                                        : ''
-                                    }`}
-                                  >
-                                    <span className="text-xl">🏠</span>
-                                    <span className="text-sm">{ward.name}</span>
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </SelectContent>
-                  </Select>
-
-                  <Select
-                    value={activeFilters.propertyType}
-                    onValueChange={value => handleFilterChange('propertyType', value)}
-                  >
-                    <SelectTrigger className="h-12 border-muted/50">
-                      <div className="flex items-center">
-                        <Building className="mr-2 h-4 w-4 text-muted-foreground" />
-                        <SelectValue placeholder={t('services.search_filter.property_type')} />
-                      </div>
+                      <SelectValue placeholder={t('services.search_filter.select_category')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="apartment">Căn hộ</SelectItem>
-                      <SelectItem value="villa">Biệt thự</SelectItem>
-                      <SelectItem value="land_plot">Đất</SelectItem>
-                      <SelectItem value="shop_house">Nhà phố</SelectItem>
+                      {serviceCategories.map(category => (
+                        <SelectItem key={category.value} value={category.value}>
+                          {category.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
 
@@ -1067,54 +542,35 @@ export default function SearchFilter() {
                     onValueChange={value => handleFilterChange('priceRange', value)}
                   >
                     <SelectTrigger className="h-12 border-muted/50">
-                      <div className="flex items-center">
-                        <DollarSign className="mr-2 h-4 w-4 text-muted-foreground" />
-                        <SelectValue placeholder={t('services.search_filter.price_range')} />
-                      </div>
+                      <SelectValue placeholder={t('services.search_filter.select_price')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="100k-300k">100 - 300 VND</SelectItem>
-                      <SelectItem value="300k-500k">300 - 500 VND</SelectItem>
-                      <SelectItem value="500k-750k">500 - 750 VND</SelectItem>
-                      <SelectItem value="750k-1m">750 - 1M VND</SelectItem>
-                      <SelectItem value="1m-plus">1M+ VND</SelectItem>
+                      {Object.entries(priceRangeMap).map(([value, label]) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
 
-                  <Select
-                    value={activeFilters.propertySize}
-                    onValueChange={value => handleFilterChange('propertySize', value)}
-                  >
-                    <SelectTrigger className="h-12 border-muted/50">
-                      <div className="flex items-center">
-                        <Ruler className="mr-2 h-4 w-4 text-muted-foreground" />
-                        <SelectValue placeholder={t('services.search_filter.property_size')} />
-                      </div>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="500-1000">500 - 1,000 m2</SelectItem>
-                      <SelectItem value="1000-1500">1,000 - 1,500 m2</SelectItem>
-                      <SelectItem value="1500-2000">1,500 - 2,000 m2</SelectItem>
-                      <SelectItem value="2000-3000">2,000 - 3,000 m2</SelectItem>
-                      <SelectItem value="3000-plus">3,000+ m2</SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  <Select
-                    value={activeFilters.transactionType}
-                    onValueChange={value => handleFilterChange('transactionType', value)}
-                  >
-                    <SelectTrigger className="h-12 border-muted/50">
-                      <div className="flex items-center">
-                        <Home className="mr-2 h-4 w-4 text-muted-foreground" />
-                        <SelectValue placeholder="Loại" />
-                      </div>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={TransactionType.FOR_SALE}>Bán</SelectItem>
-                      <SelectItem value={TransactionType.FOR_RENT}>Cho thuê</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  {/* Add Ward Selection */}
+                  {selectedDistrict && (
+                    <Select
+                      value={selectedWard}
+                      onValueChange={value => handleLocationChange('ward', value)}
+                    >
+                      <SelectTrigger className="h-12 border-muted/50">
+                        <SelectValue placeholder={t('services.search_filter.select_ward')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {wards.map(ward => (
+                          <SelectItem key={ward.code} value={ward.code.toString()}>
+                            {ward.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
               )}
             </div>

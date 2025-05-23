@@ -31,14 +31,14 @@ export default function ServiceShowcase({ service }: ServiceShowcaseProps) {
   const [isZoomed, setIsZoomed] = useState(false);
 
   // Only display first 5 images in the grid
-  const displayImages = service.imageUrls.slice(0, 5);
+  const displayImages = service.images.slice(0, 5);
 
   const handleNextImage = () => {
-    setCurrentImageIndex(prev => (prev === service.imageUrls.length - 1 ? 0 : prev + 1));
+    setCurrentImageIndex(prev => (prev === service.images.length - 1 ? 0 : prev + 1));
   };
 
   const handlePrevImage = () => {
-    setCurrentImageIndex(prev => (prev === 0 ? service.imageUrls.length - 1 : prev - 1));
+    setCurrentImageIndex(prev => (prev === 0 ? service.images.length - 1 : prev - 1));
   };
 
   const toggleZoom = () => {
@@ -54,22 +54,8 @@ export default function ServiceShowcase({ service }: ServiceShowcaseProps) {
     <div className="mb-12">
       {/* Breadcrumb Navigation */}
       <nav className="flex items-center space-x-1 text-sm text-muted-foreground mb-6">
-        <Link href="/properties" className="hover:text-foreground transition-colors">
+        <Link href="/services" className="hover:text-foreground transition-colors">
           Tìm kiếm
-        </Link>
-        <ChevronRightIcon className="h-4 w-4" />
-        <Link
-          href={`/services?city=${service.location.city}`}
-          className="hover:text-foreground transition-colors"
-        >
-          {service.location.city}
-        </Link>
-        <ChevronRightIcon className="h-4 w-4" />
-        <Link
-          href={`/services?district=${service.location.district}`}
-          className="hover:text-foreground transition-colors"
-        >
-          {service.location.district}
         </Link>
         <ChevronRightIcon className="h-4 w-4" />
         <span className="text-foreground font-medium">{service.name}</span>
@@ -101,7 +87,7 @@ export default function ServiceShowcase({ service }: ServiceShowcaseProps) {
 
           {/* Right Side Grid - 4 Images */}
           <div className="hidden md:grid md:col-span-6 grid-cols-2 grid-rows-2 gap-2">
-            {displayImages.slice(1, 5).map((image, index) => (
+            {displayImages.slice(1, 5).map((image: string, index: number) => (
               <motion.div
                 key={index}
                 className={`relative cursor-zoom-in overflow-hidden ${
@@ -135,12 +121,12 @@ export default function ServiceShowcase({ service }: ServiceShowcaseProps) {
           onClick={() => setShowAllImages(true)}
         >
           <Camera className="w-4 h-4 mr-2" />
-          {t('service_detail.view_all')} {service.imageUrls.length} {t('service_detail.photos')}
+          {t('service_detail.view_all')} {service.images.length} {t('service_detail.photos')}
         </Button>
 
         {/* Image Counter Badge */}
         <div className="absolute top-4 right-4 bg-black/70 backdrop-blur-sm text-white px-3 py-1 rounded-full text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-          {currentImageIndex + 1} / {service.imageUrls.length}
+          {currentImageIndex + 1} / {service.images.length}
         </div>
       </div>
 
@@ -166,7 +152,7 @@ export default function ServiceShowcase({ service }: ServiceShowcaseProps) {
           {/* Gallery Grid */}
           <div className="container mx-auto p-4">
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {service.imageUrls.map((image, index) => (
+              {service.images.map((image: string, index: number) => (
                 <div
                   key={index}
                   className="relative cursor-pointer aspect-[9/16] rounded-lg overflow-hidden"
@@ -193,7 +179,7 @@ export default function ServiceShowcase({ service }: ServiceShowcaseProps) {
           {/* Header */}
           <div className="flex justify-between items-center p-4 text-white">
             <span className="text-sm">
-              {currentImageIndex + 1} / {service.imageUrls.length}
+              {currentImageIndex + 1} / {service.images.length}
             </span>
             <Button
               variant="ghost"
@@ -221,7 +207,7 @@ export default function ServiceShowcase({ service }: ServiceShowcaseProps) {
               >
                 <div className={`relative ${isZoomed ? 'w-full h-full' : 'w-4/5 h-4/5'}`}>
                   <Image
-                    src={service.imageUrls[currentImageIndex]}
+                    src={service.images[currentImageIndex]}
                     alt={`${service.name} - View ${currentImageIndex + 1}`}
                     fill
                     className={`object-contain transition-transform duration-300 ${

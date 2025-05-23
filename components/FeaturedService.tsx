@@ -13,11 +13,11 @@ export default function FeaturedServices() {
   const { t } = useTranslation();
   const [page] = useState(1);
 
-  const { services, isLoading, isError } = useServices();
-  const featuredServices = Array.isArray(services) ? services.filter(s => s.isFeatured) : [];
+  const { data, isLoading, isError } = useServices({ page, limit: 10 });
 
-  const pageSize = 12;
-  const paginated = featuredServices.slice((page - 1) * pageSize, page * pageSize);
+  // Get featured services (for now, just take the first 4 services)
+  // This can be updated once we have a featured flag in the API
+  const featuredServices = data?.services?.slice(0, 4) || [];
 
   if (isLoading) {
     return (
@@ -56,7 +56,7 @@ export default function FeaturedServices() {
         </Link>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {paginated.map((service, index) => (
+        {featuredServices.map((service, index) => (
           <ServiceCard key={service.id} service={service} priority={index < 2} />
         ))}
       </div>
@@ -67,8 +67,8 @@ export default function FeaturedServices() {
 // Skeleton component for loading state
 function SkeletonGrid() {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-screen-xl px-4">
-      {Array.from({ length: 3 }).map((_, i) => (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full max-w-screen-xl px-4">
+      {Array.from({ length: 4 }).map((_, i) => (
         <Card key={i} className="bg-background border-muted-foreground/20">
           <Skeleton className="w-full h-64 rounded-t-lg" />
           <div className="p-6 space-y-4">
@@ -76,7 +76,6 @@ function SkeletonGrid() {
             <Skeleton className="h-4 w-full" />
             <Skeleton className="h-4 w-5/6" />
             <div className="flex gap-4 mt-4">
-              <Skeleton className="h-4 w-16" />
               <Skeleton className="h-4 w-16" />
               <Skeleton className="h-4 w-16" />
             </div>

@@ -55,7 +55,7 @@ export default function ServiceShowcase({ service }: ServiceShowcaseProps) {
       {/* Breadcrumb Navigation */}
       <nav className="flex items-center space-x-1 text-sm text-muted-foreground mb-6">
         <Link href="/services" className="hover:text-foreground transition-colors">
-          Tìm kiếm
+          {t('service_showcase.search')}
         </Link>
         <ChevronRightIcon className="h-4 w-4" />
         <span className="text-foreground font-medium">{service.name}</span>

@@ -1,4 +1,5 @@
 import apiService from '../core';
+import { Message } from './fetchAuth';
 
 export interface User {
   userName: string;
@@ -14,10 +15,8 @@ export interface User {
 }
 
 export interface UserResponse {
-  code: string;
-  status: boolean;
-  message?: string;
-  data: User;
+  data?: User;
+  message?: Message;
 }
 
 export interface UserUpdateResponse {

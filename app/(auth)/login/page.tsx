@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useTranslation } from 'react-i18next';
 import {
   Card,
   CardContent,
@@ -43,6 +44,7 @@ export default function LoginPage() {
   const { login, isLoading, error, clearError } = useLogin();
   const isAuthenticated = useAuthStore(state => state.isAuthenticated);
   const router = useRouter();
+  const { t } = useTranslation('common');
 
   // Form initialization
   const form = useForm<LoginFormValues>({
@@ -87,10 +89,8 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4 py-12">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">Đăng nhập</CardTitle>
-          <CardDescription className="text-center">
-            Nhập thông tin đăng nhập để truy cập tài khoản của bạn
-          </CardDescription>
+          <CardTitle className="text-2xl font-bold text-center">{t('login.title')}</CardTitle>
+          <CardDescription className="text-center">{t('login.description')}</CardDescription>
         </CardHeader>
 
         <Form {...form}>
@@ -101,12 +101,12 @@ export default function LoginPage() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel>{t('login.email')}</FormLabel>
                     <FormControl>
                       <div className="relative">
                         <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                         <Input
-                          placeholder="nguyen.van.a@example.com"
+                          placeholder={t('login.email_placeholder')}
                           className="pl-10"
                           {...field}
                           disabled={isLoading}
@@ -124,19 +124,19 @@ export default function LoginPage() {
                 render={({ field }) => (
                   <FormItem>
                     <div className="flex items-center justify-between">
-                      <FormLabel>Mật khẩu</FormLabel>
+                      <FormLabel>{t('login.password')}</FormLabel>
                       <Link
                         href="/forgot-password"
                         className="text-sm font-medium text-primary hover:underline"
                       >
-                        Quên mật khẩu?
+                        {t('login.forgot_password')}
                       </Link>
                     </div>
                     <FormControl>
                       <div className="relative">
                         <Input
                           type={showPassword ? 'text' : 'password'}
-                          placeholder="Mật khẩu của bạn"
+                          placeholder={t('login.password_placeholder')}
                           {...field}
                           disabled={isLoading}
                         />
@@ -154,7 +154,7 @@ export default function LoginPage() {
                             <Eye className="h-4 w-4 text-muted-foreground" />
                           )}
                           <span className="sr-only">
-                            {showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                            {showPassword ? t('login.hide_password') : t('login.show_password')}
                           </span>
                         </Button>
                       </div>
@@ -177,7 +177,9 @@ export default function LoginPage() {
                       />
                     </FormControl>
                     <div className="space-y-1 leading-none">
-                      <FormLabel className="text-sm font-normal">Ghi nhớ đăng nhập</FormLabel>
+                      <FormLabel className="text-sm font-normal">
+                        {t('login.remember_me')}
+                      </FormLabel>
                     </div>
                   </FormItem>
                 )}
@@ -190,7 +192,7 @@ export default function LoginPage() {
               )}
 
               <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
+                {isLoading ? t('login.loading') : t('login.submit')}
               </Button>
             </CardContent>
           </form>
@@ -198,12 +200,12 @@ export default function LoginPage() {
 
         <CardFooter className="flex flex-col gap-4 pt-2">
           <p className="px-6 text-center text-sm text-muted-foreground">
-            Chưa có tài khoản?{' '}
+            {t('login.no_account')}{' '}
             <Link
               href="/register/email"
               className="underline underline-offset-4 hover:text-primary"
             >
-              Tạo tài khoản
+              {t('login.create_account')}
             </Link>
           </p>
         </CardFooter>

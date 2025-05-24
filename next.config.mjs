@@ -16,6 +16,31 @@ const nextConfig = {
         protocol: 'https',
         pathname: '/**',
       },
+      {
+        hostname: 'example.com',
+        protocol: 'https',
+        pathname: '/**',
+      },
+      {
+        hostname: 'cdn.example.com',
+        protocol: 'https',
+        pathname: '/**',
+      },
+      {
+        hostname: 'loremflickr.com',
+        protocol: 'https',
+        pathname: '/**',
+      },
+      {
+        hostname: 'picsum.photos',
+        protocol: 'https',
+        pathname: '/**',
+      },
+      {
+        hostname: 'flagcdn.com',
+        protocol: 'https',
+        pathname: '/**',
+      },
     ],
     // Optimize image loading and caching
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],

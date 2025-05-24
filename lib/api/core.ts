@@ -73,6 +73,13 @@ export class ApiService {
     this.client.interceptors.response.use(
       response => response,
       (error: AxiosError<ApiErrorData>) => {
+        console.error('API Error intercepted:', {
+          status: error.response?.status,
+          data: error.response?.data,
+          url: error.config?.url,
+          method: error.config?.method,
+        });
+
         // Handle authentication errors
         if (error.response?.status === 401 && this.onAuthError) {
           this.onAuthError();
@@ -84,6 +91,9 @@ export class ApiService {
           message: error.response?.data?.message || error.message || 'Unknown error occurred',
           error: error.response?.data || { message: error.message },
         };
+
+        // Log the formatted error for debugging
+        console.error('Formatted API Error:', apiError);
 
         return Promise.reject(apiError);
       }

@@ -14,7 +14,6 @@ export function useUserProfile() {
     // enabled: isAuthenticated,
     select: (data: UserResponse) => ({
       profile: data.data,
-      status: data.status,
       message: data.message,
     }),
   });

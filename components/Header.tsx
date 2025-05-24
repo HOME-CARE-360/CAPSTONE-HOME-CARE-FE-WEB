@@ -53,9 +53,9 @@ export default function Header() {
     <header className="w-full max-w-[1440px] md:px-8 xl:px-20 mx-auto bg-background text-foreground top-0 z-50">
       <div className="max-w-screen-xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
         <nav className="hidden md:flex items-center gap-6 text-base font-normal text-foreground">
-          <Link href="/services?transactionType=ForSale">{t('header.services')}</Link>
-          <Link href="/services?transactionType=ForRent">{t('header.best_services')}</Link>
-          <Link href="/services?transactionType=ForSale">{t('header.best_agents')}</Link>
+          <Link href="/services?">{t('header.services')}</Link>
+          <Link href="/services?">{t('header.best_services')}</Link>
+          <Link href="/services?">{t('header.best_agents')}</Link>
           {/* <Link href="#">{t('header.transfer')}</Link> */}
           {/* <Link href="#">{t('header.apartment')}</Link>
           <Link href="#">{t('header.services')}</Link> */}
@@ -125,7 +125,7 @@ export default function Header() {
           ) : (
             <>
               <Button asChild variant="outline" size="sm">
-                <Link href="/register">{t('header.register')}</Link>
+                <Link href="/register/email">{t('header.register')}</Link>
               </Button>
               <Button asChild size="sm">
                 <Link href="/login">{t('header.login')}</Link>

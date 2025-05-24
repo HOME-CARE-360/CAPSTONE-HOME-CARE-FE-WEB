@@ -14,23 +14,25 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const service = response.data;
 
     return {
-      title: `${service.name} | ${service.provider}`,
+      title: `${service.name} | HomeCare360`,
       description: service.description,
       openGraph: {
-        title: `${service.name} | ${service.provider}`,
+        title: `${service.name} | HomeCare360`,
         description: service.description,
         images: service.images[0] ? [service.images[0]] : [],
+        locale: 'vi_VN',
+        alternateLocale: 'en_US',
       },
       twitter: {
         card: 'summary_large_image',
-        title: `${service.name} | ${service.provider}`,
+        title: `${service.name} | HomeCare360`,
         description: service.description,
         images: service.images[0] ? [service.images[0]] : [],
       },
     };
   } catch (error) {
     return {
-      title: 'Service Details | HomeCare',
+      title: 'Service Details | HomeCare360',
       description: 'View detailed information about this service.',
     };
   }

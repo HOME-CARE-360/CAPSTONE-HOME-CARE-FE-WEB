@@ -16,8 +16,8 @@ export interface OTPVerifyRequest {
 }
 
 export interface OTPVerifyResponse {
-  message: string;
   status?: boolean;
+  message?: Message;
 }
 
 export interface RegisterRequest {
@@ -34,9 +34,14 @@ export interface Token {
   refreshToken: string;
 }
 
+export interface Message {
+  message: string;
+  path: string;
+}
+
 export interface LoginResponse {
-  message?: string;
-  data: Token;
+  data?: Token;
+  message?: Message;
 }
 
 export interface RegisterResponse {
@@ -58,22 +63,72 @@ export interface RegisterResponse {
       name: string;
     }>;
   };
-  // Error message
-  message?: [
-    {
-      message: string;
-      path: string;
-    },
-  ];
-  error?: string;
-  statusCode?: number;
+  message?: Message;
+}
+
+export interface RegisterProviderRequest {
+  taxId: string;
+  companyType: 'SOLE_PROPRIETORSHIP' | 'LIMITED_LIABILITY' | 'PARTNERSHIP' | 'OTHER';
+  industry: string;
+  address: string;
+  description: string;
+  email: string;
+  password: string;
+  name: string;
+  phone: string;
+  confirmPassword: string;
+  code: string;
+}
+
+export interface RegisterProviderResponse {
+  data?: {
+    id: number;
+    email: string;
+    name: string;
+    phone: string;
+    taxId: string;
+    companyType: string;
+    industry: string;
+    address: string;
+    description: string;
+    status: string;
+    createdAt: string;
+    updatedAt: string;
+  };
+  message?: Message;
 }
 
 export const fetchAuth = {
   // Request OTP for registration or password reset
   verifyEmailWithOTP: async (data: OTPVerifyRequest): Promise<OTPVerifyResponse> => {
-    const response = await apiService.post<OTPVerifyResponse, OTPVerifyRequest>('/auth/otp', data);
-    return response.data;
+    try {
+      const response = await apiService.post<OTPVerifyResponse, OTPVerifyRequest>(
+        '/auth/otp',
+        data
+      );
+
+      // Check if this is a successful response (status 200 or 201)
+      if (response.status === 200 || response.status === 201) {
+        // Ensure we return a proper success response even if the data structure is empty
+        return { status: true };
+      }
+
+      return response.data;
+    } catch (error: unknown) {
+      // Properly type the error
+      const apiError = error as { status?: number };
+
+      // Check if this is actually a success response being treated as an error
+      if (apiError.status === 200 || apiError.status === 201) {
+        return { status: true };
+      }
+
+      // Enhanced error logging to see full error structure
+      console.error('OTP API Error - Full structure:', JSON.stringify(error, null, 2));
+
+      // Do not transform the error here, just pass it along to be handled by the hook
+      throw error;
+    }
   },
 
   // Login with credentials
@@ -87,11 +142,57 @@ export const fetchAuth = {
 
   // Register new user
   register: async (data: RegisterRequest): Promise<RegisterResponse> => {
-    const response = await apiService.post<RegisterResponse, RegisterRequest>(
-      '/auth/register',
-      data
-    );
-    return response.data;
+    try {
+      const response = await apiService.post<RegisterResponse, RegisterRequest>(
+        '/auth/register',
+        data
+      );
+      console.log('Register API Response:', response);
+
+      // Check if this is a successful response (status 200 or 201)
+      if (response.status === 200 || response.status === 201) {
+        console.log('Registration successful with status:', response.status);
+        // Ensure we return a proper success response
+        return response.data || { status: true };
+      }
+
+      return response.data;
+    } catch (error: unknown) {
+      // Enhanced error logging to see full error structure
+      console.error('Register API Error - Full structure:', JSON.stringify(error, null, 2));
+
+      // Do not transform the error here, just pass it along to be handled by the hook
+      throw error;
+    }
+  },
+
+  // Register new provider
+  registerProvider: async (data: RegisterProviderRequest): Promise<RegisterProviderResponse> => {
+    try {
+      const response = await apiService.post<RegisterProviderResponse, RegisterProviderRequest>(
+        '/auth/register-provider',
+        data
+      );
+      console.log('Register Provider API Response:', response);
+
+      // Check if this is a successful response (status 200 or 201)
+      if (response.status === 200 || response.status === 201) {
+        console.log('Provider registration successful with status:', response.status);
+        // Ensure we return a proper success response
+        return response.data || { status: true };
+      }
+
+      return response.data;
+    } catch (error: unknown) {
+      // Enhanced error logging to see full error structure
+      console.error(
+        'Register Provider API Error - Full structure:',
+        JSON.stringify(error, null, 2)
+      );
+
+      // Do not transform the error here, just pass it along to be handled by the hook
+      throw error;
+    }
   },
 
   // Logout - no API call, just return resolved promise

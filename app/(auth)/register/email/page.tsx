@@ -1,10 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useToast } from '@/hooks/useToast';
+import { useTranslation } from 'react-i18next';
 
 import {
   Card,
@@ -28,7 +31,6 @@ import { useRequestOTP } from '@/hooks/useAuth';
 import { OTPVerifyRequest } from '@/lib/api/services/fetchAuth';
 import { Mail, ArrowRight, Loader2 } from 'lucide-react';
 
-// Schema for email input form
 const emailSchema = z.object({
   email: z.string().email({ message: 'Vui lòng nhập địa chỉ email hợp lệ' }),
 });
@@ -37,12 +39,15 @@ type EmailFormValues = z.infer<typeof emailSchema>;
 
 export default function RegisterEmailPage() {
   const { requestOTP, isLoading: isRequestingOTP } = useRequestOTP();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const router = useRouter();
+  const { toast } = useToast();
+  const { t } = useTranslation('common');
 
-  // Check if we have any stored form data
-  useState(() => {
-    // Clear any stored OTP
+  useEffect(() => {
     localStorage.removeItem('otpCode');
-  });
+    localStorage.removeItem('registerFormData');
+  }, []);
 
   // Email form
   const emailForm = useForm<EmailFormValues>({
@@ -53,24 +58,93 @@ export default function RegisterEmailPage() {
   });
 
   // Handler for requesting OTP
-  const handleRequestOTP = (data: EmailFormValues) => {
-    // Store email in form data
-    localStorage.setItem('registerFormData', JSON.stringify({ email: data.email }));
+  const handleRequestOTP = async (data: EmailFormValues) => {
+    if (isSubmitting) return;
 
-    const payload: OTPVerifyRequest = {
-      email: data.email,
-      type: 'REGISTER',
-    };
-    requestOTP(payload);
+    try {
+      setIsSubmitting(true);
+
+      localStorage.setItem('registerFormData', JSON.stringify({ email: data.email }));
+
+      const payload: OTPVerifyRequest = {
+        email: data.email,
+        type: 'REGISTER',
+      };
+      // Call the requestOTP function and await its result
+      await requestOTP(payload);
+
+      // Show success toast and redirect
+      toast({
+        title: t('register.otp_sent_title'),
+        description: t('register.otp_sent_description'),
+        variant: 'default',
+      });
+
+      // Small delay before redirecting to ensure toast is shown
+      setTimeout(() => {
+        router.push('/register');
+      }, 500);
+    } catch (error: unknown) {
+      console.error('OTP request failed:', error);
+
+      // Type assertion for the error
+      const typedError = error as {
+        status?: number;
+        originalError?: { status: number };
+        message?: string;
+      };
+
+      // Special case: if the error contains a success status, treat it as a success
+      if (
+        typedError.status === 201 ||
+        typedError.status === 200 ||
+        (typedError.originalError &&
+          (typedError.originalError.status === 201 || typedError.originalError.status === 200))
+      ) {
+        console.log('Request was actually successful despite error');
+
+        toast({
+          title: t('register.otp_sent_title'),
+          description: t('register.otp_sent_description'),
+          variant: 'default',
+        });
+
+        // Small delay before redirecting to ensure toast is shown
+        setTimeout(() => {
+          router.push('/register');
+        }, 500);
+
+        return;
+      }
+
+      // Get the error message with fallbacks
+      let errorMessage = typedError.message || t('register.otp_error_generic');
+
+      // Handle specific error cases
+      if (
+        errorMessage.includes('EmailAlreadyExists') ||
+        errorMessage.includes('Error.EmailAlreadyExists')
+      ) {
+        errorMessage = t('register.email_already_exists');
+      }
+
+      toast({
+        title: t('register.otp_error_title'),
+        description: errorMessage,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-6 sm:px-6 lg:px-8">
       <Card className="mx-auto max-w-md w-full">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">Tạo tài khoản</CardTitle>
+          <CardTitle className="text-2xl font-bold text-center">{t('register.title')}</CardTitle>
           <CardDescription className="text-center">
-            Nhập email của bạn để bắt đầu quá trình đăng ký
+            {t('register.email_step_description')}
           </CardDescription>
         </CardHeader>
 
@@ -82,15 +156,15 @@ export default function RegisterEmailPage() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel>{t('register.email')}</FormLabel>
                     <FormControl>
                       <div className="relative">
                         <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
-                          placeholder="nguyen.van.a@example.com"
+                          placeholder={t('register.email_placeholder')}
                           className="h-10 pl-10"
                           {...field}
-                          disabled={isRequestingOTP}
+                          disabled={isRequestingOTP || isSubmitting}
                         />
                       </div>
                     </FormControl>
@@ -99,15 +173,15 @@ export default function RegisterEmailPage() {
                 )}
               />
 
-              <Button type="submit" className="w-full" disabled={isRequestingOTP}>
-                {isRequestingOTP ? (
+              <Button type="submit" className="w-full" disabled={isRequestingOTP || isSubmitting}>
+                {isRequestingOTP || isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Đang gửi...
+                    {t('register.sending_otp')}
                   </>
                 ) : (
                   <>
-                    Tiếp tục
+                    {t('register.continue')}
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </>
                 )}
@@ -118,9 +192,9 @@ export default function RegisterEmailPage() {
 
         <CardFooter className="flex flex-col border-t pt-4">
           <div className="text-xs text-muted-foreground text-center">
-            Đã có tài khoản?{' '}
+            {t('register.have_account')}{' '}
             <Link href="/login" className="font-medium text-primary hover:underline">
-              Đăng nhập
+              {t('register.login_link')}
             </Link>
           </div>
         </CardFooter>

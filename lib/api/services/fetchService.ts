@@ -69,7 +69,7 @@ export const serviceService = {
 
   // Get a single service by ID
   getService: async (id: string | number): Promise<ServiceDetailResponse> => {
-    const response = await apiService.get<ServiceDetailResponse>(`/services/${id}`);
+    const response = await apiService.get<ServiceDetailResponse>(`/services/detail/${id}`);
     return response.data;
   },
 };

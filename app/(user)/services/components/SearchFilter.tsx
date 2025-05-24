@@ -94,23 +94,6 @@ interface FilterValues {
 //   },
 // ];
 
-// Price range mapping
-const priceRangeMap: Record<string, string> = {
-  '100k-300k': '100.000đ - 300.000đ',
-  '300k-500k': '300.000đ - 500.000đ',
-  '500k-750k': '500.000đ - 750.000đ',
-  '750k-1m': '750.000đ - 1.000.000đ',
-  '1m-plus': 'Trên 1.000.000đ',
-};
-
-// Service categories
-const serviceCategories = [
-  { value: 'cleaning', label: 'Dọn dẹp' },
-  { value: 'massage', label: 'Massage' },
-  { value: 'cooking', label: 'Nấu ăn' },
-  { value: 'nursing', label: 'Điều dưỡng' },
-];
-
 export default function SearchFilter() {
   const { t } = useTranslation();
   const router = useRouter();
@@ -129,6 +112,23 @@ export default function SearchFilter() {
   const [selectedProvince, setSelectedProvince] = useState<string>('');
   const [selectedDistrict, setSelectedDistrict] = useState<string>('');
   const [selectedWard, setSelectedWard] = useState<string>('');
+
+  // Service categories - moved inside component
+  const serviceCategories = [
+    { value: 'cleaning', label: t('services.search_filter.categories_list.cleaning') },
+    { value: 'massage', label: t('services.search_filter.categories_list.massage') },
+    { value: 'cooking', label: t('services.search_filter.categories_list.cooking') },
+    { value: 'nursing', label: t('services.search_filter.categories_list.nursing') },
+  ];
+
+  // Price range mapping - moved inside component
+  const priceRangeMap: Record<string, string> = {
+    '100k-300k': t('services.search_filter.price_ranges.100k-300k'),
+    '300k-500k': t('services.search_filter.price_ranges.300k-500k'),
+    '500k-750k': t('services.search_filter.price_ranges.500k-750k'),
+    '750k-1m': t('services.search_filter.price_ranges.750k-1m'),
+    '1m-plus': t('services.search_filter.price_ranges.1m-plus'),
+  };
 
   // Initialize filters from URL search params
   useEffect(() => {
@@ -382,14 +382,13 @@ export default function SearchFilter() {
             </Select>
           </div>
 
-          {/* Add Ward Selection */}
           {selectedDistrict && (
             <Select
               value={selectedWard}
               onValueChange={value => handleLocationChange('ward', value)}
             >
               <SelectTrigger className="h-12 border-muted/50">
-                <SelectValue placeholder={t('services.search_filter.select_ward')} />
+                <SelectValue placeholder={t('services.search_filter.location.select_ward')} />
               </SelectTrigger>
               <SelectContent>
                 {wards.map(ward => (
@@ -496,7 +495,7 @@ export default function SearchFilter() {
                       const category = serviceCategories.find(c => c.value === value);
                       displayValue = category?.label || value;
                     } else if (key === 'priceRange') {
-                      displayValue = priceRangeMap[value] || value;
+                      displayValue = t(`services.search_filter.price_ranges.${value}`) || value;
                     }
                     return (
                       <Badge
@@ -553,14 +552,15 @@ export default function SearchFilter() {
                     </SelectContent>
                   </Select>
 
-                  {/* Add Ward Selection */}
                   {selectedDistrict && (
                     <Select
                       value={selectedWard}
                       onValueChange={value => handleLocationChange('ward', value)}
                     >
                       <SelectTrigger className="h-12 border-muted/50">
-                        <SelectValue placeholder={t('services.search_filter.select_ward')} />
+                        <SelectValue
+                          placeholder={t('services.search_filter.location.select_ward')}
+                        />
                       </SelectTrigger>
                       <SelectContent>
                         {wards.map(ward => (

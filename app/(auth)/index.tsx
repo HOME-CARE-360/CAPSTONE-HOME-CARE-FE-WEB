@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useTranslation } from 'react-i18next';
 
 import {
   Card,
@@ -37,6 +38,7 @@ type EmailFormValues = z.infer<typeof emailSchema>;
 
 export default function AuthEntryPage() {
   const { requestOTP, isLoading: isRequestingOTP } = useRequestOTP();
+  const { t } = useTranslation('common');
 
   // Check for stored data and clean it up when entering
   useEffect(() => {
@@ -69,8 +71,8 @@ export default function AuthEntryPage() {
     <div className="flex min-h-screen items-center justify-center px-4 py-6 sm:px-6 lg:px-8">
       <Card className="mx-auto max-w-md w-full">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">Tạo tài khoản</CardTitle>
-          <CardDescription className="text-center">Nhập email của bạn để bắt đầu</CardDescription>
+          <CardTitle className="text-2xl font-bold text-center">{t('register.title')}</CardTitle>
+          <CardDescription className="text-center">{t('register.email_intro')}</CardDescription>
         </CardHeader>
 
         <CardContent className="space-y-4">
@@ -81,12 +83,12 @@ export default function AuthEntryPage() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel>{t('register.email')}</FormLabel>
                     <FormControl>
                       <div className="relative">
                         <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
-                          placeholder="nguyen.van.a@example.com"
+                          placeholder={t('register.email_placeholder')}
                           className="h-10 pl-10"
                           {...field}
                           disabled={isRequestingOTP}
@@ -102,11 +104,11 @@ export default function AuthEntryPage() {
                 {isRequestingOTP ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Đang gửi...
+                    {t('register.sending_otp')}
                   </>
                 ) : (
                   <>
-                    Tiếp tục
+                    {t('register.continue')}
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </>
                 )}
@@ -117,9 +119,9 @@ export default function AuthEntryPage() {
 
         <CardFooter className="flex flex-col border-t pt-4">
           <div className="text-xs text-muted-foreground text-center">
-            Đã có tài khoản?{' '}
+            {t('register.have_account')}{' '}
             <Link href="/login" className="font-medium text-primary hover:underline">
-              Đăng nhập
+              {t('register.login_link')}
             </Link>
           </div>
         </CardFooter>

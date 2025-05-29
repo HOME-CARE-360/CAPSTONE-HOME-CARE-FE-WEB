@@ -4,6 +4,7 @@ import { Inter } from 'next/font/google';
 import { Toaster } from '@/components/ui/toaster';
 import { QueryProvider } from '@/lib/providers/queryProvider';
 import { I18nextProvider } from '@/components/i18next-provider';
+import { ThemeProvider } from '@/components/theme-provider';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -34,7 +35,7 @@ export const metadata: Metadata = {
     siteName: 'HomeCare 360 Official Website',
     images: [
       {
-        url: '/revoland_logo.png',
+        url: '/homecare360_logo.png',
         width: 1200,
         height: 630,
         alt: 'HomeCare 360 Service Banner',
@@ -51,7 +52,7 @@ export const metadata: Metadata = {
       'In the modern busy life, households increasingly require flexible, quick, and personalized home services. Traditional booking methods are often inefficient, inconvenient, and lack transparency.',
     images: [
       {
-        url: '/revoland_logo.png',
+        url: '/homecare360_logo.png',
         alt: 'HomeCare 360 Service Banner',
       },
     ],
@@ -61,8 +62,8 @@ export const metadata: Metadata = {
     follow: true,
   },
   icons: {
-    icon: '/revoland_logo.png',
-    apple: '/revoland_logo.png',
+    icon: '/homecare360_logo.png',
+    apple: '/homecare360_logo.png',
   },
 };
 
@@ -79,12 +80,19 @@ export default function RootLayout({
   return (
     <html lang="vi" suppressHydrationWarning>
       <body className={inter.className}>
-        <QueryProvider>
-          <I18nextProvider>
-            <main>{children}</main>
-            <Toaster />
-          </I18nextProvider>
-        </QueryProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <QueryProvider>
+            <I18nextProvider>
+              <main>{children}</main>
+              <Toaster />
+            </I18nextProvider>
+          </QueryProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -16,6 +16,7 @@ import { useTranslation } from 'react-i18next';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/useToast';
+import { OTPType } from '@/lib/api/services/fetchAuth';
 
 const customerSchema = z
   .object({
@@ -102,7 +103,6 @@ export function CustomerRegistrationForm() {
     if (!isFormValid || !email) return;
 
     // Don't make an API call - just show the OTP form
-    console.log('Customer form - continuing with email:', email);
     setShowOTP(true);
     setOtpRequested(true);
   };
@@ -111,12 +111,11 @@ export function CustomerRegistrationForm() {
     if (!email || resendingOTP) return;
 
     try {
-      console.log('Customer form - requesting new OTP for:', email);
       setResendingOTP(true);
 
       await requestOTP({
         email: email,
-        type: 'REGISTER',
+        type: OTPType.REGISTER,
       });
 
       toast({
@@ -162,8 +161,6 @@ export function CustomerRegistrationForm() {
         password: data.password,
         confirmPassword: data.confirmPassword,
       };
-
-      console.log('Customer - Registering with OTP:', otpValue);
 
       // The register function now returns a Promise that can be properly awaited
       await register({

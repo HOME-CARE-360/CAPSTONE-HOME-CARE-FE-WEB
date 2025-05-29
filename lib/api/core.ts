@@ -1,23 +1,39 @@
 import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+
+// Validation error interface
+export interface ValidationError {
+  message: string;
+  path?: string;
+  code?: string;
+  minimum?: number;
+  type?: string;
+  inclusive?: boolean;
+  exact?: boolean;
+  [key: string]: unknown;
+}
+
 // API error response data structure
 export interface ApiErrorData {
-  message?: string;
+  message?: string | ValidationError[];
   code?: string | number;
+  error?: string;
+  statusCode?: number;
   [key: string]: unknown;
 }
 
 // Error interface
 export interface ApiError {
   status?: number;
-  message: string;
+  message: string | ValidationError[];
   error?: ApiErrorData;
 }
 
 // Response wrapper
 export interface ApiResponse<T> {
   data: T;
-  status: number;
+  status?: number;
   headers: Record<string, string>;
+  message?: string;
 }
 
 // Request parameters object
@@ -121,12 +137,13 @@ export class ApiService {
 
   // Generic request method
   private async request<T>(config: AxiosRequestConfig): Promise<ApiResponse<T>> {
-    const response: AxiosResponse<T> = await this.client(config);
+    const response: AxiosResponse<T & { message?: string }> = await this.client(config);
 
     return {
       data: response.data,
       status: response.status,
       headers: response.headers as Record<string, string>,
+      message: response.data.message,
     };
   }
 
@@ -211,6 +228,23 @@ export class ApiService {
           }
         : undefined,
     });
+  }
+
+  // Helper method to format validation errors into a readable format
+  getFormattedValidationErrors(error: ApiError): Record<string, string> {
+    const formattedErrors: Record<string, string> = {};
+
+    if (Array.isArray(error.message)) {
+      error.message.forEach((validationError: ValidationError) => {
+        if (validationError.path) {
+          formattedErrors[validationError.path] = validationError.message;
+        }
+      });
+    } else if (typeof error.message === 'string') {
+      formattedErrors.general = error.message;
+    }
+
+    return formattedErrors;
   }
 }
 

@@ -29,9 +29,7 @@ export function useRequestOTP() {
   const { mutate: requestOTP, isPending: isLoading } = useMutation({
     mutationFn: async (data: OTPVerifyRequest) => {
       try {
-        console.log('Sending OTP request with data:', data);
         const response = await fetchAuth.verifyEmailWithOTP(data);
-        console.log('OTP Response in hook:', response);
 
         // Check if the response contains an error message
         if (response.message && !response.status) {
@@ -49,7 +47,6 @@ export function useRequestOTP() {
 
         // Don't process errors if they're actually successful responses
         if (typedError.status === 201 || typedError.status === 200) {
-          console.log('Request was actually successful:', typedError);
           return { status: true };
         }
 
@@ -126,9 +123,7 @@ export function useRegister() {
   } = useMutation({
     mutationFn: async (data: RegisterRequest) => {
       try {
-        console.log('Registering user with data:', { ...data, password: '***' });
         const response = await fetchAuth.register(data);
-        console.log('Register response:', response);
 
         // Check if this is an error message - since some APIs might include a success message
         // that shouldn't be treated as an error

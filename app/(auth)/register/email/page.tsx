@@ -28,7 +28,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useRequestOTP } from '@/hooks/useAuth';
-import { OTPVerifyRequest } from '@/lib/api/services/fetchAuth';
+import { OTPType, OTPVerifyRequest } from '@/lib/api/services/fetchAuth';
 import { Mail, ArrowRight, Loader2 } from 'lucide-react';
 
 const emailSchema = z.object({
@@ -68,7 +68,7 @@ export default function RegisterEmailPage() {
 
       const payload: OTPVerifyRequest = {
         email: data.email,
-        type: 'REGISTER',
+        type: OTPType.REGISTER,
       };
       // Call the requestOTP function and await its result
       await requestOTP(payload);
@@ -101,8 +101,6 @@ export default function RegisterEmailPage() {
         (typedError.originalError &&
           (typedError.originalError.status === 201 || typedError.originalError.status === 200))
       ) {
-        console.log('Request was actually successful despite error');
-
         toast({
           title: t('register.otp_sent_title'),
           description: t('register.otp_sent_description'),

@@ -3,7 +3,7 @@
     "title": "Đăng nhập",
     "description": "Nhập thông tin đăng nhập để truy cập tài khoản của bạn",
     "email": "Email",
-    "email_placeholder": "nguyen.van.a@example.com",
+    "email_placeholder": "username@example.com",
     "password": "Mật khẩu",
     "password_placeholder": "Mật khẩu của bạn",
     "forgot_password": "Quên mật khẩu?",
@@ -21,7 +21,7 @@
     "email_intro": "Nhập email của bạn để bắt đầu",
     "email_step_description": "Nhập email của bạn để bắt đầu quá trình đăng ký",
     "email": "Email",
-    "email_placeholder": "nguyen.van.a@example.com",
+    "email_placeholder": "username@example.com",
     "password": "Mật khẩu",
     "password_placeholder": "Tạo mật khẩu",
     "confirm_password": "Xác nhận mật khẩu",
@@ -184,7 +184,8 @@
     "our_team": "Đội ngũ của chúng tôi",
     "our_clients": "Khách hàng của chúng tôi",
     "contact_form": "Biểu mẫu liên hệ",
-    "our_offices": "Văn phòng của chúng tôi"
+    "our_offices": "Văn phòng của chúng tôi",
+    "terms_conditions": "Điều khoản và điều kiện"
   },
   "home": {
     "featured_services_title": "Dịch vụ nổi bật",

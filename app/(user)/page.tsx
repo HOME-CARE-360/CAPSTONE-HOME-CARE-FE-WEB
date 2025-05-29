@@ -2,7 +2,7 @@ import Header from '@/components/Header';
 import FeaturedServices from '@/components/FeaturedService';
 import Footer from '@/components/Footer';
 
-export default function RootPage() {
+export default function UserPage() {
   return (
     <div>
       <Header />

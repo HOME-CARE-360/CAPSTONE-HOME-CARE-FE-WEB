@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useRequestOTP } from '@/hooks/useAuth';
-import { OTPVerifyRequest } from '@/lib/api/services/fetchAuth';
+import { OTPType, OTPVerifyRequest } from '@/lib/api/services/fetchAuth';
 import { Mail, ArrowRight, Loader2 } from 'lucide-react';
 
 // Schema for email input form
@@ -62,7 +62,7 @@ export default function AuthEntryPage() {
 
     const payload: OTPVerifyRequest = {
       email: data.email,
-      type: 'REGISTER',
+      type: OTPType.REGISTER,
     };
     requestOTP(payload);
   };

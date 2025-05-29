@@ -2,7 +2,8 @@ import apiService from '../core';
 
 export enum Roles {
   Admin = 'Admin',
-  Customer = 'Customer',
+  SERVICE_PROVIDER = 'SERVICE PROVIDER',
+  CUSTOMER = 'CUSTOMER',
 }
 
 export interface LoginCredentials {
@@ -10,14 +11,21 @@ export interface LoginCredentials {
   password: string;
 }
 
+export enum OTPType {
+  REGISTER = 'REGISTER',
+  FORGOT_PASSWORD = 'FORGOT_PASSWORD',
+  DISABLE_2FA = 'DISABLE_2FA',
+  LOGIN = 'LOGIN',
+}
+
 export interface OTPVerifyRequest {
   email: string;
-  type: 'REGISTER' | 'RESET_PASSWORD';
+  type: OTPType;
 }
 
 export interface OTPVerifyResponse {
+  message?: string;
   status?: boolean;
-  message?: Message;
 }
 
 export interface RegisterRequest {
@@ -35,8 +43,8 @@ export interface Token {
 }
 
 export interface Message {
-  message: string;
-  path: string;
+  message?: string;
+  path?: string;
 }
 
 export interface LoginResponse {
@@ -66,9 +74,17 @@ export interface RegisterResponse {
   message?: Message;
 }
 
+export enum CompanyType {
+  SOLE_PROPRIETORSHIP = 'SOLE_PROPRIETORSHIP',
+  LIMITED_LIABILITY = 'LIMITED_LIABILITY',
+  JOINT_STOCK = 'JOINT_STOCK',
+  PARTNERSHIP = 'PARTNERSHIP',
+  OTHER = 'OTHER',
+}
+
 export interface RegisterProviderRequest {
   taxId: string;
-  companyType: 'SOLE_PROPRIETORSHIP' | 'LIMITED_LIABILITY' | 'PARTNERSHIP' | 'OTHER';
+  companyType: CompanyType;
   industry: string;
   address: string;
   description: string;
@@ -107,22 +123,20 @@ export const fetchAuth = {
         data
       );
 
-      // Check if this is a successful response (status 200 or 201)
-      if (response.status === 200 || response.status === 201) {
-        // Ensure we return a proper success response even if the data structure is empty
-        return { status: true };
+      // If response has data, return it
+      if (response.data) {
+        return {
+          ...response.data,
+          status: true,
+        };
       }
 
-      return response.data;
+      // Fallback success response
+      return {
+        status: true,
+        message: response.message || 'OTP verification successful',
+      };
     } catch (error: unknown) {
-      // Properly type the error
-      const apiError = error as { status?: number };
-
-      // Check if this is actually a success response being treated as an error
-      if (apiError.status === 200 || apiError.status === 201) {
-        return { status: true };
-      }
-
       // Enhanced error logging to see full error structure
       console.error('OTP API Error - Full structure:', JSON.stringify(error, null, 2));
 
@@ -147,11 +161,9 @@ export const fetchAuth = {
         '/auth/register',
         data
       );
-      console.log('Register API Response:', response);
 
       // Check if this is a successful response (status 200 or 201)
       if (response.status === 200 || response.status === 201) {
-        console.log('Registration successful with status:', response.status);
         // Ensure we return a proper success response
         return response.data || { status: true };
       }
@@ -173,11 +185,9 @@ export const fetchAuth = {
         '/auth/register-provider',
         data
       );
-      console.log('Register Provider API Response:', response);
 
       // Check if this is a successful response (status 200 or 201)
       if (response.status === 200 || response.status === 201) {
-        console.log('Provider registration successful with status:', response.status);
         // Ensure we return a proper success response
         return response.data || { status: true };
       }

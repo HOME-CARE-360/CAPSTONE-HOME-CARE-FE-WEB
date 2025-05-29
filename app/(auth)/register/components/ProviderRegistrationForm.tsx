@@ -24,6 +24,7 @@ import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/useToast';
 import { useTranslation } from 'react-i18next';
+import { OTPType, CompanyType } from '@/lib/api/services/fetchAuth';
 
 const providerSchema = z
   .object({
@@ -32,7 +33,7 @@ const providerSchema = z
     password: z.string().min(6, 'Password must be at least 6 characters'),
     confirmPassword: z.string(),
     taxId: z.string().min(10, 'Tax ID must be at least 10 characters'),
-    companyType: z.enum(['SOLE_PROPRIETORSHIP', 'LIMITED_LIABILITY', 'PARTNERSHIP', 'OTHER']),
+    companyType: z.nativeEnum(CompanyType),
     industry: z.string().min(2, 'Industry must be at least 2 characters'),
     address: z.string().min(5, 'Address must be at least 5 characters'),
     description: z.string().min(10, 'Description must be at least 10 characters'),
@@ -92,7 +93,7 @@ export function ProviderRegistrationForm() {
       password: '',
       confirmPassword: '',
       taxId: '',
-      companyType: 'PARTNERSHIP',
+      companyType: CompanyType.PARTNERSHIP,
       industry: '',
       address: '',
       description: '',
@@ -120,7 +121,6 @@ export function ProviderRegistrationForm() {
     if (!isFormValid || !email) return;
 
     // Don't make an API call - just show the OTP form
-    console.log('Provider form - continuing with email:', email);
     setShowOTP(true);
     setOtpRequested(true);
   };
@@ -129,12 +129,11 @@ export function ProviderRegistrationForm() {
     if (!email || resendingOTP) return;
 
     try {
-      console.log('Provider form - requesting new OTP for:', email);
       setResendingOTP(true);
 
       await requestOTP({
         email: email,
-        type: 'REGISTER',
+        type: OTPType.REGISTER,
       });
 
       toast({
@@ -186,16 +185,12 @@ export function ProviderRegistrationForm() {
         description: data.description,
       };
 
-      console.log('Provider - Registering with OTP:', otpValue);
-
       // The registerProvider function now returns a Promise that can be properly awaited
       await registerProvider({
         ...registrationData,
         email: email,
         code: otpValue,
       });
-
-      console.log('Provider - Registration successful');
 
       // If no error was thrown, registration was successful
       toast({
@@ -284,28 +279,25 @@ export function ProviderRegistrationForm() {
       <div className="space-y-2">
         <Label htmlFor="companyType">{t('register.provider.company_type')}</Label>
         <Select
-          onValueChange={value =>
-            form.setValue(
-              'companyType',
-              value as 'SOLE_PROPRIETORSHIP' | 'LIMITED_LIABILITY' | 'PARTNERSHIP' | 'OTHER'
-            )
-          }
+          onValueChange={value => form.setValue('companyType', value as CompanyType)}
           defaultValue={form.getValues('companyType')}
         >
           <SelectTrigger>
             <SelectValue placeholder={t('register.provider.select_company_type')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="SOLE_PROPRIETORSHIP">
+            <SelectItem value={CompanyType.SOLE_PROPRIETORSHIP}>
               {t('register.provider.company_types.sole_proprietorship')}
             </SelectItem>
-            <SelectItem value="LIMITED_LIABILITY">
+            <SelectItem value={CompanyType.LIMITED_LIABILITY}>
               {t('register.provider.company_types.limited_liability')}
             </SelectItem>
-            <SelectItem value="PARTNERSHIP">
+            <SelectItem value={CompanyType.PARTNERSHIP}>
               {t('register.provider.company_types.partnership')}
             </SelectItem>
-            <SelectItem value="OTHER">{t('register.provider.company_types.other')}</SelectItem>
+            <SelectItem value={CompanyType.OTHER}>
+              {t('register.provider.company_types.other')}
+            </SelectItem>
           </SelectContent>
         </Select>
         {form.formState.errors.companyType && (

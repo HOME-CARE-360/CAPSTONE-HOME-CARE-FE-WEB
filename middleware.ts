@@ -6,6 +6,7 @@ const protectedRoutes = [
   '/provider/dashboard',
   '/provider',
   '/user/profile',
+  '/settings/profile',
   // Add other protected routes as needed
 ];
 

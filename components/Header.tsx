@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from 'react-i18next';
 import { LanguageSelector } from './language-selector';
@@ -18,6 +17,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { UserCircleIcon, LogOutIcon, SettingsIcon } from 'lucide-react';
+import { ThemeSwitch } from '@/components/ThemeSwitch';
 
 export default function Header() {
   const { t } = useTranslation();
@@ -50,88 +50,96 @@ export default function Header() {
   const initials = getInitials(user.name);
 
   return (
-    <header className="w-full max-w-[1440px] md:px-8 xl:px-20 mx-auto bg-background text-foreground top-0 z-50">
-      <div className="max-w-screen-xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
-        <nav className="hidden md:flex items-center gap-6 text-base font-normal text-foreground">
-          <Link href="/services?">{t('header.services')}</Link>
-          <Link href="/services?">{t('header.best_services')}</Link>
-          <Link href="/services?">{t('header.best_agents')}</Link>
-          {/* <Link href="#">{t('header.transfer')}</Link> */}
-          {/* <Link href="#">{t('header.apartment')}</Link>
-          <Link href="#">{t('header.services')}</Link> */}
-        </nav>
-        <Link href="/" className="flex items-center gap-2">
-          <Image
-            src="https://i.pinimg.com/736x/c4/f5/fa/c4f5fa60b185e0e5771de1f4c96d7372.jpg"
-            alt="HomeCare"
-            width={80}
-            height={80}
-            priority
-            className="rounded-md"
-          />
-          <div className="relative w-36 h-10">
-            <Image
-              src="https://i.pinimg.com/736x/c4/f5/fa/c4f5fa60b185e0e5771de1f4c96d7372.jpg"
-              alt="HomeCare"
-              fill
-              sizes="(max-width: 768px) 100vw, 50vw"
-              className="object-contain"
-            />
+    <header className="sticky top-0 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border/40">
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex h-16 items-center justify-between">
+          {/* Logo and Navigation */}
+          <div className="flex items-center gap-8">
+            <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-80">
+              <span className="text-xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                HomeCare
+              </span>
+            </Link>
+
+            <nav className="hidden md:flex items-center gap-6">
+              <Link
+                href="/services"
+                className="text-sm font-medium text-foreground/80 transition-colors hover:text-primary"
+              >
+                {t('header.services')}
+              </Link>
+              <Link
+                href="/services"
+                className="text-sm font-medium text-foreground/80 transition-colors hover:text-primary"
+              >
+                {t('header.best_agents')}
+              </Link>
+            </nav>
           </div>
-        </Link>
 
-        <div className="flex items-center gap-3">
-          <LanguageSelector />
+          {/* Right Section */}
+          <div className="flex items-center gap-4">
+            <ThemeSwitch />
+            <LanguageSelector />
 
-          {isAuthenticated ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={user.avatar} alt={user.name} />
-                    <AvatarFallback>{initials}</AvatarFallback>
-                  </Avatar>
+            {isAuthenticated ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="relative h-9 w-9 rounded-full transition-all hover:bg-accent"
+                  >
+                    <Avatar className="h-9 w-9 ring-2 ring-primary/10">
+                      <AvatarImage src={user.avatar} alt={user.name} />
+                      <AvatarFallback className="bg-primary/10 text-primary">
+                        {initials}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end" forceMount sideOffset={8}>
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none">{user.name}</p>
+                      <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem asChild>
+                      <Link href="#" className="cursor-pointer">
+                        <UserCircleIcon className="mr-2 h-4 w-4" />
+                        <span>Dashboard</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/settings/profile" className="cursor-pointer">
+                        <SettingsIcon className="mr-2 h-4 w-4" />
+                        <span>Profile Settings</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => logout()}
+                    className="text-destructive focus:text-destructive cursor-pointer"
+                  >
+                    <LogOutIcon className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <div className="flex items-center gap-3">
+                <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex">
+                  <Link href="/register/email">{t('header.register')}</Link>
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="end" forceMount>
-                <DropdownMenuLabel className="font-normal">
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">{user.name}</p>
-                    <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuGroup>
-                  <DropdownMenuItem asChild>
-                    <Link href="#">
-                      <UserCircleIcon className="mr-2 h-4 w-4" />
-                      Dashboard
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/profile">
-                      <SettingsIcon className="mr-2 h-4 w-4" />
-                      Profile Settings
-                    </Link>
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => logout()}>
-                  <LogOutIcon className="mr-2 h-4 w-4" />
-                  Log out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : (
-            <>
-              <Button asChild variant="outline" size="sm">
-                <Link href="/register/email">{t('header.register')}</Link>
-              </Button>
-              <Button asChild size="sm">
-                <Link href="/login">{t('header.login')}</Link>
-              </Button>
-            </>
-          )}
+                <Button asChild size="sm" className="bg-primary hover:bg-primary/90">
+                  <Link href="/login">{t('header.login')}</Link>
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </header>

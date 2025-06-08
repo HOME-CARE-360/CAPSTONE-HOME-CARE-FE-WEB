@@ -4,27 +4,12 @@ import * as React from 'react';
 import {
   ArrowUpCircleIcon,
   BarChartIcon,
-  CameraIcon,
-  ClipboardListIcon,
-  DatabaseIcon,
-  FileCodeIcon,
-  FileIcon,
-  FileTextIcon,
-  FolderIcon,
-  HandCoins,
-  HelpCircleIcon,
   House,
   LayoutDashboardIcon,
   ListIcon,
-  ListTodo,
-  SearchIcon,
-  SettingsIcon,
-  Users,
   UsersIcon,
 } from 'lucide-react';
-import { NavDocuments } from '@/components/common/navDocuments';
 import { NavMain } from '@/components/common/navMain';
-import { NavSecondary } from '@/components/common/navSecondary';
 import { NavUser } from '@/components/common/navUser';
 import {
   Sidebar,
@@ -36,10 +21,28 @@ import {
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { useTranslation } from 'react-i18next';
+import { LucideIcon } from 'lucide-react';
+import { useAuthStore } from '@/lib/store/authStore';
+
+type NavItem = {
+  title: string;
+  url: string;
+  icon?: LucideIcon;
+};
+
+interface NavigationData {
+  navMain: NavItem[];
+}
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { t } = useTranslation();
-  const navigationData = {
+  const { user } = useAuthStore();
+
+  console.log('user', user);
+
+  console.log(user);
+
+  const navigationData: NavigationData = {
     navMain: [
       {
         title: t('appSidebar.dashboard'),
@@ -47,160 +50,53 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         icon: LayoutDashboardIcon,
       },
       {
-        title: t('appSidebar.property'),
-        url: '/provider/property',
+        title: 'Quản lý dịch vụ',
+        url: '/provider/manage-services',
         icon: House,
       },
       {
-        title: t('appSidebar.rentalContracts'),
-        url: '/provider/contract',
-        icon: FileTextIcon,
-      },
-      {
-        title: t('appSidebar.owner'),
-        url: '/provider/owner',
-        icon: Users,
-      },
-      {
-        title: t('appSidebar.salesPipeline'),
-        url: '/provider/sales',
-        icon: HandCoins,
-      },
-      {
-        title: t('Lead'),
-        url: '/provider/lead',
-        icon: Users,
-      },
-      {
-        title: t('appSidebar.tasks'),
-        url: '/provider/tasks',
-        icon: ListTodo,
-      },
-      {
         title: t('appSidebar.lifecycle'),
-        url: '#',
+        url: '/provider/lifecycle',
         icon: ListIcon,
       },
       {
         title: t('appSidebar.analytics'),
-        url: '#',
+        url: '/provider/analytics',
         icon: BarChartIcon,
       },
       {
-        title: t('appSidebar.projects'),
-        url: '#',
-        icon: FolderIcon,
-      },
-      {
         title: t('appSidebar.team'),
-        url: '#',
+        url: '/provider/team',
         icon: UsersIcon,
-      },
-    ],
-    navClouds: [
-      {
-        title: t('appSidebar.capture'),
-        icon: CameraIcon,
-        isActive: true,
-        url: '#',
-        items: [
-          {
-            title: t('appSidebar.activeProposals'),
-            url: '#',
-          },
-          {
-            title: t('appSidebar.archived'),
-            url: '#',
-          },
-        ],
-      },
-      {
-        title: t('appSidebar.proposal'),
-        icon: FileTextIcon,
-        url: '#',
-        items: [
-          {
-            title: t('appSidebar.activeProposals'),
-            url: '#',
-          },
-          {
-            title: t('appSidebar.archived'),
-            url: '#',
-          },
-        ],
-      },
-      {
-        title: t('appSidebar.prompts'),
-        icon: FileCodeIcon,
-        url: '#',
-        items: [
-          {
-            title: t('appSidebar.activeProposals'),
-            url: '#',
-          },
-          {
-            title: t('appSidebar.archived'),
-            url: '#',
-          },
-        ],
-      },
-    ],
-    navSecondary: [
-      {
-        title: t('appSidebar.settings'),
-        url: '#',
-        icon: SettingsIcon,
-      },
-      {
-        title: t('appSidebar.getHelp'),
-        url: '#',
-        icon: HelpCircleIcon,
-      },
-      {
-        title: t('appSidebar.search'),
-        url: '#',
-        icon: SearchIcon,
-      },
-    ],
-    documents: [
-      {
-        name: t('appSidebar.dataLibrary'),
-        url: '#',
-        icon: DatabaseIcon,
-      },
-      {
-        name: t('appSidebar.reports'),
-        url: '#',
-        icon: ClipboardListIcon,
-      },
-      {
-        name: t('appSidebar.wordAssistant'),
-        url: '#',
-        icon: FileIcon,
       },
     ],
   };
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>
-      <SidebarHeader>
+      <SidebarHeader className="border-b border-gray-200 dark:border-gray-700">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild className="data-[slot=sidebar-menu-button]:!p-1.5">
-              <a href="/">
-                <ArrowUpCircleIcon className="h-5 w-5" />
-                <span className="text-base font-semibold">HomeCare 360</span>
+            <SidebarMenuButton
+              asChild
+              className="data-[slot=sidebar-menu-button]:!p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            >
+              <a href="/" className="flex items-center gap-2">
+                <ArrowUpCircleIcon className="h-6 w-6 text-primary" />
+                <span className="text-lg font-semibold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+                  HomeCare 360
+                </span>
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      <SidebarContent>
+
+      <SidebarContent className="py-4">
         <NavMain items={navigationData.navMain} />
-        <NavDocuments items={navigationData.documents} />
-        <NavSecondary items={navigationData.navSecondary} className="mt-auto" />
       </SidebarContent>
-      <SidebarFooter>
+
+      <SidebarFooter className="border-t border-gray-200 dark:border-gray-700">
         <NavUser />
       </SidebarFooter>
     </Sidebar>

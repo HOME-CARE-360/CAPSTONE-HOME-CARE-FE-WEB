@@ -30,6 +30,17 @@ export interface ServiceDetailResponse {
   data: Service;
 }
 
+export interface SortBy {
+  createdAt: string;
+  price: number;
+  discount: string;
+}
+
+export interface OrderBy {
+  asc: string;
+  desc: string;
+}
+
 // Search parameters
 export interface ServiceSearchParams {
   page?: number;
@@ -39,6 +50,8 @@ export interface ServiceSearchParams {
   minPrice?: number;
   maxPrice?: number;
   providerId?: number;
+  sortBy?: SortBy;
+  orderBy?: OrderBy;
 }
 
 // Convert ServiceSearchParams to RequestParams

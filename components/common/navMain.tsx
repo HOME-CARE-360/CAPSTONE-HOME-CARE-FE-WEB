@@ -1,8 +1,7 @@
 'use client';
 
-import { MailIcon, PlusCircleIcon, type LucideIcon } from 'lucide-react';
+import { type LucideIcon } from 'lucide-react';
 
-import { Button } from '@/components/ui/button';
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -12,7 +11,6 @@ import {
 } from '@/components/ui/sidebar';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useTranslation } from 'react-i18next';
 
 export function NavMain({
   items,
@@ -24,11 +22,10 @@ export function NavMain({
   }[];
 }) {
   const pathname = usePathname();
-  const { t } = useTranslation();
   return (
     <SidebarGroup>
       <SidebarGroupContent className="flex flex-col gap-2">
-        <SidebarMenu>
+        {/* <SidebarMenu>
           <SidebarMenuItem className="flex items-center gap-2">
             <SidebarMenuButton
               tooltip="Quick Create"
@@ -46,7 +43,7 @@ export function NavMain({
               <span className="sr-only">{t('inbox')}</span>
             </Button>
           </SidebarMenuItem>
-        </SidebarMenu>
+        </SidebarMenu> */}
         <SidebarMenu>
           {items.map(item => {
             const isActive = pathname === item.url;

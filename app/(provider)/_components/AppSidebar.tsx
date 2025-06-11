@@ -1,14 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import {
-  ArrowUpCircleIcon,
-  BarChartIcon,
-  House,
-  LayoutDashboardIcon,
-  ListIcon,
-  UsersIcon,
-} from 'lucide-react';
+import { BarChartIcon, House, LayoutDashboardIcon, ListIcon, UsersIcon } from 'lucide-react';
 import { NavMain } from '@/components/common/navMain';
 import { NavUser } from '@/components/common/navUser';
 import {
@@ -45,7 +38,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const navigationData: NavigationData = {
     navMain: [
       {
-        title: t('appSidebar.dashboard'),
+        title: 'Quản lý chung',
         url: '/provider/dashboard',
         icon: LayoutDashboardIcon,
       },
@@ -53,6 +46,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         title: 'Quản lý dịch vụ',
         url: '/provider/manage-services',
         icon: House,
+      },
+      {
+        title: 'Quản lý nhân viên',
+        url: '/provider/manager-staff',
+        icon: UsersIcon,
       },
       {
         title: t('appSidebar.lifecycle'),
@@ -63,11 +61,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         title: t('appSidebar.analytics'),
         url: '/provider/analytics',
         icon: BarChartIcon,
-      },
-      {
-        title: t('appSidebar.team'),
-        url: '/provider/team',
-        icon: UsersIcon,
       },
     ],
   };
@@ -82,7 +75,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               className="data-[slot=sidebar-menu-button]:!p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             >
               <a href="/" className="flex items-center gap-2">
-                <ArrowUpCircleIcon className="h-6 w-6 text-primary" />
                 <span className="text-lg font-semibold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
                   HomeCare 360
                 </span>

@@ -57,11 +57,6 @@ export default function ManageServices() {
     }
   };
 
-  const handleEdit = (service: Service) => {
-    setEditingService(service);
-    setOpen(true);
-  };
-
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex justify-between items-center">
@@ -106,7 +101,6 @@ export default function ManageServices() {
               limit: 10,
             }}
             onFilterChange={() => {}}
-            onEdit={handleEdit}
           />
         </CardContent>
       </Card>

@@ -4,7 +4,6 @@ import {
   BellIcon,
   CheckCircle2Icon,
   ClockIcon,
-  CreditCardIcon,
   LogOutIcon,
   MoonIcon,
   MoreVerticalIcon,
@@ -42,7 +41,7 @@ import { useTranslation } from 'react-i18next';
 
 // User status options
 
-export function NavUser() {
+export function SiteSideFooter() {
   const { isMobile } = useSidebar();
   const { toast } = useToast();
   const { data: profileData, isLoading: profileLoading } = useUserProfile();
@@ -54,25 +53,25 @@ export function NavUser() {
   const userStatusOptions = [
     {
       value: 'Online',
-      label: t('navUser.status.online'),
+      label: 'Trực tuyến',
       icon: CheckCircle2Icon,
       color: 'text-green-500',
     },
     {
       value: 'Idle',
-      label: t('navUser.status.idle'),
+      label: 'Hoạt động',
       icon: ClockIcon,
       color: 'text-orange-500',
     },
     {
       value: 'DoNotDisturb',
-      label: t('navUser.status.doNotDisturb'),
+      label: 'Ngủ',
       icon: MoonIcon,
       color: 'text-red-500',
     },
     {
       value: 'Invisible',
-      label: t('navUser.status.invisible'),
+      label: 'Tắt hoạt động',
       icon: UserCircleIcon,
       color: 'text-gray-500',
     },
@@ -86,9 +85,9 @@ export function NavUser() {
         status: profileData.profile.status,
       }
     : {
-        name: '',
-        email: '',
-        avatar: '',
+        name: 'FPT Student Code',
+        email: 'exampletest@gmail.com',
+        avatar: 'https://placehold.co/400',
         status: 'Online',
       };
 
@@ -266,7 +265,7 @@ export function NavUser() {
               <DropdownMenuSubTrigger>
                 <div className="flex items-center">
                   <StatusIcon className={`mr-2 h-4 w-4 ${currentStatusOption.color}`} />
-                  <span>{t('navUser.status.label')}</span>
+                  <span>Trạng thái hoạt động</span>
                 </div>
               </DropdownMenuSubTrigger>
               <DropdownMenuSubContent>
@@ -291,22 +290,18 @@ export function NavUser() {
                   }
                 >
                   <UserCircleIcon className="mr-2 h-4 w-4" />
-                  {t('navUser.account')}
+                  Tài khoản
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem>
-                <CreditCardIcon className="mr-2 h-4 w-4" />
-                {t('navUser.billing')}
-              </DropdownMenuItem>
-              <DropdownMenuItem>
                 <BellIcon className="mr-2 h-4 w-4" />
-                {t('navUser.notifications')}
+                Thông báo
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout}>
+            <DropdownMenuItem onClick={handleLogout} className="hover:bg-red">
               <LogOutIcon className="mr-2 h-4 w-4" />
-              {t('navUser.logout')}
+              Đăng xuất
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

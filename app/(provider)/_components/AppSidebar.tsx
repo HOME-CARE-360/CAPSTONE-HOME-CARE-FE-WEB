@@ -1,9 +1,9 @@
 'use client';
 
 import * as React from 'react';
-import { BarChartIcon, House, LayoutDashboardIcon, ListIcon, UsersIcon } from 'lucide-react';
+import { House, LayoutDashboardIcon, UserRoundPen, UsersIcon } from 'lucide-react';
 import { NavMain } from '@/components/common/navMain';
-import { NavUser } from '@/components/common/navUser';
+import { SiteSideFooter } from '@/app/(provider)/_components/SiteSideFooter';
 import {
   Sidebar,
   SidebarContent,
@@ -13,7 +13,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { useTranslation } from 'react-i18next';
 import { LucideIcon } from 'lucide-react';
 import { useAuthStore } from '@/lib/store/authStore';
 
@@ -28,7 +27,6 @@ interface NavigationData {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { t } = useTranslation();
   const { user } = useAuthStore();
 
   console.log('user', user);
@@ -49,25 +47,25 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       },
       {
         title: 'Quản lý nhân viên',
-        url: '/provider/manager-staff',
+        url: '/provider/manage-staff',
         icon: UsersIcon,
       },
       {
-        title: t('appSidebar.lifecycle'),
-        url: '/provider/lifecycle',
-        icon: ListIcon,
+        title: 'Quản lý booking',
+        url: '/provider/manage-booking',
+        icon: UsersIcon,
       },
       {
-        title: t('appSidebar.analytics'),
-        url: '/provider/analytics',
-        icon: BarChartIcon,
+        title: 'Hòm thư',
+        url: '/provider/manage-feedback-review',
+        icon: UserRoundPen,
       },
     ],
   };
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>
-      <SidebarHeader className="border-b border-gray-200 dark:border-gray-700">
+      <SidebarHeader className="border-b mb-2 border-gray-200 dark:border-gray-700">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
@@ -89,7 +87,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarContent>
 
       <SidebarFooter className="border-t border-gray-200 dark:border-gray-700">
-        <NavUser />
+        <SiteSideFooter />
       </SidebarFooter>
     </Sidebar>
   );

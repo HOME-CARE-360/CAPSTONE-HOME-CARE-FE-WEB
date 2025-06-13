@@ -13,8 +13,16 @@ import {
   MapPin,
 } from 'lucide-react';
 import StaffCreateModal, { StaffFormData } from './_components/StaffCreateModal';
-import { SiteHeader } from '@/components/common/siteHeader';
-
+import { SiteHeader } from '@/app/(provider)/_components/SiteHeader';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 interface Staff {
   id: string;
   name: string;
@@ -52,7 +60,7 @@ const mockStaff: Staff[] = [
 
 export default function StaffManagementPage() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const [selectedStatus] = useState<string>('all');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [staffList, setStaffList] = useState<Staff[]>(mockStaff);
 
@@ -83,13 +91,12 @@ export default function StaffManagementPage() {
 
   return (
     <>
-      <SiteHeader title="Dashboard" />
-      <div className="p-6 mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-800">Quản lý nhân viên</h1>
+      <SiteHeader title="Quản lý nhân viên" />
+      <div className="p-6 container mx-auto">
+        <div className="flex justify-end items-center mb-6">
           <button
             onClick={() => setIsCreateModalOpen(true)}
-            className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-green-700 transition-colors"
+            className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-green-500 transition-colors"
           >
             <Plus size={20} />
             Tạo tài khoản nhân viên
@@ -103,7 +110,7 @@ export default function StaffManagementPage() {
                 className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
                 size={20}
               />
-              <input
+              <Input
                 type="text"
                 placeholder="Tìm kiếm theo tên hoặc chức vụ..."
                 className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -112,19 +119,20 @@ export default function StaffManagementPage() {
               />
             </div>
             <div className="flex gap-4">
-              <select
-                className="border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                value={selectedStatus}
-                onChange={e => setSelectedStatus(e.target.value)}
-              >
-                <option value="all">Tất cả trạng thái</option>
-                <option value="active">Đang hoạt động</option>
-                <option value="inactive">Không hoạt động</option>
-              </select>
-              <button className="border rounded-lg px-4 py-2 flex items-center gap-2 hover:bg-gray-50">
+              <Select>
+                <SelectTrigger className="w-[220px]">
+                  <SelectValue placeholder="Trạng thái hoạt động" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tất cả trạng thái</SelectItem>
+                  <SelectItem value="active">Đang hoạt động</SelectItem>
+                  <SelectItem value="inactive">Không hoạt động</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button className="border rounded-lg px-4 py-2 flex items-center gap-2 bg-green-600 hover:bg-green-500">
                 <Filter size={20} />
                 Bộ lọc
-              </button>
+              </Button>
             </div>
           </div>
 

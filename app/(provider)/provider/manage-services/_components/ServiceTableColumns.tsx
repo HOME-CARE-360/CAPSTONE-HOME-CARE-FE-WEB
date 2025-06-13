@@ -1,4 +1,3 @@
-import { useTranslation } from 'react-i18next';
 import { ColumnDef } from '@tanstack/react-table';
 import { Service } from '@/lib/api/services/fetchService';
 import { Currency, formatCurrency } from '@/utils/numbers/formatCurrency';
@@ -9,19 +8,17 @@ interface UseServiceTableColumnsProps {
 }
 
 export function useServiceTableColumns({ onEdit }: UseServiceTableColumnsProps = {}) {
-  const { t } = useTranslation();
-
   const columns: ColumnDef<Service>[] = [
     {
       accessorKey: 'name',
-      header: () => t('service.name'),
+      header: () => 'Tên dịch vụ',
       cell: ({ row }) => <div>{row.getValue('name')}</div>,
       enableHiding: true,
       filterFn: 'includesString',
     },
     {
       accessorKey: 'basePrice',
-      header: () => t('service.base_price'),
+      header: () => 'Giá tiền',
       cell: ({ row }) => {
         const price = parseFloat(row.getValue('basePrice'));
         return <div>{formatCurrency(price, Currency.VND)}</div>;
@@ -34,7 +31,7 @@ export function useServiceTableColumns({ onEdit }: UseServiceTableColumnsProps =
     },
     {
       accessorKey: 'virtualPrice',
-      header: () => t('service.virtual_price'),
+      header: () => 'Giá ảo',
       cell: ({ row }) => {
         const price = parseFloat(row.getValue('virtualPrice'));
         return <div>{formatCurrency(price, Currency.VND)}</div>;
@@ -47,7 +44,7 @@ export function useServiceTableColumns({ onEdit }: UseServiceTableColumnsProps =
     },
     {
       accessorKey: 'durationMinutes',
-      header: () => t('service.duration'),
+      header: () => 'Khoảng thời gian',
       cell: ({ row }) => <div>{row.getValue('durationMinutes')} minutes</div>,
       enableHiding: true,
       filterFn: (row, id, value) => {
@@ -57,14 +54,14 @@ export function useServiceTableColumns({ onEdit }: UseServiceTableColumnsProps =
     },
     {
       accessorKey: 'provider',
-      header: () => t('service.provider'),
+      header: () => 'Nhà cung cấp',
       cell: ({ row }) => <div>{row.getValue('provider')}</div>,
       enableHiding: true,
       filterFn: 'includesString',
     },
     {
       accessorKey: 'categories',
-      header: () => t('service.categories'),
+      header: () => 'Loại dịch vụ',
       cell: ({ row }) => {
         const categories = row.getValue('categories') as { name: string }[];
         return <div>{categories.map(cat => cat.name).join(', ')}</div>;
@@ -82,7 +79,7 @@ export function useServiceTableColumns({ onEdit }: UseServiceTableColumnsProps =
         const service = row.original;
         return (
           <Button variant="ghost" onClick={() => onEdit?.(service)}>
-            {t('edit')}
+            Chỉnh sửa
           </Button>
         );
       },

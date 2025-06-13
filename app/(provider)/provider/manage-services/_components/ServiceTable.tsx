@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { useTranslation } from 'react-i18next';
 import {
   ColumnFiltersState,
   SortingState,
@@ -16,7 +15,6 @@ import { Category } from '@/lib/api/services/fetchService';
 import { ServiceTableFilters } from './ServiceTableFilters';
 import { ServiceTablePagination } from './ServiceTablePagination';
 import { useServiceTableColumns } from './ServiceTableColumns';
-import { SearchServiceParams } from '@/utils/validation/services.schema';
 import {
   Table,
   TableBody,
@@ -25,10 +23,22 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { ServiceSearchParams } from '@/lib/api/services/fetchService';
+
+// interface ServiceSearchParams {
+//   page: number;
+//   limit: number;
+//   searchTerm?: string;
+//   category?: string;
+//   minPrice?: number;
+//   maxPrice?: number;
+//   minDuration?: number;
+//   maxDuration?: number;
+// }
 
 interface ServiceTableProps {
   data: Service[];
-  onFilterChange?: (filters: Partial<SearchServiceParams>) => void;
+  onFilterChange?: (filters: ServiceSearchParams) => void;
   isLoading?: boolean;
   error?: Error | null;
   limit: number;
@@ -36,8 +46,7 @@ interface ServiceTableProps {
   totalPages: number;
   totalItems: number;
   categories: Category[];
-  searchFilters: SearchServiceParams;
-  onEdit?: (service: Service) => void;
+  searchFilters: ServiceSearchParams;
 }
 
 export function ServiceTable({
@@ -51,15 +60,13 @@ export function ServiceTable({
   totalItems,
   categories,
   searchFilters,
-  onEdit,
 }: ServiceTableProps) {
-  const { t } = useTranslation();
   const [rowSelection, setRowSelection] = React.useState({});
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [sorting, setSorting] = React.useState<SortingState>([]);
 
-  const columns = useServiceTableColumns({ onEdit });
+  const columns = useServiceTableColumns();
 
   const pagination = {
     pageIndex: page - 1,
@@ -86,6 +93,16 @@ export function ServiceTable({
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
   });
+
+  // Debounce filter changes
+  const debouncedFilterChange = React.useCallback(
+    (filters: ServiceSearchParams) => {
+      if (onFilterChange) {
+        onFilterChange(filters);
+      }
+    },
+    [onFilterChange]
+  );
 
   const handleFilterChange = (filters: {
     searchTerm?: string;
@@ -120,28 +137,28 @@ export function ServiceTable({
   };
 
   // Handle filter changes with debounce
-  // React.useEffect(() => {
-  //   const timeoutId = setTimeout(() => {
-  //     const filters: SearchServiceParams = {
-  //       page: 1, // Reset to first page when filters change
-  //       limit,
-  //       searchTerm: columnFilters.find(f => f.id === 'name')?.value as string,
-  //       category: columnFilters.find(f => f.id === 'categories')?.value as string,
-  //       minPrice: columnFilters.find(f => f.id === 'basePrice')?.value as number,
-  //       maxPrice: columnFilters.find(f => f.id === 'virtualPrice')?.value as number,
-  //     };
-  //     debouncedFilterChange(filters);
-  //   }, 300); // 300ms debounce
+  React.useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      const filters: ServiceSearchParams = {
+        page, // Reset to first page when filters change
+        limit,
+        searchTerm: columnFilters.find(f => f.id === 'name')?.value as string,
+        category: columnFilters.find(f => f.id === 'categories')?.value as string,
+        minPrice: columnFilters.find(f => f.id === 'basePrice')?.value as number,
+        maxPrice: columnFilters.find(f => f.id === 'virtualPrice')?.value as number,
+      };
+      debouncedFilterChange(filters);
+    }, 300); // 300ms debounce
 
-  //   return () => clearTimeout(timeoutId);
-  // }, [columnFilters, limit, debouncedFilterChange]);
+    return () => clearTimeout(timeoutId);
+  }, [columnFilters, limit, debouncedFilterChange]);
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64 border rounded-lg">
         <div className="flex flex-col items-center gap-2">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          <p className="text-muted-foreground">{t('loading_data')}</p>
+          <p className="text-muted-foreground">Đang tải</p>
         </div>
       </div>
     );
@@ -151,9 +168,9 @@ export function ServiceTable({
     return (
       <div className="flex items-center justify-center h-64 border rounded-lg border-destructive bg-destructive/10">
         <div className="flex flex-col items-center gap-2 text-center max-w-md p-6">
-          <div className="text-lg font-medium text-destructive">{t('error_loading_data')}</div>
+          <div className="text-lg font-medium text-destructive">Lỗi</div>
           <p className="text-sm text-muted-foreground">
-            {error instanceof Error ? error.message : t('error_loading_data')}
+            {error instanceof Error ? error.message : 'Lỗi khi tải dữ liệu'}
           </p>
         </div>
       </div>
@@ -198,7 +215,7 @@ export function ServiceTable({
             ) : (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center">
-                  {t('no_services_found')}
+                  Không tìn thấy dịch vụ
                 </TableCell>
               </TableRow>
             )}

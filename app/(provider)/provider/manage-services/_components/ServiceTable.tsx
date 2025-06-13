@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import * as React from 'react';
 import {
   ColumnFiltersState,
@@ -41,12 +42,12 @@ interface ServiceTableProps {
   onFilterChange?: (filters: ServiceSearchParams) => void;
   isLoading?: boolean;
   error?: Error | null;
-  limit: number;
-  page: number;
-  totalPages: number;
-  totalItems: number;
-  categories: Category[];
-  searchFilters: ServiceSearchParams;
+  limit?: number;
+  page?: number;
+  totalPages?: number;
+  totalItems?: number;
+  categories?: Category[];
+  searchFilters?: ServiceSearchParams;
 }
 
 export function ServiceTable({
@@ -68,10 +69,10 @@ export function ServiceTable({
 
   const columns = useServiceTableColumns();
 
-  const pagination = {
-    pageIndex: page - 1,
-    pageSize: limit,
-  };
+  // const pagination = {
+  //   pageIndex: page ? page - 1 : page,
+  //   pageSize: limit,
+  // };
 
   const table = useReactTable({
     data,
@@ -81,7 +82,7 @@ export function ServiceTable({
       columnVisibility,
       rowSelection,
       columnFilters,
-      pagination,
+      // pagination,
     },
     enableRowSelection: true,
     onRowSelectionChange: setRowSelection,
@@ -181,7 +182,7 @@ export function ServiceTable({
     <div className="space-y-4">
       <ServiceTableFilters
         table={table}
-        categories={categories}
+        categories={categories || []}
         // limit={limit}
         // page={page}
         onFilterChange={handleFilterChange}
@@ -223,9 +224,9 @@ export function ServiceTable({
         </Table>
       </div>
       <ServiceTablePagination
-        page={page}
-        totalPages={totalPages}
-        totalItems={totalItems}
+        page={page || 1}
+        totalPages={totalPages || 5}
+        totalItems={totalItems || 1}
         onPageChange={goToPage}
       />
     </div>

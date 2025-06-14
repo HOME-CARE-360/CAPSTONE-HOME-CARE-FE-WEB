@@ -1,4 +1,7 @@
 import type { Metadata } from 'next';
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
+import UserSidebar from '@/app/(user)/_components/UserSidebar';
 
 export const metadata: Metadata = {
   title: 'Setting Customer',
@@ -11,8 +14,15 @@ export default function SettingsLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <div className="flex w-full">
-      <div className="flex-1 overflow-auto">{children}</div>
+    <div className="">
+      <Header />
+      <div className="grid grid-cols-6 gap-10 container mx-auto mt-14 mb-14">
+        <div className="col-span-1">
+          <UserSidebar />
+        </div>
+        <div className="col-span-5">{children}</div>
+      </div>
+      <Footer />
     </div>
   );
 }

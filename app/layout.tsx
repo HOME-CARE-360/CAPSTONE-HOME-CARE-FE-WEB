@@ -5,6 +5,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { QueryProvider } from '@/lib/providers/queryProvider';
 import { I18nextProvider } from '@/components/i18next-provider';
 import { ThemeProvider } from '@/components/theme-provider';
+import ButtonChatbot from '@/components/ui/ButtonChatbot';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -87,10 +88,13 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <QueryProvider>
+            {/* <SidebarProvider> */}
             <I18nextProvider>
               <main>{children}</main>
               <Toaster />
+              <ButtonChatbot />
             </I18nextProvider>
+            {/* </SidebarProvider> */}
           </QueryProvider>
         </ThemeProvider>
       </body>

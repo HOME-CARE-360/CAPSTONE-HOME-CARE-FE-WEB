@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -15,7 +14,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { useGetAllCategoryStaff } from '@/hooks/useCategoryStaff';
 import {
   Select,
   SelectTrigger,
@@ -23,32 +22,21 @@ import {
   SelectContent,
   SelectItem,
 } from '@/components/ui/select';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import React from 'react';
 
-const contractTypes = [
-  'Cư trú và có HĐLĐ từ 3 tháng trở lên',
-  'Cư trú và có HĐLĐ dưới 3 tháng',
-  'Không cư trú',
-];
-
-const staffSchema = z.object({
-  code: z.string().min(1, 'Vui lòng nhập mã nhân viên'),
-  name: z.string().min(1, 'Vui lòng nhập tên nhân viên'),
-  unit: z.string().min(1, 'Vui lòng nhập đơn vị'),
-  dob: z.string().optional(),
-  gender: z.enum(['male', 'female', '']).optional(),
-  passport: z.string().optional(),
-  idCard: z.string().optional(),
-  idCardDate: z.string().optional(),
-  idCardPlace: z.string().optional(),
-  position: z.string().optional(),
-  salary: z.coerce.number().min(0, 'Lương không hợp lệ').default(0),
-  salaryCoef: z.coerce.number().default(0),
-  insuranceSalary: z.coerce.number().min(0).default(0),
-  taxCode: z.string().optional(),
-  contractType: z.string().min(1, 'Vui lòng chọn loại hợp đồng'),
-  dependentCount: z.coerce.number().min(0).default(0),
-});
+const staffSchema = z
+  .object({
+    email: z.string().email('Email không hợp lệ'),
+    password: z.string().min(6, 'Mật khẩu phải có ít nhất 6 ký tự'),
+    confirmPassword: z.string().min(6, 'Mật khẩu phải có ít nhất 6 ký tự'),
+    name: z.string().min(1, 'Vui lòng nhập tên nhân viên'),
+    phone: z.string().min(10, 'Số điện thoại không hợp lệ'),
+    categoryIds: z.array(z.number()).min(1, 'Vui lòng chọn ít nhất một danh mục'),
+  })
+  .refine(data => data.password === data.confirmPassword, {
+    message: 'Mật khẩu không khớp',
+    path: ['confirmPassword'],
+  });
 
 export type StaffFormData = z.infer<typeof staffSchema>;
 
@@ -56,10 +44,32 @@ interface StaffCreateModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (staffData: StaffFormData) => void;
+  initialData?: StaffFormData;
+  mode?: 'create' | 'edit';
 }
 
-export default function StaffCreateModal({ isOpen, onClose, onSubmit }: StaffCreateModalProps) {
-  const [tab, setTab] = useState<'salary' | 'bank' | 'contact'>('salary');
+// interface InitialStaffData {
+//   email: string
+//   name: string
+//   password: string
+//   categoryIds: number[]
+// }
+
+export default function StaffCreateModal({
+  isOpen,
+  onClose,
+  onSubmit,
+  initialData,
+  mode = 'create',
+}: StaffCreateModalProps) {
+  const {
+    data: categoryStaff,
+    // isLoading: isLoadingCategoryStaff,
+    // error: errorCategoryStaff,
+  } = useGetAllCategoryStaff();
+
+  console.log('categoryStaff:: ', categoryStaff);
+
   const {
     control,
     handleSubmit,
@@ -67,25 +77,21 @@ export default function StaffCreateModal({ isOpen, onClose, onSubmit }: StaffCre
     formState: { errors },
   } = useForm<StaffFormData>({
     resolver: zodResolver(staffSchema),
-    defaultValues: {
-      code: '',
+    defaultValues: initialData || {
+      email: '',
+      password: '',
+      confirmPassword: '',
       name: '',
-      unit: '',
-      dob: '',
-      gender: '',
-      passport: '',
-      idCard: '',
-      idCardDate: '',
-      idCardPlace: '',
-      position: '',
-      salary: 0,
-      salaryCoef: 0,
-      insuranceSalary: 0,
-      taxCode: '',
-      contractType: '',
-      dependentCount: 0,
+      phone: '',
+      categoryIds: [],
     },
   });
+
+  React.useEffect(() => {
+    if (initialData) {
+      reset(initialData);
+    }
+  }, [initialData, reset]);
 
   const onSubmitForm = (data: StaffFormData) => {
     onSubmit(data);
@@ -94,24 +100,38 @@ export default function StaffCreateModal({ isOpen, onClose, onSubmit }: StaffCre
 
   return (
     <Dialog open={isOpen} onOpenChange={open => !open && onClose()}>
-      <DialogContent className="max-w-4xl max-h-[95vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Thông tin nhân viên</DialogTitle>
-          <DialogDescription>Nhập đầy đủ thông tin nhân viên để thêm mới.</DialogDescription>
+          <DialogTitle>
+            {mode === 'create' ? 'Tạo nhân viên mới' : 'Chỉnh sửa nhân viên'}
+          </DialogTitle>
+          <DialogDescription>
+            {mode === 'create'
+              ? 'Nhập thông tin nhân viên để tạo tài khoản mới.'
+              : 'Chỉnh sửa thông tin nhân viên.'}
+          </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmitForm)} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <form onSubmit={handleSubmit(onSubmitForm)} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="code">Mã *</Label>
+              <Label htmlFor="email">Email *</Label>
               <Controller
-                name="code"
+                name="email"
                 control={control}
-                render={({ field }) => <Input {...field} id="code" placeholder="Mã nhân viên" />}
+                render={({ field }) => (
+                  <Input
+                    {...field}
+                    id="email"
+                    type="email"
+                    placeholder="Email"
+                    disabled={mode === 'edit'}
+                  />
+                )}
               />
-              {errors.code && <p className="text-red-500 text-sm mt-1">{errors.code.message}</p>}
+              {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>}
             </div>
             <div>
-              <Label htmlFor="name">Tên *</Label>
+              <Label htmlFor="name">Tên nhân viên *</Label>
               <Controller
                 name="name"
                 control={control}
@@ -119,190 +139,83 @@ export default function StaffCreateModal({ isOpen, onClose, onSubmit }: StaffCre
               />
               {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>}
             </div>
-            <div>
-              <Label htmlFor="unit">Đơn vị *</Label>
-              <Controller
-                name="unit"
-                control={control}
-                render={({ field }) => <Input {...field} id="unit" placeholder="Đơn vị" />}
-              />
-              {errors.unit && <p className="text-red-500 text-sm mt-1">{errors.unit.message}</p>}
-            </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <Label htmlFor="dob">Ngày sinh</Label>
-              <Controller
-                name="dob"
-                control={control}
-                render={({ field }) => <Input {...field} id="dob" type="date" />}
-              />
-            </div>
-            <div>
-              <Label>Giới tính</Label>
-              <Controller
-                name="gender"
-                control={control}
-                render={({ field }) => (
-                  <RadioGroup
-                    className="flex flex-row gap-6 mt-2"
-                    value={field.value}
-                    onValueChange={field.onChange}
-                  >
-                    <div className="flex items-center gap-2">
-                      <RadioGroupItem value="male" id="male" />
-                      <Label htmlFor="male">Nam</Label>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <RadioGroupItem value="female" id="female" />
-                      <Label htmlFor="female">Nữ</Label>
-                    </div>
-                  </RadioGroup>
+          {mode === 'create' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="password">Mật khẩu *</Label>
+                <Controller
+                  name="password"
+                  control={control}
+                  render={({ field }) => (
+                    <Input {...field} id="password" type="password" placeholder="Mật khẩu" />
+                  )}
+                />
+                {errors.password && (
+                  <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>
                 )}
-              />
+              </div>
+              <div>
+                <Label htmlFor="confirmPassword">Xác nhận mật khẩu *</Label>
+                <Controller
+                  name="confirmPassword"
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      {...field}
+                      id="confirmPassword"
+                      type="password"
+                      placeholder="Xác nhận mật khẩu"
+                    />
+                  )}
+                />
+                {errors.confirmPassword && (
+                  <p className="text-red-500 text-sm mt-1">{errors.confirmPassword.message}</p>
+                )}
+              </div>
             </div>
-            <div>
-              <Label htmlFor="passport">Số hộ chiếu</Label>
-              <Controller
-                name="passport"
-                control={control}
-                render={({ field }) => <Input {...field} id="passport" placeholder="Số hộ chiếu" />}
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <Label htmlFor="idCard">Số CMND/CCCD</Label>
-              <Controller
-                name="idCard"
-                control={control}
-                render={({ field }) => <Input {...field} id="idCard" placeholder="Số CMND/CCCD" />}
-              />
-            </div>
-            <div>
-              <Label htmlFor="idCardDate">Ngày cấp</Label>
-              <Controller
-                name="idCardDate"
-                control={control}
-                render={({ field }) => <Input {...field} id="idCardDate" type="date" />}
-              />
-            </div>
-            <div>
-              <Label htmlFor="idCardPlace">Nơi cấp</Label>
-              <Controller
-                name="idCardPlace"
-                control={control}
-                render={({ field }) => <Input {...field} id="idCardPlace" placeholder="Nơi cấp" />}
-              />
-            </div>
+          )}
+          <div>
+            <Label htmlFor="phone">Số điện thoại *</Label>
+            <Controller
+              name="phone"
+              control={control}
+              render={({ field }) => <Input {...field} id="phone" placeholder="Số điện thoại" />}
+            />
+            {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone.message}</p>}
           </div>
           <div>
-            <Label htmlFor="position">Chức danh</Label>
+            <Label htmlFor="categoryIds">Danh mục *</Label>
             <Controller
-              name="position"
+              name="categoryIds"
               control={control}
-              render={({ field }) => <Input {...field} id="position" placeholder="Chức danh" />}
+              render={({ field }) => (
+                <Select
+                  onValueChange={value => field.onChange([parseInt(value)])}
+                  value={field.value[0]?.toString()}
+                >
+                  <SelectTrigger id="categoryIds">
+                    <SelectValue placeholder="Chọn danh mục" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categoryStaff?.map(category => (
+                      <SelectItem key={category.id} value={category.id.toString()}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             />
+            {errors.categoryIds && (
+              <p className="text-red-500 text-sm mt-1">{errors.categoryIds.message}</p>
+            )}
           </div>
-          <Tabs
-            value={tab}
-            onValueChange={value => setTab(value as 'salary' | 'bank' | 'contact')}
-            className="w-full"
-          >
-            <TabsList className="mb-2">
-              <TabsTrigger value="salary">Thông tin tiền lương</TabsTrigger>
-              <TabsTrigger value="bank">Tài khoản ngân hàng</TabsTrigger>
-              <TabsTrigger value="contact">Thông tin liên hệ</TabsTrigger>
-            </TabsList>
-            <TabsContent value="salary">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <Label htmlFor="salary">Lương thỏa thuận</Label>
-                  <Controller
-                    name="salary"
-                    control={control}
-                    render={({ field }) => <Input {...field} id="salary" type="number" min={0} />}
-                  />
-                  {errors.salary && (
-                    <p className="text-red-500 text-sm mt-1">{errors.salary.message}</p>
-                  )}
-                </div>
-                <div>
-                  <Label htmlFor="salaryCoef">Hệ số lương</Label>
-                  <Controller
-                    name="salaryCoef"
-                    control={control}
-                    render={({ field }) => (
-                      <Input {...field} id="salaryCoef" type="number" step="0.01" />
-                    )}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="insuranceSalary">Lương đóng bảo hiểm</Label>
-                  <Controller
-                    name="insuranceSalary"
-                    control={control}
-                    render={({ field }) => (
-                      <Input {...field} id="insuranceSalary" type="number" min={0} />
-                    )}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="taxCode">Mã số thuế</Label>
-                  <Controller
-                    name="taxCode"
-                    control={control}
-                    render={({ field }) => <Input {...field} id="taxCode" />}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="contractType">Loại hợp đồng *</Label>
-                  <Controller
-                    name="contractType"
-                    control={control}
-                    render={({ field }) => (
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <SelectTrigger id="contractType">
-                          <SelectValue placeholder="Chọn loại hợp đồng" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {contractTypes.map(type => (
-                            <SelectItem key={type} value={type}>
-                              {type}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                  />
-                  {errors.contractType && (
-                    <p className="text-red-500 text-sm mt-1">{errors.contractType.message}</p>
-                  )}
-                </div>
-                <div>
-                  <Label htmlFor="dependentCount">Số người phụ thuộc</Label>
-                  <Controller
-                    name="dependentCount"
-                    control={control}
-                    render={({ field }) => (
-                      <Input {...field} id="dependentCount" type="number" min={0} />
-                    )}
-                  />
-                </div>
-              </div>
-            </TabsContent>
-            <TabsContent value="bank">
-              <div className="p-4 text-gray-500">(Bổ sung trường tài khoản ngân hàng ở đây)</div>
-            </TabsContent>
-            <TabsContent value="contact">
-              <div className="p-4 text-gray-500">(Bổ sung trường thông tin liên hệ ở đây)</div>
-            </TabsContent>
-          </Tabs>
           <DialogFooter className="flex justify-end gap-4 mt-6">
             <Button type="button" variant="outline" onClick={onClose}>
               Hủy
             </Button>
-            <Button type="submit">Thêm</Button>
+            <Button type="submit">{mode === 'create' ? 'Tạo nhân viên' : 'Cập nhật'}</Button>
           </DialogFooter>
         </form>
       </DialogContent>

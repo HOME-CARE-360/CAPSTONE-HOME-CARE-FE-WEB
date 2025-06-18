@@ -35,3 +35,15 @@ export function useUpdateProfile() {
     },
   });
 }
+
+export function useGetUserInfomation(userId: string | number) {
+  return useQuery({
+    queryKey: ['users', 'infomation', userId],
+    queryFn: () => userService.getUserInfomation(userId),
+    // enabled: isAuthenticated,
+    // select: (data: GetUserInformationResponse) => ({
+    //   profile: data.data,
+    //   message: data.message,
+    // }),
+  });
+}

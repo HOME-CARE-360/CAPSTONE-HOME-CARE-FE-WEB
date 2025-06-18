@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/lib/store/authStore';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/useToast';
@@ -411,4 +411,11 @@ export function useAuth() {
       registerProviderHook.clearError();
     },
   };
+}
+
+export function useGoogleLogin() {
+  return useQuery({
+    queryKey: ['google-login'],
+    queryFn: () => fetchAuth.googleLogin(),
+  });
 }

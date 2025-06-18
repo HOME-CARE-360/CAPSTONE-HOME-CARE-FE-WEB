@@ -30,6 +30,8 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Eye, EyeOff, Mail } from 'lucide-react';
 
+import { useGoogleLogin } from '@/hooks/useAuth';
+
 // Schema for login form
 const loginSchema = z.object({
   email: z.string().email({ message: 'Vui lòng nhập địa chỉ email hợp lệ' }),
@@ -45,6 +47,7 @@ export default function LoginPage() {
   const isAuthenticated = useAuthStore(state => state.isAuthenticated);
   const router = useRouter();
   const { t } = useTranslation('common');
+  const { data: googleLoginData } = useGoogleLogin();
 
   // Form initialization
   const form = useForm<LoginFormValues>({
@@ -83,6 +86,13 @@ export default function LoginPage() {
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
+  };
+
+  const handleGoogleLogin = () => {
+    if (googleLoginData) {
+      window.location.href = googleLoginData.url;
+      console.log('googleLoginData', googleLoginData);
+    }
   };
 
   return (
@@ -208,6 +218,9 @@ export default function LoginPage() {
               {t('login.create_account')}
             </Link>
           </p>
+          <button className="google-login-button" onClick={() => handleGoogleLogin()}>
+            Đăng nhập với Google
+          </button>
         </CardFooter>
       </Card>
     </div>

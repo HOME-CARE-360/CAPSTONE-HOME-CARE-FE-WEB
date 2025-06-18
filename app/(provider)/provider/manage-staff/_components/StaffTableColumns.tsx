@@ -68,7 +68,7 @@ export const useStaffTableColumns = ({
       id: 'actions',
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" onClick={() => onEdit?.(row.original)}>
+          <Button variant="ghost" size="sm" onClick={() => onEdit && onEdit(row.original)}>
             Edit
           </Button>
           <Button variant="ghost" size="sm" className="text-destructive">

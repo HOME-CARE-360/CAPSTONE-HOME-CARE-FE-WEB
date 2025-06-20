@@ -1,30 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import {
-  Search,
-  Plus,
-  Filter,
-  MoreVertical,
-  Edit,
-  Trash2,
-  Phone,
-  Mail,
-  MapPin,
-} from 'lucide-react';
-import StaffCreateModal, {
-  StaffFormData,
-} from '@/app/(provider)/provider/manage-staff/components/StaffCreateModal';
+import { StaffFormData } from '@/app/(provider)/provider/manage-staff/components/StaffCreateModal';
 import { SiteHeader } from '@/app/(provider)/components/SiteHeader';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { StaffTable } from './components/StaffTable';
+import StaffCreateModal from './components/StaffCreateModal';
+
 interface Staff {
   id: string;
   name: string;
@@ -62,24 +43,23 @@ const mockStaff: Staff[] = [
 
 export default function StaffManagementPage() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedStatus] = useState<string>('all');
+  const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [staffList, setStaffList] = useState<Staff[]>(mockStaff);
 
-  const filteredStaff = staffList.filter(staff => {
-    const matchesSearch =
-      staff.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      staff.position.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = selectedStatus === 'all' || staff.status === selectedStatus;
-    return matchesSearch && matchesStatus;
-  });
+  // const filteredStaff = staffList.filter(staff => {
+  //   const matchesSearch =
+  //     staff.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  //     staff.position.toLowerCase().includes(searchTerm.toLowerCase());
+  //   const matchesStatus = selectedStatus === 'all' || staff.status === selectedStatus;
+  //   return matchesSearch && matchesStatus;
+  // });
 
   const handleCreateStaff = (staffData: StaffFormData) => {
-    // In a real application, this would be an API call
     const newStaff: Staff = {
       id: Date.now().toString(),
       name: staffData.name,
-      position: staffData.position || '',
+      position: staffData.categoryIds.map(categoryId => categoryId.toString()).join(', '),
       phone: '',
       email: '',
       location: '',
@@ -93,127 +73,41 @@ export default function StaffManagementPage() {
 
   return (
     <>
-      <SiteHeader title="Quản lý nhân viên" />
-      <div className="p-6 container mx-auto">
-        <div className="flex justify-end items-center mb-6">
+      <SiteHeader title={'Quản lý nhân viên'} />
+      <div className="container mx-auto py-6 px-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              placeholder="Tìm kiếm nhân viên..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className="border rounded px-3 py-2"
+            />
+            <select
+              value={selectedStatus}
+              onChange={e => setSelectedStatus(e.target.value)}
+              className="border rounded px-3 py-2"
+            >
+              <option value="all">Tất cả trạng thái</option>
+              <option value="active">Đang làm việc</option>
+              <option value="inactive">Đã nghỉ</option>
+            </select>
+          </div>
           <button
+            className="bg-primary text-white px-4 py-2 rounded"
             onClick={() => setIsCreateModalOpen(true)}
-            className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-green-500 transition-colors"
           >
-            <Plus size={20} />
-            Tạo tài khoản nhân viên
+            Thêm nhân viên
           </button>
         </div>
-
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="flex flex-col md:flex-row gap-4 mb-6">
-            <div className="flex-1 relative">
-              <Search
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                size={20}
-              />
-              <Input
-                type="text"
-                placeholder="Tìm kiếm theo tên hoặc chức vụ..."
-                className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-              />
-            </div>
-            <div className="flex gap-4">
-              <Select>
-                <SelectTrigger className="w-[220px]">
-                  <SelectValue placeholder="Trạng thái hoạt động" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tất cả trạng thái</SelectItem>
-                  <SelectItem value="active">Đang hoạt động</SelectItem>
-                  <SelectItem value="inactive">Không hoạt động</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button className="border rounded-lg px-4 py-2 flex items-center gap-2 bg-green-600 hover:bg-green-500">
-                <Filter size={20} />
-                Bộ lọc
-              </Button>
-            </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-3 px-4">Tên nhân viên</th>
-                  <th className="text-left py-3 px-4">Chức vụ</th>
-                  <th className="text-left py-3 px-4">Liên hệ</th>
-                  <th className="text-left py-3 px-4">Khu vực</th>
-                  <th className="text-left py-3 px-4">Trạng thái</th>
-                  <th className="text-left py-3 px-4">Ngày tham gia</th>
-                  <th className="text-left py-3 px-4">Thao tác</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredStaff.map(staff => (
-                  <tr key={staff.id} className="border-b hover:bg-gray-50">
-                    <td className="py-3 px-4">{staff.name}</td>
-                    <td className="py-3 px-4">{staff.position}</td>
-                    <td className="py-3 px-4">
-                      <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-2">
-                          <Phone size={16} className="text-gray-500" />
-                          <span>{staff.phone}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Mail size={16} className="text-gray-500" />
-                          <span>{staff.email}</span>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
-                        <MapPin size={16} className="text-gray-500" />
-                        <span>{staff.location}</span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span
-                        className={`px-2 py-1 rounded-full text-sm ${
-                          staff.status === 'active'
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-red-100 text-red-800'
-                        }`}
-                      >
-                        {staff.status === 'active' ? 'Đang hoạt động' : 'Không hoạt động'}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4">
-                      {new Date(staff.joinDate).toLocaleDateString('vi-VN')}
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
-                        <button className="p-1 hover:bg-gray-100 rounded">
-                          <Edit size={18} className="text-blue-600" />
-                        </button>
-                        <button className="p-1 hover:bg-gray-100 rounded">
-                          <Trash2 size={18} className="text-red-600" />
-                        </button>
-                        <button className="p-1 hover:bg-gray-100 rounded">
-                          <MoreVertical size={18} className="text-gray-600" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <StaffCreateModal
-          isOpen={isCreateModalOpen}
-          onClose={() => setIsCreateModalOpen(false)}
-          onSubmit={handleCreateStaff}
-        />
+        <StaffTable />
       </div>
+      <StaffCreateModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSubmit={handleCreateStaff}
+      />
     </>
   );
 }

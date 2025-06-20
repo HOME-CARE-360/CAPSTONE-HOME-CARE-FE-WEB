@@ -87,6 +87,10 @@ export interface RegisterProviderResponse {
   message?: string | ValidationError[];
 }
 
+export interface GoogleLoginResponse {
+  url: string;
+}
+
 export const fetchAuth = {
   // Request OTP for registration or password reset
   verifyEmailWithOTP: async (data: OTPVerifyRequest): Promise<OTPVerifyResponse> => {
@@ -147,6 +151,13 @@ export const fetchAuth = {
   // Logout - no API call, just return resolved promise
   logout: async (): Promise<void> => {
     return Promise.resolve();
+  },
+
+  // Google login
+  googleLogin: async (): Promise<GoogleLoginResponse> => {
+    const response = await apiService.get<GoogleLoginResponse>('/auth/google-link');
+    console.log('response', response);
+    return response.data;
   },
 
   //   // Refresh token

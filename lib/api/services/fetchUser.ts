@@ -22,6 +22,38 @@ export interface UserUpdateResponse {
   message?: string | ValidationError[];
 }
 
+export interface UserInfomationRepsonse {
+  id: number;
+  email: string;
+  name: string;
+  phone: string;
+  avatar: string | null;
+  status: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CustomerInfomationResponse {
+  id: number;
+  userId: number;
+  address: string | null;
+  dateOfBirth: string;
+  gender: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface GetUserInformationResponse {
+  success: boolean;
+  code: string;
+  message: string;
+  data: {
+    User: UserInfomationRepsonse;
+    customer: CustomerInfomationResponse;
+  };
+  statusCode: number;
+}
+
 // User service with profile-related API methods
 export const userService = {
   // Get current user profile
@@ -48,6 +80,13 @@ export const userService = {
       console.error('Update User Profile Error:', error);
       throw error;
     }
+  },
+
+  getUserInfomation: async (userId: string | number): Promise<GetUserInformationResponse> => {
+    const response = await apiService.get<GetUserInformationResponse>(
+      `/users/get-customer-information/${userId}`
+    );
+    return response.data;
   },
 };
 

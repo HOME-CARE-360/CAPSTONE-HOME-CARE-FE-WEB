@@ -15,8 +15,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { UserCircleIcon, LogOutIcon, SettingsIcon } from 'lucide-react';
-import { ThemeSwitch } from '@/components/ThemeSwitch';
-
+// import { ThemeSwitch } from '@/components/ThemeSwitch';
+import { Home } from 'lucide-react';
 export default function Header() {
   const { isAuthenticated, logout } = useAuth();
   const { data: profileData } = useUserProfile();
@@ -47,12 +47,13 @@ export default function Header() {
   const initials = getInitials(user.name);
 
   return (
-    <header className="sticky top-0 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border/40">
+    <header className="sticky z-1000 top-0 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border/40">
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Logo and Navigation */}
           <div className="flex items-center gap-8">
             <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-80">
+              <Home className="h-6 w-6 text-green-600" />
               <span className="text-xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
                 HomeCare
               </span>
@@ -76,7 +77,7 @@ export default function Header() {
 
           {/* Right Section */}
           <div className="flex items-center gap-4">
-            <ThemeSwitch />
+            {/* <ThemeSwitch /> */}
 
             {isAuthenticated ? (
               <DropdownMenu>

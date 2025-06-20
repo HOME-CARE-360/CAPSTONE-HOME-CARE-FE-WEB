@@ -2,7 +2,6 @@
 
 import * as React from 'react';
 import { Area, AreaChart, CartesianGrid, XAxis } from 'recharts';
-import { useTranslation } from 'react-i18next';
 
 import { useIsMobile } from '@/hooks/useMobile';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -130,7 +129,6 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 export function ChartAreaInteractive() {
-  const { t } = useTranslation();
   const isMobile = useIsMobile();
   const [timeRange, setTimeRange] = React.useState('30d');
 
@@ -157,10 +155,10 @@ export function ChartAreaInteractive() {
   return (
     <Card className="@container/card">
       <CardHeader className="relative">
-        <CardTitle>{t('totalVisitors')}</CardTitle>
+        <CardTitle>Tổng lượt truy cập</CardTitle>
         <CardDescription>
-          <span className="@[540px]/card:block hidden">{t('totalLast3Months')}</span>
-          <span className="@[540px]/card:hidden">{t('last3Months')}</span>
+          <span className="@[540px]/card:block hidden">Tổng lượt truy cập 3 tháng qua</span>
+          <span className="@[540px]/card:hidden">Lượt truy cập 3 tháng qua</span>
         </CardDescription>
         <div className="absolute right-4 top-4">
           <ToggleGroup
@@ -171,31 +169,31 @@ export function ChartAreaInteractive() {
             className="@[767px]/card:flex hidden"
           >
             <ToggleGroupItem value="90d" className="h-8 px-2.5">
-              {t('last3Months')}
+              Lượt truy cập 3 tháng qua
             </ToggleGroupItem>
             <ToggleGroupItem value="30d" className="h-8 px-2.5">
-              {t('last30Days')}
+              Lượt truy cập 30 ngày qua
             </ToggleGroupItem>
             <ToggleGroupItem value="7d" className="h-8 px-2.5">
-              {t('last7Days')}
+              Lượt truy cập 7 ngày qua
             </ToggleGroupItem>
           </ToggleGroup>
           <Select value={timeRange} onValueChange={setTimeRange}>
             <SelectTrigger
               className="@[767px]/card:hidden flex w-40"
-              aria-label={t('selectTimeRange')}
+              aria-label="Chọn khoảng thời gian"
             >
-              <SelectValue placeholder={t('last3Months')} />
+              <SelectValue placeholder="Lượt truy cập 3 tháng qua" />
             </SelectTrigger>
             <SelectContent className="rounded-xl">
               <SelectItem value="90d" className="rounded-lg">
-                {t('last3Months')}
+                Lượt truy cập 3 tháng qua
               </SelectItem>
               <SelectItem value="30d" className="rounded-lg">
-                {t('last30Days')}
+                Lượt truy cập 30 ngày qua
               </SelectItem>
               <SelectItem value="7d" className="rounded-lg">
-                {t('last7Days')}
+                Lượt truy cập 7 ngày qua
               </SelectItem>
             </SelectContent>
           </Select>

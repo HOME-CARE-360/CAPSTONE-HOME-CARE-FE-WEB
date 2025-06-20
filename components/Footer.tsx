@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Send, Facebook, Twitter, Instagram, Linkedin } from 'lucide-react';
+import { Send, Facebook, Twitter, Instagram, Linkedin, Youtube } from 'lucide-react';
 import Image from 'next/image';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -54,6 +54,7 @@ export default function Footer() {
         { label: 'Twitter', href: '#', icon: <Twitter className="w-4 h-4" /> },
         { label: 'Instagram', href: '#', icon: <Instagram className="w-4 h-4" /> },
         { label: 'LinkedIn', href: '#', icon: <Linkedin className="w-4 h-4" /> },
+        { label: 'Youtube', href: '#', icon: <Youtube className="w-4 h-4" /> },
       ],
     },
   ];

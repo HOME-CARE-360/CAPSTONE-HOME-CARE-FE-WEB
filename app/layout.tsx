@@ -1,10 +1,9 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { Inter } from 'next/font/google';
-import { Toaster } from '@/components/ui/toaster';
 import { QueryProvider } from '@/lib/providers/queryProvider';
-import { I18nextProvider } from '@/components/i18next-provider';
 import { ThemeProvider } from '@/components/theme-provider';
+import { Toaster } from '@/components/ui/sonner';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -87,12 +86,10 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <QueryProvider>
-            <I18nextProvider>
-              <main>{children}</main>
-              <Toaster />
-            </I18nextProvider>
+            <main>{children}</main>
           </QueryProvider>
         </ThemeProvider>
+        <Toaster />
       </body>
     </html>
   );

@@ -15,7 +15,6 @@ import { useState } from 'react';
 //import { formatCurrency } from '@/utils/numbers/formatCurrency';
 import { Service } from '@/lib/api/services/fetchService';
 import { Button } from '@/components/ui/button';
-import { useTranslation } from 'react-i18next';
 import { AnimatePresence, motion } from 'framer-motion';
 import Link from 'next/link';
 
@@ -24,7 +23,6 @@ interface ServiceShowcaseProps {
 }
 
 export default function ServiceShowcase({ service }: ServiceShowcaseProps) {
-  const { t } = useTranslation();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showAllImages, setShowAllImages] = useState(false);
   const [showFocusedImage, setShowFocusedImage] = useState(false);
@@ -55,7 +53,7 @@ export default function ServiceShowcase({ service }: ServiceShowcaseProps) {
       {/* Breadcrumb Navigation */}
       <nav className="flex items-center space-x-1 text-sm text-muted-foreground mb-6">
         <Link href="/services" className="hover:text-foreground transition-colors">
-          {t('service_showcase.search')}
+          Tìm kiếm
         </Link>
         <ChevronRightIcon className="h-4 w-4" />
         <span className="text-foreground font-medium">{service.name}</span>
@@ -121,7 +119,7 @@ export default function ServiceShowcase({ service }: ServiceShowcaseProps) {
           onClick={() => setShowAllImages(true)}
         >
           <Camera className="w-4 h-4 mr-2" />
-          {t('service_detail.view_all')} {service.images.length} {t('service_detail.photos')}
+          Xem tất cả {service.images.length} ảnh
         </Button>
 
         {/* Image Counter Badge */}
@@ -143,9 +141,7 @@ export default function ServiceShowcase({ service }: ServiceShowcaseProps) {
             >
               <X className="h-5 w-5" />
             </Button>
-            <h2 className="text-lg font-medium">
-              {service.name} {t('service_detail.photos')}
-            </h2>
+            <h2 className="text-lg font-medium">{service.name} ảnh</h2>
             <div className="w-10" /> {/* Empty div for balance */}
           </div>
 

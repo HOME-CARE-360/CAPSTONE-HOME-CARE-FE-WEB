@@ -8,15 +8,24 @@ interface ImageUploadProps {
   value: string[];
   onChange: (value: string[]) => void;
   onRemove: (url: string) => void;
+  onUpload?: (file: File) => Promise<void>;
 }
 
-export function ImageUpload({ value, onChange, onRemove }: ImageUploadProps) {
-  const onUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+export function ImageUpload({ value, onChange, onRemove, onUpload }: ImageUploadProps) {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
 
-    const newUrls = Array.from(files).map(file => URL.createObjectURL(file));
-    onChange([...value, ...newUrls]);
+    if (onUpload) {
+      // Use custom upload handler
+      for (const file of Array.from(files)) {
+        await onUpload(file);
+      }
+    } else {
+      // Fallback to local URLs
+      const newUrls = Array.from(files).map(file => URL.createObjectURL(file));
+      onChange([...value, ...newUrls]);
+    }
   };
 
   return (
@@ -48,7 +57,13 @@ export function ImageUpload({ value, onChange, onRemove }: ImageUploadProps) {
             </p>
             <p className="text-xs text-gray-500">PNG, JPG or WEBP</p>
           </div>
-          <input type="file" className="hidden" multiple accept="image/*" onChange={onUpload} />
+          <input
+            type="file"
+            className="hidden"
+            multiple
+            accept="image/*"
+            onChange={handleFileUpload}
+          />
         </label>
       </div>
     </div>

@@ -1,6 +1,6 @@
 import { ChartAreaInteractive } from '@/components/chartAreaInteractive';
 import { DataTable, columns } from '@/components/dataTable';
-import { SiteHeader } from '@/app/(provider)/_components/SiteHeader';
+import { SiteHeader } from '@/app/(provider)/components/SiteHeader';
 
 import data from './data.json';
 

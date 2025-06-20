@@ -2,8 +2,6 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { useTranslation } from 'react-i18next';
-import { LanguageSelector } from './language-selector';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserProfile } from '@/hooks/useUser';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -20,7 +18,6 @@ import { UserCircleIcon, LogOutIcon, SettingsIcon } from 'lucide-react';
 import { ThemeSwitch } from '@/components/ThemeSwitch';
 
 export default function Header() {
-  const { t } = useTranslation();
   const { isAuthenticated, logout } = useAuth();
   const { data: profileData } = useUserProfile();
 
@@ -66,13 +63,13 @@ export default function Header() {
                 href="/services"
                 className="text-sm font-medium text-foreground/80 transition-colors hover:text-primary"
               >
-                {t('header.services')}
+                Dịch vụ
               </Link>
               <Link
                 href="/services"
                 className="text-sm font-medium text-foreground/80 transition-colors hover:text-primary"
               >
-                {t('header.best_agents')}
+                Nhà cung cấp
               </Link>
             </nav>
           </div>
@@ -80,7 +77,6 @@ export default function Header() {
           {/* Right Section */}
           <div className="flex items-center gap-4">
             <ThemeSwitch />
-            <LanguageSelector />
 
             {isAuthenticated ? (
               <DropdownMenu>
@@ -132,10 +128,10 @@ export default function Header() {
             ) : (
               <div className="flex items-center gap-3">
                 <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex">
-                  <Link href="/register/email">{t('header.register')}</Link>
+                  <Link href="/register/email">Đăng ký</Link>
                 </Button>
                 <Button asChild size="sm" className="bg-primary hover:bg-primary/90">
-                  <Link href="/login">{t('header.login')}</Link>
+                  <Link href="/login">Đăng nhập</Link>
                 </Button>
               </div>
             )}

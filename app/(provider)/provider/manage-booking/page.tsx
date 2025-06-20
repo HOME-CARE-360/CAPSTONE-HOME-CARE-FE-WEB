@@ -55,8 +55,8 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 
-import { SiteHeader } from '@/app/(provider)/_components/SiteHeader';
-import TagDashboard from './_components/TagDashboard';
+import { SiteHeader } from '@/app/(provider)/components/SiteHeader';
+import TagDashboard from '@/app/(provider)/provider/manage-booking/components/TagDashboard';
 
 export default function ProviderBookingsPage() {
   const [selectedBooking, setSelectedBooking] = useState<any>(null);

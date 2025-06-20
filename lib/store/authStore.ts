@@ -2,6 +2,19 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { getCookie, setCookie, deleteCookie } from 'cookies-next';
 import apiService from '@/lib/api/core';
+import { jwtDecode, JwtPayload } from 'jwt-decode';
+
+// Define the structure of the decoded token
+interface DecodedToken extends JwtPayload {
+  id?: string; // User ID might be in 'id'
+  userId?: string; // or 'userId'
+  user_id?: string; // or 'user_id'
+  uid?: string; // or 'uid'
+  name: string;
+  email: string;
+  role: string;
+  avatar?: string;
+}
 
 interface User {
   id: string;
@@ -16,158 +29,79 @@ interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-
-  // Actions
   setToken: (token: string | null) => void;
-  setUser: (user: User | null) => void;
-  login: (token: string, user: User) => void;
   logout: () => void;
-  syncAuthState: () => void;
 }
+
+// Function to decode the token and extract user info
+const getUserFromToken = (token: string): User | null => {
+  try {
+    const decoded = jwtDecode<DecodedToken>(token);
+    // The user ID can be in 'id', 'sub' (standard), 'userId', 'user_id', or 'uid'
+    const userId = decoded.id || decoded.sub || decoded.userId || decoded.user_id || decoded.uid;
+
+    if (!userId) {
+      console.error(
+        'Token does not contain a valid user ID claim (checked: id, sub, userId, user_id, uid).'
+      );
+      return null;
+    }
+
+    return {
+      id: userId,
+      name: decoded.name,
+      email: decoded.email,
+      role: decoded.role,
+      avatar: decoded.avatar,
+    };
+  } catch (error) {
+    console.error('Failed to decode token:', error);
+    return null;
+  }
+};
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    set => ({
+    (set, get) => ({
       token: null,
       user: null,
       isAuthenticated: false,
-      isLoading: false,
+      isLoading: true, // Start with loading true
 
       setToken: token => {
-        // Sync the token with cookies when it's set in the store
         if (token) {
-          setCookie('auth-token', token, {
-            maxAge: 60 * 60 * 24 * 7, // 7 days
-            path: '/',
-          });
-          // Set token in API service for authenticated requests
-          apiService.setAuthToken(token);
+          const user = getUserFromToken(token);
+          if (user) {
+            set({ token, user, isAuthenticated: true, isLoading: false });
+            setCookie('auth-token', token, { maxAge: 60 * 60 * 24 * 7, path: '/' });
+            setCookie('userId', user.id, { maxAge: 60 * 60 * 24 * 7, path: '/' });
+            apiService.setAuthToken(token);
+          } else {
+            // If token is invalid, logout
+            get().logout();
+          }
         } else {
-          deleteCookie('auth-token', { path: '/' });
-          // Clear token in API service
-          apiService.setAuthToken(null);
+          // If no token, logout
+          get().logout();
         }
-
-        set(() => ({
-          token,
-          isAuthenticated: !!token,
-        }));
-      },
-
-      setUser: user => set(() => ({ user })),
-
-      login: (token, user) => {
-        // Sync the token with cookies on login
-        setCookie('auth-token', token, {
-          maxAge: 60 * 60 * 24 * 7, // 7 days
-          path: '/',
-        });
-        // Set token in API service for authenticated requests
-        apiService.setAuthToken(token);
-
-        set(() => ({
-          token,
-          user,
-          isAuthenticated: true,
-        }));
       },
 
       logout: () => {
-        // Clear cookies on logout
         deleteCookie('auth-token', { path: '/' });
-        // Clear token in API service
+        deleteCookie('userId', { path: '/' });
         apiService.setAuthToken(null);
-
-        set(() => ({
-          token: null,
-          user: null,
-          isAuthenticated: false,
-        }));
-      },
-
-      syncAuthState: () => {
-        if (typeof window !== 'undefined') {
-          const cookieToken = getCookie('auth-token');
-
-          set(state => {
-            const storeHasToken = !!state.token;
-            const cookieHasToken = !!cookieToken;
-
-            // If there's a mismatch between cookie and store
-            if (storeHasToken !== cookieHasToken) {
-              // Prefer cookie token for middleware compatibility
-              if (cookieHasToken) {
-                return {
-                  token: cookieToken as string,
-                  isAuthenticated: true,
-                };
-              } else {
-                return {
-                  token: null,
-                  isAuthenticated: false,
-                };
-              }
-            }
-
-            return {
-              isAuthenticated: storeHasToken,
-            };
-          });
-        }
+        set({ token: null, user: null, isAuthenticated: false, isLoading: false });
       },
     }),
     {
       name: 'auth-storage',
-      // Only persist these fields
+      // Persist only the token, user will be derived from it
       partialize: state => ({
         token: state.token,
-        user: state.user,
       }),
-      onRehydrateStorage: () => state => {
-        if (state) {
-          state.isAuthenticated = !!state.token;
-          // Set token in API service on rehydration if available
-          if (state.token) {
-            apiService.setAuthToken(state.token);
-          }
-
-          // After rehydration, check for cookie token as well
-          if (typeof window !== 'undefined') {
-            const cookieToken = getCookie('auth-token');
-            if (!state.token && cookieToken) {
-              state.setToken(cookieToken as string);
-            } else if (state.token && !cookieToken) {
-              setCookie('auth-token', state.token, {
-                maxAge: 60 * 60 * 24 * 7, // 7 days
-                path: '/',
-              });
-            }
-          }
-        }
-      },
     }
   )
 );
 
-// Initialize auth state from storage
-setTimeout(() => {
-  const state = useAuthStore.getState();
-  if (typeof window !== 'undefined') {
-    const cookieToken = getCookie('auth-token');
-    const storeHasToken = !!state.token;
-    const cookieHasToken = !!cookieToken;
-
-    // If we have a token in store or cookie, set it in the API service
-    if (storeHasToken) {
-      apiService.setAuthToken(state.token);
-    } else if (cookieHasToken) {
-      apiService.setAuthToken(cookieToken as string);
-    }
-
-    if (storeHasToken !== cookieHasToken) {
-      state.syncAuthState();
-    } else if (storeHasToken && !state.isAuthenticated) {
-      state.syncAuthState();
-    }
-  }
-}, 0);
+// Initial state sync from cookie
+useAuthStore.getState().setToken(getCookie('auth-token') as string | null);

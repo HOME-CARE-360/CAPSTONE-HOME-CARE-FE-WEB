@@ -1,5 +1,16 @@
 import apiService from '../core';
 
+export interface ValidationError {
+  validation?: string;
+  code: string;
+  message: string;
+  path?: string;
+  minimum?: number;
+  type?: string;
+  inclusive?: boolean;
+  exact?: boolean;
+}
+
 export enum Roles {
   Admin = 'Admin',
   SERVICE_PROVIDER = 'SERVICE PROVIDER',
@@ -24,8 +35,7 @@ export interface OTPVerifyRequest {
 }
 
 export interface OTPVerifyResponse {
-  message?: string;
-  status?: boolean;
+  message?: string | ValidationError[];
 }
 
 export interface RegisterRequest {
@@ -42,36 +52,13 @@ export interface Token {
   refreshToken: string;
 }
 
-export interface Message {
-  message?: string;
-  path?: string;
-}
-
 export interface LoginResponse {
   data?: Token;
-  message?: Message;
+  message?: string | ValidationError[];
 }
 
 export interface RegisterResponse {
-  data?: {
-    id: number;
-    email: string;
-    name: string;
-    phone: string;
-    avatar: string | null;
-    status: string;
-    createdById: string | null;
-    updatedById: string | null;
-    deletedById: string | null;
-    deletedAt: string | null;
-    createdAt: string;
-    updatedAt: string;
-    roles: Array<{
-      id: number;
-      name: string;
-    }>;
-  };
-  message?: Message;
+  message?: string | ValidationError[];
 }
 
 export enum CompanyType {
@@ -97,21 +84,7 @@ export interface RegisterProviderRequest {
 }
 
 export interface RegisterProviderResponse {
-  data?: {
-    id: number;
-    email: string;
-    name: string;
-    phone: string;
-    taxId: string;
-    companyType: string;
-    industry: string;
-    address: string;
-    description: string;
-    status: string;
-    createdAt: string;
-    updatedAt: string;
-  };
-  message?: Message;
+  message?: string | ValidationError[];
 }
 
 export const fetchAuth = {
@@ -122,36 +95,25 @@ export const fetchAuth = {
         '/auth/otp',
         data
       );
-
-      // If response has data, return it
-      if (response.data) {
-        return {
-          ...response.data,
-          status: true,
-        };
-      }
-
-      // Fallback success response
-      return {
-        status: true,
-        message: response.message || 'OTP verification successful',
-      };
-    } catch (error: unknown) {
-      // Enhanced error logging to see full error structure
-      console.error('OTP API Error - Full structure:', JSON.stringify(error, null, 2));
-
-      // Do not transform the error here, just pass it along to be handled by the hook
+      return response.data;
+    } catch (error) {
+      console.error('OTP API Error:', error);
       throw error;
     }
   },
 
   // Login with credentials
   login: async (credentials: LoginCredentials): Promise<LoginResponse> => {
-    const response = await apiService.post<LoginResponse, LoginCredentials>(
-      '/auth/login',
-      credentials
-    );
-    return response.data;
+    try {
+      const response = await apiService.post<LoginResponse, LoginCredentials>(
+        '/auth/login',
+        credentials
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Login API Error:', error);
+      throw error;
+    }
   },
 
   // Register new user
@@ -161,19 +123,9 @@ export const fetchAuth = {
         '/auth/register',
         data
       );
-
-      // Check if this is a successful response (status 200 or 201)
-      if (response.status === 200 || response.status === 201) {
-        // Ensure we return a proper success response
-        return response.data || { status: true };
-      }
-
       return response.data;
-    } catch (error: unknown) {
-      // Enhanced error logging to see full error structure
-      console.error('Register API Error - Full structure:', JSON.stringify(error, null, 2));
-
-      // Do not transform the error here, just pass it along to be handled by the hook
+    } catch (error) {
+      console.error('Register API Error:', error);
       throw error;
     }
   },
@@ -185,22 +137,9 @@ export const fetchAuth = {
         '/auth/register-provider',
         data
       );
-
-      // Check if this is a successful response (status 200 or 201)
-      if (response.status === 200 || response.status === 201) {
-        // Ensure we return a proper success response
-        return response.data || { status: true };
-      }
-
       return response.data;
-    } catch (error: unknown) {
-      // Enhanced error logging to see full error structure
-      console.error(
-        'Register Provider API Error - Full structure:',
-        JSON.stringify(error, null, 2)
-      );
-
-      // Do not transform the error here, just pass it along to be handled by the hook
+    } catch (error) {
+      console.error('Register Provider API Error:', error);
       throw error;
     }
   },

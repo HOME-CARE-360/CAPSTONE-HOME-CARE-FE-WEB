@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,10 +11,8 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/hooks/useAuth';
 import { EyeOff, Eye, Lock, User, Phone } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { Loader2 } from 'lucide-react';
-import { useToast } from '@/hooks/useToast';
 import { OTPType } from '@/lib/api/services/fetchAuth';
 
 const customerSchema = z
@@ -50,9 +47,6 @@ export function CustomerRegistrationForm() {
   const [email, setEmail] = useState<string>('');
   const [otpRequested, setOtpRequested] = useState(false);
   const { register, requestOTP } = useAuth();
-  const { t } = useTranslation('common');
-  const router = useRouter();
-  const { toast } = useToast();
 
   // Get email from localStorage on component mount
   useEffect(() => {
@@ -108,44 +102,12 @@ export function CustomerRegistrationForm() {
   };
 
   const handleResendOTP = async () => {
-    if (!email || resendingOTP) return;
-
-    try {
-      setResendingOTP(true);
-
-      await requestOTP({
-        email: email,
-        type: OTPType.REGISTER,
-      });
-
-      toast({
-        title: t('register.otp_sent_title'),
-        description: t('register.otp_sent_description'),
-        variant: 'default',
-      });
-    } catch (error: unknown) {
-      console.error('Customer form - Failed to send OTP:', error);
-
-      // Get the error message with fallbacks
-      const typedError = error as { message?: string };
-      let errorMessage = typedError.message || t('register.otp_error_generic');
-
-      // Handle specific error cases
-      if (
-        errorMessage.includes('EmailAlreadyExists') ||
-        errorMessage.includes('Error.EmailAlreadyExists')
-      ) {
-        errorMessage = t('register.email_already_exists');
-      }
-
-      toast({
-        title: t('register.otp_error_title'),
-        description: errorMessage,
-        variant: 'destructive',
-      });
-    } finally {
-      setResendingOTP(false);
-    }
+    setResendingOTP(true);
+    await requestOTP({
+      email: email,
+      type: OTPType.REGISTER,
+    });
+    setResendingOTP(false);
   };
 
   const handleRegister = async (data: CustomerFormValues) => {
@@ -154,7 +116,6 @@ export function CustomerRegistrationForm() {
 
     try {
       setVerifying(true);
-      // Create a new object without the 'terms' field
       const registrationData = {
         name: data.name,
         phone: data.phone,
@@ -162,40 +123,10 @@ export function CustomerRegistrationForm() {
         confirmPassword: data.confirmPassword,
       };
 
-      // The register function now returns a Promise that can be properly awaited
       await register({
         ...registrationData,
         email: email,
         code: otpValue,
-      });
-
-      // If no error was thrown, registration was successful
-      toast({
-        title: t('register.success_title'),
-        description: t('register.customer_success_description'),
-        variant: 'default',
-      });
-
-      // Small delay before redirecting to ensure toast is shown
-      setTimeout(() => {
-        router.push('/login');
-      }, 500);
-    } catch (error: unknown) {
-      console.error('Customer - Registration failed:', error);
-
-      // Get error message with fallbacks
-      const typedError = error as { message?: string };
-      let errorMessage = typedError.message || t('register.customer_error_generic');
-
-      // Handle specific error cases
-      if (errorMessage.includes('InvalidOTP') || errorMessage.includes('Error.InvalidOTP')) {
-        errorMessage = t('register.invalid_otp');
-      }
-
-      toast({
-        title: t('register.error_title'),
-        description: errorMessage,
-        variant: 'destructive',
       });
     } finally {
       setVerifying(false);
@@ -205,12 +136,12 @@ export function CustomerRegistrationForm() {
   return (
     <form onSubmit={form.handleSubmit(handleRegister)} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="name">{t('register.full_name')}</Label>
+        <Label htmlFor="name">Họ và tên</Label>
         <div className="relative">
           <User className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             id="name"
-            placeholder={t('register.full_name_placeholder')}
+            placeholder="Nhập họ và tên"
             className="pl-10"
             {...form.register('name')}
           />
@@ -221,13 +152,13 @@ export function CustomerRegistrationForm() {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="phone">{t('register.phone')}</Label>
+        <Label htmlFor="phone">Số điện thoại</Label>
         <div className="relative">
           <Phone className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             id="phone"
             type="tel"
-            placeholder={t('register.phone_placeholder')}
+            placeholder="Nhập số điện thoại"
             className="pl-10"
             {...form.register('phone')}
           />
@@ -238,7 +169,7 @@ export function CustomerRegistrationForm() {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="password">{t('register.password')}</Label>
+        <Label htmlFor="password">Mật khẩu</Label>
         <div className="relative">
           <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
@@ -267,7 +198,7 @@ export function CustomerRegistrationForm() {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="confirmPassword">{t('register.confirm_password')}</Label>
+        <Label htmlFor="confirmPassword">Xác nhận mật khẩu</Label>
         <div className="relative">
           <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
@@ -299,7 +230,7 @@ export function CustomerRegistrationForm() {
 
       {showOTP && (
         <div className="w-full flex flex-col items-center justify-center my-4 gap-4">
-          <Label>{t('register.enter_otp')}</Label>
+          <Label>Nhập mã OTP</Label>
           <InputOTP
             maxLength={6}
             value={otpForm.watch('otp')}
@@ -330,10 +261,10 @@ export function CustomerRegistrationForm() {
             {resendingOTP ? (
               <>
                 <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                {t('register.sending_otp')}
+                Gửi lại OTP
               </>
             ) : (
-              t('register.resend_otp')
+              'Gửi lại OTP'
             )}
           </Button>
         </div>
@@ -348,9 +279,9 @@ export function CustomerRegistrationForm() {
           }}
         />
         <Label htmlFor="terms" className="text-sm">
-          {t('register.terms')}{' '}
+          Đồng ý với{' '}
           <Link href="/terms" className="text-primary hover:underline">
-            {t('register.terms_link')}
+            điều khoản và điều kiện
           </Link>
         </Label>
       </div>
@@ -367,12 +298,12 @@ export function CustomerRegistrationForm() {
         {verifying ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            {t('register.loading')}
+            Đang xử lý...
           </>
         ) : showOTP ? (
-          t('register.submit')
+          'Đăng ký'
         ) : (
-          t('register.continue')
+          'Tiếp tục'
         )}
       </Button>
     </form>

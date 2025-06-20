@@ -1,9 +1,17 @@
-import { ReactNode } from 'react';
+import type React from 'react';
+import '@/app/globals.css';
+import type { Metadata } from 'next';
 
-export default function UserLayout({ children }: { children: ReactNode }) {
-  return (
-    <div className="flex min-h-screen flex-col">
-      <main className="flex-1 bg-gray-50">{children}</main>
-    </div>
-  );
+export const metadata: Metadata = {
+  title: 'HomeCare 360 - Your Comprehensive Home Service Solution',
+  description:
+    'In the modern busy life, households increasingly require flexible, quick, and personalized home services. Traditional booking methods are often inefficient, inconvenient, and lack transparency.',
+};
+
+export default function UserLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return <div className="font-mann">{children}</div>;
 }

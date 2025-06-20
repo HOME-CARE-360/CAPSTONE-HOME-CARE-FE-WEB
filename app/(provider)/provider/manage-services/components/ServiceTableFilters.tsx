@@ -15,12 +15,12 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Table } from '@tanstack/react-table';
-import { Service } from '@/lib/api/services/fetchService';
-import { Category } from '@/lib/api/services/fetchService';
+import { Category } from '@/lib/api/services/fetchCategory';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ServiceManager } from '@/lib/api/services/fetchServiceManager';
 
 interface ServiceTableFiltersProps {
-  table: Table<Service>;
+  table: Table<ServiceManager>;
   categories: Category[];
   // onLimitChange: (value: string) => void;
   onFilterChange?: (filters: {
@@ -203,7 +203,6 @@ export function ServiceTableFilters({
             .getAllColumns()
             .filter(column => column.getCanHide())
             .map(column => {
-              console.log('getAllColums', table.getAllColumns());
               return (
                 <DropdownMenuCheckboxItem
                   key={column.id}

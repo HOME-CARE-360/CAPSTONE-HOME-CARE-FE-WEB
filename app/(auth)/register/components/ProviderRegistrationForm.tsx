@@ -21,9 +21,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { EyeOff, Eye, Lock, User, Building2, MapPin } from 'lucide-react';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { Loader2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useToast } from '@/hooks/useToast';
-import { useTranslation } from 'react-i18next';
 import { OTPType, CompanyType } from '@/lib/api/services/fetchAuth';
 
 const providerSchema = z
@@ -54,7 +51,6 @@ type ProviderFormValues = z.infer<typeof providerSchema>;
 type OtpFormValues = z.infer<typeof otpSchema>;
 
 export function ProviderRegistrationForm() {
-  const { t } = useTranslation('common');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isFormValid, setIsFormValid] = useState(false);
@@ -64,8 +60,6 @@ export function ProviderRegistrationForm() {
   const [email, setEmail] = useState<string>('');
   const [otpRequested, setOtpRequested] = useState(false);
   const { registerProvider, requestOTP } = useAuth();
-  const router = useRouter();
-  const { toast } = useToast();
 
   // Get email from localStorage on component mount
   useEffect(() => {
@@ -135,32 +129,6 @@ export function ProviderRegistrationForm() {
         email: email,
         type: OTPType.REGISTER,
       });
-
-      toast({
-        title: t('register.otp_sent_title'),
-        description: t('register.otp_sent_description'),
-        variant: 'default',
-      });
-    } catch (error: unknown) {
-      console.error('Provider form - Failed to send OTP:', error);
-
-      // Get the error message with fallbacks
-      const typedError = error as { message?: string };
-      let errorMessage = typedError.message || t('register.otp_error_generic');
-
-      // Handle specific error cases
-      if (
-        errorMessage.includes('EmailAlreadyExists') ||
-        errorMessage.includes('Error.EmailAlreadyExists')
-      ) {
-        errorMessage = t('register.email_already_exists');
-      }
-
-      toast({
-        title: t('register.otp_error_title'),
-        description: errorMessage,
-        variant: 'destructive',
-      });
     } finally {
       setResendingOTP(false);
     }
@@ -172,7 +140,6 @@ export function ProviderRegistrationForm() {
 
     try {
       setVerifying(true);
-      // Create registration data without 'terms' field
       const registrationData = {
         name: data.name,
         phone: data.phone,
@@ -185,40 +152,10 @@ export function ProviderRegistrationForm() {
         description: data.description,
       };
 
-      // The registerProvider function now returns a Promise that can be properly awaited
       await registerProvider({
         ...registrationData,
         email: email,
         code: otpValue,
-      });
-
-      // If no error was thrown, registration was successful
-      toast({
-        title: t('register.success_title'),
-        description: t('register.provider_success_description'),
-        variant: 'default',
-      });
-
-      // Small delay before redirecting to ensure toast is shown
-      setTimeout(() => {
-        router.push('/login');
-      }, 500);
-    } catch (error: unknown) {
-      console.error('Provider - Registration failed:', error);
-
-      // Get error message with fallbacks
-      const typedError = error as { message?: string };
-      let errorMessage = typedError.message || t('register.provider_error_generic');
-
-      // Handle specific error cases
-      if (errorMessage.includes('InvalidOTP') || errorMessage.includes('Error.InvalidOTP')) {
-        errorMessage = t('register.invalid_otp');
-      }
-
-      toast({
-        title: t('register.error_title'),
-        description: errorMessage,
-        variant: 'destructive',
       });
     } finally {
       setVerifying(false);
@@ -228,12 +165,12 @@ export function ProviderRegistrationForm() {
   return (
     <form onSubmit={form.handleSubmit(handleRegister)} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="name">{t('register.provider.business_name')}</Label>
+        <Label htmlFor="name">Tên công ty</Label>
         <div className="relative">
           <Building2 className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             id="name"
-            placeholder={t('register.provider.business_name_placeholder')}
+            placeholder="Nhập tên công ty"
             className="pl-10"
             {...form.register('name')}
           />
@@ -244,13 +181,13 @@ export function ProviderRegistrationForm() {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="phone">{t('register.provider.business_phone')}</Label>
+        <Label htmlFor="phone">Số điện thoại</Label>
         <div className="relative">
           <User className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             id="phone"
             type="tel"
-            placeholder={t('register.phone_placeholder')}
+            placeholder="Nhập số điện thoại"
             className="pl-10"
             {...form.register('phone')}
           />
@@ -261,12 +198,12 @@ export function ProviderRegistrationForm() {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="taxId">{t('register.provider.tax_id')}</Label>
+        <Label htmlFor="taxId">Mã số thuế</Label>
         <div className="relative">
           <User className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             id="taxId"
-            placeholder={t('register.provider.tax_id_placeholder')}
+            placeholder="Nhập mã số thuế"
             className="pl-10"
             {...form.register('taxId')}
           />
@@ -277,27 +214,18 @@ export function ProviderRegistrationForm() {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="companyType">{t('register.provider.company_type')}</Label>
+        <Label htmlFor="companyType">Loại hình công ty</Label>
         <Select
           onValueChange={value => form.setValue('companyType', value as CompanyType)}
           defaultValue={form.getValues('companyType')}
         >
           <SelectTrigger>
-            <SelectValue placeholder={t('register.provider.select_company_type')} />
+            <SelectValue placeholder="Chọn loại hình công ty" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={CompanyType.SOLE_PROPRIETORSHIP}>
-              {t('register.provider.company_types.sole_proprietorship')}
-            </SelectItem>
-            <SelectItem value={CompanyType.LIMITED_LIABILITY}>
-              {t('register.provider.company_types.limited_liability')}
-            </SelectItem>
-            <SelectItem value={CompanyType.PARTNERSHIP}>
-              {t('register.provider.company_types.partnership')}
-            </SelectItem>
-            <SelectItem value={CompanyType.OTHER}>
-              {t('register.provider.company_types.other')}
-            </SelectItem>
+            <SelectItem value={CompanyType.SOLE_PROPRIETORSHIP}>Công ty riêng lẻ</SelectItem>
+            <SelectItem value={CompanyType.LIMITED_LIABILITY}>Công ty hợp danh</SelectItem>
+            <SelectItem value={CompanyType.PARTNERSHIP}>Công ty cổ phần</SelectItem>
           </SelectContent>
         </Select>
         {form.formState.errors.companyType && (
@@ -306,24 +234,20 @@ export function ProviderRegistrationForm() {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="industry">{t('register.provider.industry')}</Label>
-        <Input
-          id="industry"
-          placeholder={t('register.provider.industry_placeholder')}
-          {...form.register('industry')}
-        />
+        <Label htmlFor="industry">Ngành nghề</Label>
+        <Input id="industry" placeholder="Nhập ngành nghề" {...form.register('industry')} />
         {form.formState.errors.industry && (
           <p className="text-sm text-destructive">{form.formState.errors.industry.message}</p>
         )}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="address">{t('register.provider.address')}</Label>
+        <Label htmlFor="address">Địa chỉ</Label>
         <div className="relative">
           <MapPin className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             id="address"
-            placeholder={t('register.provider.address_placeholder')}
+            placeholder="Nhập địa chỉ"
             className="pl-10"
             {...form.register('address')}
           />
@@ -334,19 +258,15 @@ export function ProviderRegistrationForm() {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="description">{t('register.provider.description')}</Label>
-        <Textarea
-          id="description"
-          placeholder={t('register.provider.description_placeholder')}
-          {...form.register('description')}
-        />
+        <Label htmlFor="description">Mô tả</Label>
+        <Textarea id="description" placeholder="Nhập mô tả" {...form.register('description')} />
         {form.formState.errors.description && (
           <p className="text-sm text-destructive">{form.formState.errors.description.message}</p>
         )}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="password">{t('register.password')}</Label>
+        <Label htmlFor="password">Mật khẩu</Label>
         <div className="relative">
           <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
@@ -375,7 +295,7 @@ export function ProviderRegistrationForm() {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="confirmPassword">{t('register.confirm_password')}</Label>
+        <Label htmlFor="confirmPassword">Xác nhận mật khẩu</Label>
         <div className="relative">
           <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
@@ -407,7 +327,7 @@ export function ProviderRegistrationForm() {
 
       {showOTP && (
         <div className="w-full flex flex-col items-center justify-center my-4 gap-4">
-          <Label>{t('register.enter_otp')}</Label>
+          <Label>Nhập mã OTP</Label>
           <InputOTP
             maxLength={6}
             value={otpForm.watch('otp')}
@@ -438,10 +358,10 @@ export function ProviderRegistrationForm() {
             {resendingOTP ? (
               <>
                 <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                {t('register.sending_otp')}
+                Gửi lại OTP
               </>
             ) : (
-              t('register.resend_otp')
+              'Gửi lại OTP'
             )}
           </Button>
         </div>
@@ -456,9 +376,9 @@ export function ProviderRegistrationForm() {
           }}
         />
         <Label htmlFor="terms" className="text-sm">
-          {t('register.terms')}{' '}
+          Đồng ý với{' '}
           <Link href="/terms" className="text-primary hover:underline">
-            {t('register.terms_link')}
+            điều khoản và điều kiện
           </Link>
         </Label>
       </div>
@@ -475,12 +395,12 @@ export function ProviderRegistrationForm() {
         {verifying ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            {t('register.provider.loading')}
+            Đang xử lý...
           </>
         ) : showOTP ? (
-          t('register.provider.submit')
+          'Đăng ký'
         ) : (
-          t('register.continue')
+          'Tiếp tục'
         )}
       </Button>
     </form>

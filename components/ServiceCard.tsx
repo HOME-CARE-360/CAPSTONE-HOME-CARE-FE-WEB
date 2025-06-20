@@ -6,7 +6,6 @@ import { Badge } from '@/components/ui/badge';
 import { Clock, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { useTranslation } from 'react-i18next';
 
 interface ServiceCardProps {
   service: Service;
@@ -14,8 +13,6 @@ interface ServiceCardProps {
 }
 
 export function ServiceCard({ service, priority = false }: ServiceCardProps) {
-  const { t } = useTranslation();
-
   return (
     <Link href={`/services/${service.id}`}>
       <Card className="overflow-hidden border-red-100 hover:border-red-300 hover:shadow-md transition-all duration-300 h-full flex flex-col">
@@ -59,16 +56,14 @@ export function ServiceCard({ service, priority = false }: ServiceCardProps) {
           <div className="flex justify-between items-center text-sm border-t border-red-100 pt-4">
             <div className="flex items-center">
               <Clock className="h-4 w-4 mr-1 text-red-600" />
-              <span>
-                {service.durationMinutes} {t('service_card.minutes')}
-              </span>
+              <span>{service.durationMinutes} phút</span>
             </div>
           </div>
         </CardContent>
 
         <CardFooter className="flex justify-between items-center pt-2 mt-auto">
           <div>
-            <p className="text-xs text-muted-foreground">{t('service_card.price')}</p>
+            <p className="text-xs text-muted-foreground">Giá</p>
             <div className="flex items-baseline gap-2">
               <p className="text-xl font-semibold text-red-600">
                 {formatCurrency(service.basePrice)}
@@ -80,7 +75,7 @@ export function ServiceCard({ service, priority = false }: ServiceCardProps) {
               )}
             </div>
           </div>
-          <Button className="bg-red-600 hover:bg-red-700">{t('service_card.view_details')}</Button>
+          <Button className="bg-red-600 hover:bg-red-700">Xem chi tiết</Button>
         </CardFooter>
       </Card>
     </Link>

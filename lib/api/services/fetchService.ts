@@ -75,15 +75,25 @@ const convertServiceFilters = (filters?: ServiceSearchParams): RequestParams => 
 export const serviceService = {
   // Get all services with filters
   getServices: async (filters?: ServiceSearchParams): Promise<ServiceListResponse> => {
-    const params = convertServiceFilters(filters);
-    const response = await apiService.get<ServiceListResponse>('/services', params);
-    return response.data;
+    try {
+      const params = convertServiceFilters(filters);
+      const response = await apiService.get<ServiceListResponse>('/services', params);
+      return response.data;
+    } catch (error) {
+      console.error('Get Services Error:', error);
+      throw error;
+    }
   },
 
   // Get a single service by ID
   getService: async (id: string | number): Promise<ServiceDetailResponse> => {
-    const response = await apiService.get<ServiceDetailResponse>(`/services/detail/${id}`);
-    return response.data;
+    try {
+      const response = await apiService.get<ServiceDetailResponse>(`/services/detail/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error('Get Service Detail Error:', error);
+      throw error;
+    }
   },
 };
 

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
-import { AppSidebar } from '@/app/(provider)/_components/AppSidebar';
+import { AppSidebar } from '@/app/(provider)/components/AppSidebar';
 
 export const metadata: Metadata = {
   title: 'Provider Dashboard',

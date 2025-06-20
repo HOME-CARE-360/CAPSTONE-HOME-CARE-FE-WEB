@@ -1,45 +1,32 @@
 import { Service } from '@/lib/api/services/fetchService';
 import { formatCurrency } from '@/utils/numbers/formatCurrency';
-import { Home, Calendar, MapPin, CheckCircle, DollarSign } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { Home, Calendar, CheckCircle, DollarSign } from 'lucide-react';
 
 interface ServiceDetailsSectionProps {
   service: Service;
 }
 
 export default function ServiceDetailsSection({ service }: ServiceDetailsSectionProps) {
-  const { t } = useTranslation();
-
   return (
     <>
       {/* Header with Service Info */}
       <div className="flex flex-col md:flex-row justify-between gap-4 mb-6">
         <div className="flex flex-col md:w-1/2">
           <h1 className="text-2xl md:text-3xl font-bold mb-2">{service.name}</h1>
-          <div className="flex items-center text-sm text-muted-foreground">
-            <MapPin className="h-4 w-4 mr-1 text-red-600" />
-            <span>{service.provider}</span>
-          </div>
-          <div className="flex items-center gap-2 mt-2">
-            <span className="text-xs text-muted-foreground">
-              {t('service_detail.service_id')}: {service.id}
-            </span>
-          </div>
         </div>
 
         <div className="flex flex-col md:w-1/2 items-end">
           <div className="flex flex-col items-end">
-            <span className="text-sm text-muted-foreground">
-              {t('service_detail.listing_price')}
-            </span>
+            <span className="text-sm text-muted-foreground">Giá niêm yết</span>
+
             <span className="text-2xl md:text-3xl font-bold text-red-600">
               {formatCurrency(service.virtualPrice)}
             </span>
-            {service.basePrice > service.virtualPrice && (
+            {/* {service.basePrice > service.virtualPrice && (
               <span className="text-sm text-muted-foreground line-through">
                 {formatCurrency(service.basePrice)}
               </span>
-            )}
+            )} */}
           </div>
         </div>
       </div>
@@ -48,23 +35,23 @@ export default function ServiceDetailsSection({ service }: ServiceDetailsSection
         <div className="border-2 h-auto border-red-400/50 rounded-2xl p-6 bg-background/50 hover:shadow-lg transition-shadow duration-300">
           <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2">
             <Home className="h-5 w-5 text-red-600" />
-            {t('service_detail.description')}
+            Mô tả
           </h2>
           <p className="text-muted-foreground mb-6 font-sans font-light leading-relaxed">
             {service.description}
           </p>
 
-          <h3 className="text-xl font-semibold">{t('service_detail.service_information')}</h3>
+          <h3 className="text-xl font-semibold">Thông tin dịch vụ</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 my-4">
             <ServiceSpec
               icon={<DollarSign className="h-6 w-6 text-red-600" />}
               value={formatCurrency(service.virtualPrice)}
-              label={t('service_detail.price')}
+              label="Giá"
             />
             <ServiceSpec
               icon={<Calendar className="h-6 w-6 text-red-600" />}
-              value={`${service.durationMinutes} ${t('service_detail.minutes')}`}
-              label={t('service_detail.duration')}
+              value={`${service.durationMinutes} phút`}
+              label="Thời gian"
             />
           </div>
         </div>
@@ -74,7 +61,7 @@ export default function ServiceDetailsSection({ service }: ServiceDetailsSection
             <div className="px-6 py-6">
               <h2 className="text-2xl font-semibold mb-6 flex items-center gap-2">
                 <CheckCircle className="h-5 w-5 text-red-600" />
-                {t('service_detail.categories')}
+                Danh mục
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {service.categories.map((category, index) => (

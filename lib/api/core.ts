@@ -1,31 +1,16 @@
 import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 
-// Validation error interface
-export interface ValidationError {
+// API error field structure
+export interface ApiErrorField {
   message: string;
-  path?: string;
-  code?: string;
-  minimum?: number;
-  type?: string;
-  inclusive?: boolean;
-  exact?: boolean;
-  [key: string]: unknown;
+  path: string;
 }
 
-// API error response data structure
-export interface ApiErrorData {
-  message?: string | ValidationError[];
-  code?: string | number;
+// API error response structure
+export interface ApiErrorResponse {
+  message: string | ApiErrorField[];
   error?: string;
   statusCode?: number;
-  [key: string]: unknown;
-}
-
-// Error interface
-export interface ApiError {
-  status?: number;
-  message: string | ValidationError[];
-  error?: ApiErrorData;
 }
 
 // Response wrapper
@@ -39,6 +24,19 @@ export interface ApiResponse<T> {
 // Request parameters object
 export interface RequestParams {
   [key: string]: string | number | boolean | undefined | null | string[];
+}
+
+// Shared error handling utility
+export function getErrorMessage(error: ApiErrorResponse): string {
+  if (typeof error.message === 'string') {
+    return error.message;
+  }
+
+  if (Array.isArray(error.message) && error.message.length > 0) {
+    return error.message[0].message;
+  }
+
+  return error.error || 'An unexpected error occurred';
 }
 
 // API service class
@@ -88,7 +86,8 @@ export class ApiService {
     // Response interceptor
     this.client.interceptors.response.use(
       response => response,
-      (error: AxiosError<ApiErrorData>) => {
+      (error: AxiosError<ApiErrorResponse>) => {
+        // Log the raw error for debugging
         console.error('API Error intercepted:', {
           status: error.response?.status,
           data: error.response?.data,
@@ -101,17 +100,14 @@ export class ApiService {
           this.onAuthError();
         }
 
-        // Standardize error format
-        const apiError: ApiError = {
-          status: error.response?.status,
-          message: error.response?.data?.message || error.message || 'Unknown error occurred',
-          error: error.response?.data || { message: error.message },
-        };
-
-        // Log the formatted error for debugging
-        console.error('Formatted API Error:', apiError);
-
-        return Promise.reject(apiError);
+        // Pass through the API error directly without transforming it
+        // This preserves the original error structure from the API
+        return Promise.reject(
+          error.response?.data || {
+            message: error.message,
+            statusCode: error.response?.status,
+          }
+        );
       }
     );
   }
@@ -230,21 +226,19 @@ export class ApiService {
     });
   }
 
-  // Helper method to format validation errors into a readable format
-  getFormattedValidationErrors(error: ApiError): Record<string, string> {
-    const formattedErrors: Record<string, string> = {};
+  // Extract field errors from API error response
+  getFieldErrors(error: ApiErrorResponse): Record<string, string> {
+    const fieldErrors: Record<string, string> = {};
 
     if (Array.isArray(error.message)) {
-      error.message.forEach((validationError: ValidationError) => {
-        if (validationError.path) {
-          formattedErrors[validationError.path] = validationError.message;
+      error.message.forEach(item => {
+        if (item.path && item.message) {
+          fieldErrors[item.path] = item.message;
         }
       });
-    } else if (typeof error.message === 'string') {
-      formattedErrors.general = error.message;
     }
 
-    return formattedErrors;
+    return fieldErrors;
   }
 }
 

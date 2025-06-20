@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { House, LayoutDashboardIcon, UserRoundPen, UsersIcon } from 'lucide-react';
 import { NavMain } from '@/components/common/navMain';
-import { SiteSideFooter } from '@/app/(provider)/_components/SiteSideFooter';
+import { SiteSideFooter } from '@/app/(provider)/components/SiteSideFooter';
 import {
   Sidebar,
   SidebarContent,
@@ -14,7 +14,6 @@ import {
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { LucideIcon } from 'lucide-react';
-import { useAuthStore } from '@/lib/store/authStore';
 
 type NavItem = {
   title: string;
@@ -27,12 +26,6 @@ interface NavigationData {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { user } = useAuthStore();
-
-  console.log('user', user);
-
-  console.log(user);
-
   const navigationData: NavigationData = {
     navMain: [
       {

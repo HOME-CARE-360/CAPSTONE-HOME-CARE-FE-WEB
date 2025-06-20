@@ -12,8 +12,10 @@ import {
   Mail,
   MapPin,
 } from 'lucide-react';
-import StaffCreateModal, { StaffFormData } from './_components/StaffCreateModal';
-import { SiteHeader } from '@/app/(provider)/_components/SiteHeader';
+import StaffCreateModal, {
+  StaffFormData,
+} from '@/app/(provider)/provider/manage-staff/components/StaffCreateModal';
+import { SiteHeader } from '@/app/(provider)/components/SiteHeader';
 import {
   Select,
   SelectContent,

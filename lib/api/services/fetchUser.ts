@@ -1,6 +1,5 @@
 import apiService from '../core';
-import { Message } from './fetchAuth';
-
+import { ValidationError } from './fetchAuth';
 export interface User {
   userName: string;
   fullName: string;
@@ -16,32 +15,39 @@ export interface User {
 
 export interface UserResponse {
   data?: User;
-  message?: Message;
+  message?: string | ValidationError[];
 }
 
 export interface UserUpdateResponse {
-  code: string;
-  status: boolean;
-  message?: string;
-  data?: string;
+  message?: string | ValidationError[];
 }
 
 // User service with profile-related API methods
 export const userService = {
   // Get current user profile
   getUserProfile: async (): Promise<UserResponse> => {
-    const response = await apiService.get<UserResponse>('/users/profile');
-    return response.data;
+    try {
+      const response = await apiService.get<UserResponse>('/users/profile');
+      return response.data;
+    } catch (error) {
+      console.error('Get User Profile Error:', error);
+      throw error;
+    }
   },
 
   // Update current user profile
   updateUserProfile: async (profileData: Partial<User> | FormData): Promise<UserUpdateResponse> => {
-    // The API service already handles FormData appropriately in its interceptors
-    const response = await apiService.put<UserUpdateResponse, Partial<User> | FormData>(
-      '/users/update-profile',
-      profileData
-    );
-    return response.data;
+    try {
+      // The API service already handles FormData appropriately in its interceptors
+      const response = await apiService.put<UserUpdateResponse, Partial<User> | FormData>(
+        '/users/update-profile',
+        profileData
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Update User Profile Error:', error);
+      throw error;
+    }
   },
 };
 

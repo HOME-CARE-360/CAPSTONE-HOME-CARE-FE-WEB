@@ -1,4 +1,4 @@
-import TagCard from '@/app/(provider)/provider/manage-booking/_components/TagCard';
+import TagCard from '@/app/(provider)/provider/manage-booking/components/TagCard';
 import { type LucideIcon } from 'lucide-react';
 import { AlertCircle } from 'lucide-react';
 // Mock data - sẽ lấy từ API

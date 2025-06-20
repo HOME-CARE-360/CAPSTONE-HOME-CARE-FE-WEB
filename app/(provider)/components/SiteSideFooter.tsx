@@ -34,21 +34,14 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { useToast } from '@/hooks/useToast';
-import { useUserProfile, useUpdateProfile } from '@/hooks/useUser';
+import { useUserProfile } from '@/hooks/useUser';
 import { useAuth } from '@/hooks/useAuth';
-import { useTranslation } from 'react-i18next';
-
-// User status options
 
 export function SiteSideFooter() {
   const { isMobile } = useSidebar();
-  const { toast } = useToast();
   const { data: profileData, isLoading: profileLoading } = useUserProfile();
-  const { mutate: updateProfile } = useUpdateProfile();
   const { logout } = useAuth();
   const [status, setStatus] = useState<string>('Online');
-  const { t } = useTranslation();
   // Define user status options inside the component
   const userStatusOptions = [
     {
@@ -126,41 +119,6 @@ export function SiteSideFooter() {
 
       formData.append('role', profileData.profile.role);
     }
-
-    updateProfile(formData, {
-      onSuccess: data => {
-        if (data.status) {
-          toast({
-            title: t('navUser.toast.statusUpdated'),
-            description: t('navUser.toast.statusSet', {
-              status: t(`navUser.status.${newStatus.charAt(0).toLowerCase() + newStatus.slice(1)}`),
-            }),
-          });
-        } else {
-          toast({
-            title: t('navUser.toast.statusUpdateFailed'),
-            description: data.message || t('navUser.toast.statusUpdateFailedDesc'),
-            variant: 'destructive',
-          });
-          // Revert to previous status
-          if (profileData?.profile?.status) {
-            setStatus(profileData.profile.status);
-          }
-        }
-      },
-      onError: (error: Error) => {
-        console.error('Failed to update status:', error);
-        toast({
-          title: t('navUser.toast.statusUpdateFailed'),
-          description: t('navUser.toast.statusUpdateFailedDesc'),
-          variant: 'destructive',
-        });
-        // Revert to previous status
-        if (profileData?.profile?.status) {
-          setStatus(profileData.profile.status);
-        }
-      },
-    });
   };
 
   // Handle logout

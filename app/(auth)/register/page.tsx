@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CustomerRegistrationForm } from './components/CustomerRegistrationForm';
 import { ProviderRegistrationForm } from './components/ProviderRegistrationForm';
@@ -9,7 +8,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 
 export default function RegisterPage() {
   const [activeTab, setActiveTab] = useState<'customer' | 'provider'>('customer');
-  const { t } = useTranslation('common');
 
   return (
     <div className="container relative min-h-screen flex-col items-center justify-center grid lg:max-w-none lg:grid-cols-2 lg:px-0">
@@ -32,8 +30,10 @@ export default function RegisterPage() {
         </div>
         <div className="relative z-20 mt-auto">
           <blockquote className="space-y-2">
-            <p className="text-lg">&ldquo;{t('register.testimonial')}&rdquo;</p>
-            <footer className="text-sm">{t('register.testimonial_author')}</footer>
+            <p className="text-lg">
+              &ldquo;Đăng ký tài khoản để trở thành một người bán trên Marketplace&rdquo;
+            </p>
+            <footer className="text-sm">Nguyễn Văn A</footer>
           </blockquote>
         </div>
       </div>
@@ -41,9 +41,11 @@ export default function RegisterPage() {
         <Card className="mx-auto w-full max-w-[450px]">
           <CardHeader className="space-y-2">
             <CardTitle className="text-2xl font-semibold tracking-tight text-center">
-              {t('register.title')}
+              Đăng ký tài khoản
             </CardTitle>
-            <CardDescription className="text-center">{t('register.description')}</CardDescription>
+            <CardDescription className="text-center">
+              Đăng ký tài khoản để trở thành một người bán trên Marketplace
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <Tabs
@@ -52,8 +54,8 @@ export default function RegisterPage() {
               className="w-full"
             >
               <TabsList className="grid w-full grid-cols-2 mb-6">
-                <TabsTrigger value="customer">{t('register.tabs.customer')}</TabsTrigger>
-                <TabsTrigger value="provider">{t('register.tabs.provider')}</TabsTrigger>
+                <TabsTrigger value="customer">Khách hàng</TabsTrigger>
+                <TabsTrigger value="provider">Người bán</TabsTrigger>
               </TabsList>
               <TabsContent value="customer">
                 <CustomerRegistrationForm />

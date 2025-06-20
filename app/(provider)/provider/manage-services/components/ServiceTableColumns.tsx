@@ -1,14 +1,14 @@
 import { ColumnDef } from '@tanstack/react-table';
-import { Service } from '@/lib/api/services/fetchService';
+import { ServiceManager } from '@/lib/api/services/fetchServiceManager';
 import { Currency, formatCurrency } from '@/utils/numbers/formatCurrency';
 import { Button } from '@/components/ui/button';
 
 interface UseServiceTableColumnsProps {
-  onEdit?: (service: Service) => void;
+  onEdit?: (service: ServiceManager) => void;
 }
 
 export function useServiceTableColumns({ onEdit }: UseServiceTableColumnsProps = {}) {
-  const columns: ColumnDef<Service>[] = [
+  const columns: ColumnDef<ServiceManager>[] = [
     {
       accessorKey: 'name',
       header: () => 'Tên dịch vụ',

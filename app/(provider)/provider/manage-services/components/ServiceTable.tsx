@@ -1,18 +1,20 @@
 /* eslint-disable react-hooks/exhaustive-deps */
+'use client';
+
 import * as React from 'react';
 import {
   ColumnFiltersState,
   SortingState,
   VisibilityState,
-  flexRender,
   getCoreRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
+  ColumnDef,
 } from '@tanstack/react-table';
-import { Service } from '@/lib/api/services/fetchService';
-import { Category } from '@/lib/api/services/fetchService';
+import { ServiceManager } from '@/lib/api/services/fetchServiceManager';
+import { Category } from '@/lib/api/services/fetchCategory';
 import { ServiceTableFilters } from './ServiceTableFilters';
 import { ServiceTablePagination } from './ServiceTablePagination';
 import { useServiceTableColumns } from './ServiceTableColumns';
@@ -25,6 +27,9 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { ServiceSearchParams } from '@/lib/api/services/fetchService';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { formatCurrency } from '@/utils/numbers/formatCurrency';
 
 // interface ServiceSearchParams {
 //   page: number;
@@ -38,7 +43,7 @@ import { ServiceSearchParams } from '@/lib/api/services/fetchService';
 // }
 
 interface ServiceTableProps {
-  data: Service[];
+  data: ServiceManager[];
   onFilterChange?: (filters: ServiceSearchParams) => void;
   isLoading?: boolean;
   error?: Error | null;
@@ -66,6 +71,8 @@ export function ServiceTable({
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [sorting, setSorting] = React.useState<SortingState>([]);
+  const [currentPage, setCurrentPage] = React.useState(page || 1);
+  const [pageSize, setPageSize] = React.useState(limit || 10);
 
   const columns = useServiceTableColumns();
 
@@ -76,7 +83,7 @@ export function ServiceTable({
 
   const table = useReactTable({
     data,
-    columns,
+    columns: columns as ColumnDef<ServiceManager>[],
     state: {
       sorting,
       columnVisibility,
@@ -128,15 +135,6 @@ export function ServiceTable({
     }
   };
 
-  const goToPage = (newPage: number) => {
-    if (onFilterChange) {
-      onFilterChange({
-        ...searchFilters,
-        page: newPage,
-      });
-    }
-  };
-
   // Handle filter changes with debounce
   React.useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -156,11 +154,10 @@ export function ServiceTable({
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64 border rounded-lg">
-        <div className="flex flex-col items-center gap-2">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          <p className="text-muted-foreground">Đang tải</p>
-        </div>
+      <div className="space-y-4">
+        <Skeleton className="h-8 w-full" />
+        <Skeleton className="h-32 w-full" />
+        <Skeleton className="h-8 w-full" />
       </div>
     );
   }
@@ -190,44 +187,51 @@ export function ServiceTable({
       <div className="rounded-md border">
         <Table>
           <TableHeader>
-            {table.getHeaderGroups().map(headerGroup => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map(header => (
-                  <TableHead key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(header.column.columnDef.header, header.getContext())}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
+            <TableRow>
+              <TableHead>Tên dịch vụ</TableHead>
+              <TableHead>Mô tả</TableHead>
+              <TableHead>Giá cơ bản</TableHead>
+              <TableHead>Giá ưu đãi</TableHead>
+              <TableHead>Thời gian (phút)</TableHead>
+              <TableHead className="text-right">Thao tác</TableHead>
+            </TableRow>
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map(row => (
-                <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'}>
-                  {row.getVisibleCells().map(cell => (
-                    <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : (
+            {data.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
-                  Không tìn thấy dịch vụ
+                <TableCell colSpan={6} className="text-center">
+                  Chưa có dịch vụ nào
                 </TableCell>
               </TableRow>
+            ) : (
+              data.map(service => (
+                <TableRow key={service.id}>
+                  <TableCell className="font-medium">{service.name}</TableCell>
+                  <TableCell>{service.description}</TableCell>
+                  <TableCell>{formatCurrency(service.basePrice)}</TableCell>
+                  <TableCell>{formatCurrency(service.virtualPrice)}</TableCell>
+                  <TableCell>{service.durationMinutes}</TableCell>
+                  <TableCell className="text-right">
+                    <Button variant="outline" size="sm">
+                      Chỉnh sửa
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
             )}
           </TableBody>
         </Table>
       </div>
       <ServiceTablePagination
-        page={page || 1}
-        totalPages={totalPages || 5}
-        totalItems={totalItems || 1}
-        onPageChange={goToPage}
+        page={currentPage}
+        totalPages={totalPages || 1}
+        totalItems={totalItems || 0}
+        pageSize={pageSize}
+        onPageChange={page => setCurrentPage(page)}
+        onPageSizeChange={size => {
+          setPageSize(size);
+          setCurrentPage(1); // Reset to first page when changing page size
+        }}
       />
     </div>
   );

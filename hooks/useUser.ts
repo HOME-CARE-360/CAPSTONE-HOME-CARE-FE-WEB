@@ -29,7 +29,7 @@ export function useUpdateProfile() {
     mutationFn: (profileData: Partial<User> | FormData) =>
       userService.updateUserProfile(profileData),
     onSuccess: (data: UserUpdateResponse) => {
-      if (data.status) {
+      if (data.message) {
         queryClient.invalidateQueries({ queryKey: ['users', 'profile'] });
       }
     },

@@ -24,7 +24,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import Image from 'next/image';
-import { SiteHeader } from '@/app/(provider)/_components/SiteHeader';
+import { SiteHeader } from '@/app/(provider)/components/SiteHeader';
 
 export default function SupplierFeedbackPage() {
   const feedbackStats = {

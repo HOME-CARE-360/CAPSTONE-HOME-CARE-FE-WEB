@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { useServices } from '@/hooks/useService';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -10,7 +9,6 @@ import { Card } from '@/components/ui/card';
 import Link from 'next/link';
 
 export default function FeaturedServices() {
-  const { t } = useTranslation();
   const [page] = useState(1);
 
   const { data, isLoading, isError } = useServices({ page, limit: 10 });
@@ -30,7 +28,7 @@ export default function FeaturedServices() {
   if (isError) {
     return (
       <div className="flex justify-center items-center min-h-[500px] text-red-500">
-        {t('error_loading_services')}
+        Lỗi tải dịch vụ
       </div>
     );
   }
@@ -39,11 +37,9 @@ export default function FeaturedServices() {
     <section className="w-full max-w-screen px-8 md:px-8 xl:px-32 mx-auto py-16 bg-background text-foreground ">
       <div className="mb-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-3xl md:text-4xl font-semibold">
-            {t('home.featured_services_title')}
-          </h2>
+          <h2 className="text-3xl md:text-4xl font-semibold">Dịch vụ nổi bật</h2>
           <p className="text-muted-foreground text-sm md:text-base mt-2 max-w-5xl">
-            {t('home.featured_services_description')}
+            Dịch vụ nổi bật
           </p>
         </div>
         <Link href="/services">
@@ -51,7 +47,7 @@ export default function FeaturedServices() {
             variant="outline"
             className="bg-red-50 text-red-600 border-red-200 hover:bg-red-100 hover:text-red-600 hover:border-red-200"
           >
-            {t('home.view_all_services')}
+            Xem tất cả dịch vụ
           </Button>
         </Link>
       </div>

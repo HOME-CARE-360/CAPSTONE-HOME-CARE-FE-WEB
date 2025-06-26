@@ -13,7 +13,7 @@ import {
   useReactTable,
   ColumnDef,
 } from '@tanstack/react-table';
-import { ServiceManager } from '@/lib/api/services/fetchServiceManager';
+import { ServiceManager, ServiceManagerSearchParams } from '@/lib/api/services/fetchServiceManager';
 import { Category } from '@/lib/api/services/fetchCategory';
 import { ServiceTableFilters } from './ServiceTableFilters';
 import { ServiceTablePagination } from './ServiceTablePagination';
@@ -26,25 +26,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { ServiceSearchParams } from '@/lib/api/services/fetchService';
-import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { formatCurrency } from '@/utils/numbers/formatCurrency';
-
-// interface ServiceSearchParams {
-//   page: number;
-//   limit: number;
-//   searchTerm?: string;
-//   category?: string;
-//   minPrice?: number;
-//   maxPrice?: number;
-//   minDuration?: number;
-//   maxDuration?: number;
-// }
+import { flexRender } from '@tanstack/react-table';
 
 interface ServiceTableProps {
   data: ServiceManager[];
-  onFilterChange?: (filters: ServiceSearchParams) => void;
+  onFilterChange?: (filters: ServiceManagerSearchParams) => void;
   isLoading?: boolean;
   error?: Error | null;
   limit?: number;
@@ -52,7 +39,7 @@ interface ServiceTableProps {
   totalPages?: number;
   totalItems?: number;
   categories?: Category[];
-  searchFilters?: ServiceSearchParams;
+  searchFilters?: ServiceManagerSearchParams;
 }
 
 export function ServiceTable({
@@ -71,8 +58,6 @@ export function ServiceTable({
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [currentPage, setCurrentPage] = React.useState(page || 1);
-  const [pageSize, setPageSize] = React.useState(limit || 10);
 
   const columns = useServiceTableColumns();
 
@@ -104,7 +89,7 @@ export function ServiceTable({
 
   // Debounce filter changes
   const debouncedFilterChange = React.useCallback(
-    (filters: ServiceSearchParams) => {
+    (filters: ServiceManagerSearchParams) => {
       if (onFilterChange) {
         onFilterChange(filters);
       }
@@ -112,55 +97,33 @@ export function ServiceTable({
     [onFilterChange]
   );
 
-  const handleFilterChange = (filters: {
-    searchTerm?: string;
-    category?: string;
-    minPrice?: number;
-    maxPrice?: number;
-    minDuration?: number;
-    maxDuration?: number;
-    limit?: number;
-    page?: number;
-  }) => {
+  const handleFilterChange = (filters: Partial<ServiceManagerSearchParams>) => {
     if (onFilterChange) {
       onFilterChange({
         ...searchFilters,
-        page: filters.page ?? 1,
-        limit: filters.limit ?? limit,
-        searchTerm: filters.searchTerm,
-        category: filters.category,
-        minPrice: filters.minPrice,
-        maxPrice: filters.maxPrice,
-      });
+        ...filters,
+      } as ServiceManagerSearchParams);
     }
   };
 
   // Handle filter changes with debounce
   React.useEffect(() => {
     const timeoutId = setTimeout(() => {
-      const filters: ServiceSearchParams = {
-        page, // Reset to first page when filters change
-        limit,
-        searchTerm: columnFilters.find(f => f.id === 'name')?.value as string,
-        category: columnFilters.find(f => f.id === 'categories')?.value as string,
-        minPrice: columnFilters.find(f => f.id === 'basePrice')?.value as number,
-        maxPrice: columnFilters.find(f => f.id === 'virtualPrice')?.value as number,
+      const filters: ServiceManagerSearchParams = {
+        page: page || 1,
+        limit: limit || 10,
+        name: (columnFilters.find(f => f.id === 'name')?.value as string) || '',
+        sortBy: (columnFilters.find(f => f.id === 'sortBy')?.value as string) || 'createdAt',
+        orderBy: (columnFilters.find(f => f.id === 'orderBy')?.value as string) || 'desc',
+        // createdById: columnFilters.find(f => f.id === 'createdById')?.value as number || 0,
+        // minPrice: columnFilters.find(f => f.id === 'minPrice')?.value as number || 0,
+        // maxPrice: columnFilters.find(f => f.id === 'maxPrice')?.value as number || 0,
       };
       debouncedFilterChange(filters);
     }, 300); // 300ms debounce
 
     return () => clearTimeout(timeoutId);
-  }, [columnFilters, limit, debouncedFilterChange]);
-
-  if (isLoading) {
-    return (
-      <div className="space-y-4">
-        <Skeleton className="h-8 w-full" />
-        <Skeleton className="h-32 w-full" />
-        <Skeleton className="h-8 w-full" />
-      </div>
-    );
-  }
+  }, [columnFilters, limit, page, debouncedFilterChange]);
 
   if (error) {
     return (
@@ -180,58 +143,69 @@ export function ServiceTable({
       <ServiceTableFilters
         table={table}
         categories={categories || []}
-        // limit={limit}
-        // page={page}
         onFilterChange={handleFilterChange}
       />
       <div className="rounded-md border">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead>Tên dịch vụ</TableHead>
-              <TableHead>Mô tả</TableHead>
-              <TableHead>Giá cơ bản</TableHead>
-              <TableHead>Giá ưu đãi</TableHead>
-              <TableHead>Thời gian (phút)</TableHead>
-              <TableHead className="text-right">Thao tác</TableHead>
-            </TableRow>
+            {table.getHeaderGroups().map(headerGroup => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map(header => (
+                  <TableHead key={header.id}>
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(header.column.columnDef.header, header.getContext())}
+                  </TableHead>
+                ))}
+              </TableRow>
+            ))}
           </TableHeader>
           <TableBody>
-            {data.length === 0 ? (
+            {isLoading ? (
+              Array.from({ length: limit || 10 }).map((_, index) => (
+                <TableRow key={index}>
+                  {columns.map((_, colIndex) => (
+                    <TableCell key={colIndex}>
+                      <Skeleton className="h-5 w-full" />
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : table.getRowModel().rows?.length ? (
+              table.getRowModel().rows.map(row => (
+                <TableRow key={row.id}>
+                  {row.getVisibleCells().map(cell => (
+                    <TableCell key={cell.id}>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : (
               <TableRow>
-                <TableCell colSpan={6} className="text-center">
+                <TableCell colSpan={columns.length} className="h-24 text-center">
                   Chưa có dịch vụ nào
                 </TableCell>
               </TableRow>
-            ) : (
-              data.map(service => (
-                <TableRow key={service.id}>
-                  <TableCell className="font-medium">{service.name}</TableCell>
-                  <TableCell>{service.description}</TableCell>
-                  <TableCell>{formatCurrency(service.basePrice)}</TableCell>
-                  <TableCell>{formatCurrency(service.virtualPrice)}</TableCell>
-                  <TableCell>{service.durationMinutes}</TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="outline" size="sm">
-                      Chỉnh sửa
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))
             )}
           </TableBody>
         </Table>
       </div>
       <ServiceTablePagination
-        page={currentPage}
+        page={page || 1}
         totalPages={totalPages || 1}
         totalItems={totalItems || 0}
-        pageSize={pageSize}
-        onPageChange={page => setCurrentPage(page)}
-        onPageSizeChange={size => {
-          setPageSize(size);
-          setCurrentPage(1); // Reset to first page when changing page size
-        }}
+        pageSize={limit || 10}
+        onPageChange={(newPage: number) => handleFilterChange({ page: newPage })}
+        onPageSizeChange={(newSize: number) =>
+          handleFilterChange({
+            page: 1,
+            limit: newSize,
+            sortBy: 'createdAt',
+            orderBy: 'desc',
+            name: '',
+          })
+        }
       />
     </div>
   );

@@ -91,6 +91,11 @@ export interface GoogleLoginResponse {
   url: string;
 }
 
+export interface RefreshTokenResponse {
+  data?: Token;
+  message?: string | ValidationError[];
+}
+
 export const fetchAuth = {
   // Request OTP for registration or password reset
   verifyEmailWithOTP: async (data: OTPVerifyRequest): Promise<OTPVerifyResponse> => {
@@ -160,11 +165,18 @@ export const fetchAuth = {
     return response.data;
   },
 
-  //   // Refresh token
-  //   refreshToken: async (): Promise<AuthResponse> => {
-  //     const response = await apiService.post<AuthResponse>('/auth/refresh-token', {});
-  //     return response.data;
-  //   },
+  // Refresh token
+  refreshToken: async (refreshToken: string): Promise<RefreshTokenResponse> => {
+    try {
+      const response = await apiService.post<RefreshTokenResponse>('/auth/refresh-token', {
+        refreshToken,
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Refresh Token API Error:', error);
+      throw error;
+    }
+  },
 
   //   // Reset password request
   //   requestPasswordReset: async (email: string): Promise<AuthResponse> => {

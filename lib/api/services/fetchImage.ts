@@ -25,13 +25,7 @@ export const imageService = {
       );
 
       // Step 2: Upload file to S3 using presigned URL
-      const s3Response = await apiService.put(response.data.presignedUrl, {
-        file,
-      });
-
-      if (s3Response.status !== 200) {
-        throw new Error('Failed to upload file to S3');
-      }
+      await apiService.uploadToS3<File>(response.data.presignedUrl, file);
 
       return response.data;
     } catch (error) {

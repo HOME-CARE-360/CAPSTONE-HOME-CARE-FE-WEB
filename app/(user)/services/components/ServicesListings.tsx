@@ -2,28 +2,11 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { useServices } from '@/hooks/useService';
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from '@/components/ui/pagination';
-import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ServiceCard } from '@/components/ServiceCard';
+import { ServicesPagination } from './ServicesPagination';
 import { ServiceSearchParams } from '@/lib/api/services/fetchService';
 import { AlertTriangle, Search } from 'lucide-react';
-
-// Price range mapping
-const priceRangeMap: Record<string, { min: number; max: number | null }> = {
-  '100k-300k': { min: 100000, max: 300000 },
-  '300k-500k': { min: 300000, max: 500000 },
-  '500k-750k': { min: 500000, max: 750000 },
-  '750k-1m': { min: 750000, max: 1000000 },
-  '1m-plus': { min: 1000000, max: null },
-};
 
 export default function ServicesListings() {
   const searchParams = useSearchParams();
@@ -51,15 +34,6 @@ export default function ServicesListings() {
     // Extract category
     if (params.has('category')) {
       filters.category = params.get('category') || undefined;
-    }
-
-    // Extract price range
-    if (params.has('priceRange')) {
-      const range = priceRangeMap[params.get('priceRange') || ''];
-      if (range) {
-        filters.minPrice = range.min;
-        filters.maxPrice = range.max || undefined;
-      }
     }
 
     // Set client-side filters
@@ -90,23 +64,53 @@ export default function ServicesListings() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-6">
             {Array.from({ length: 8 }).map((_, i) => (
-              <Card key={i} className="bg-background border-muted-foreground/20">
-                <Skeleton className="w-full h-64 rounded-t-lg" />
-                <div className="p-6 space-y-4">
-                  <Skeleton className="h-6 w-3/4" />
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-5/6" />
-                  <div className="flex gap-4 mt-4">
-                    <Skeleton className="h-4 w-16" />
-                    <Skeleton className="h-4 w-16" />
-                    <Skeleton className="h-4 w-16" />
+              <div key={i} className="overflow-hidden transition-all duration-300 flex flex-col">
+                {/* Image Skeleton - Square aspect ratio like ServiceCard */}
+                <div className="relative aspect-square size-full mb-2">
+                  <Skeleton className="w-full h-full rounded-2xl" />
+
+                  {/* Skeleton badges */}
+                  <div className="absolute top-4 left-4 flex gap-2">
+                    <Skeleton className="h-6 w-16 rounded-full" />
+                    <Skeleton className="h-6 w-12 rounded-full" />
                   </div>
-                  <div className="flex justify-between items-center mt-6">
-                    <Skeleton className="h-6 w-20" />
-                    <Skeleton className="h-10 w-28 rounded-md" />
+
+                  {/* Skeleton image counter */}
+                  <div className="absolute bottom-2 right-2">
+                    <Skeleton className="h-5 w-8 rounded-full" />
                   </div>
                 </div>
-              </Card>
+
+                <div className="px-1">
+                  {/* Price and Actions Skeleton */}
+                  <div className="flex justify-between items-center mb-2">
+                    <Skeleton className="h-6 w-24" />
+                    <div className="flex gap-2">
+                      <Skeleton className="h-8 w-8 rounded-full" />
+                      <Skeleton className="h-8 w-8 rounded-full" />
+                    </div>
+                  </div>
+
+                  {/* Service Details Skeleton */}
+                  <div className="flex justify-between items-center mb-2">
+                    <div className="flex items-center">
+                      <Skeleton className="h-4 w-16" />
+                    </div>
+                    <Skeleton className="h-4 w-12" />
+                  </div>
+
+                  {/* Service Name Skeleton */}
+                  <div className="mb-2">
+                    <Skeleton className="h-5 w-full mb-1" />
+                    <Skeleton className="h-5 w-3/4" />
+                  </div>
+
+                  {/* Location Skeleton */}
+                  <div className="mb-2">
+                    <Skeleton className="h-4 w-32" />
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
         </div>
@@ -192,35 +196,12 @@ export default function ServicesListings() {
           </div>
         </div>
 
-        {data.totalPages > 1 && (
-          <Pagination className="mt-12">
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious
-                  onClick={() => setPage(Math.max(page - 1, 1))}
-                  className={page === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                />
-              </PaginationItem>
-
-              {Array.from({ length: data.totalPages }).map((_, i) => (
-                <PaginationItem key={i}>
-                  <PaginationLink isActive={page === i + 1} onClick={() => setPage(i + 1)}>
-                    {i + 1}
-                  </PaginationLink>
-                </PaginationItem>
-              ))}
-
-              <PaginationItem>
-                <PaginationNext
-                  onClick={() => setPage(Math.min(page + 1, data.totalPages))}
-                  className={
-                    page === data.totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'
-                  }
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
-        )}
+        <ServicesPagination
+          currentPage={page}
+          totalPages={data.totalPages}
+          onPageChange={setPage}
+          isLoading={isFetching}
+        />
       </div>
     </section>
   );

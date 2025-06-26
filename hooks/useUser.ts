@@ -1,6 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 // import { useAuthStore } from '@/lib/store/authStore';
-import userService, { User, UserResponse, UserUpdateResponse } from '@/lib/api/services/fetchUser';
+import userService, {
+  User,
+  UserResponse,
+  UserUpdateResponse,
+  GetUserInformationResponse,
+} from '@/lib/api/services/fetchUser';
 
 /**
  * Hook to fetch current user's profile
@@ -41,9 +46,9 @@ export function useGetUserInfomation(userId: string | number) {
     queryKey: ['users', 'infomation', userId],
     queryFn: () => userService.getUserInfomation(userId),
     // enabled: isAuthenticated,
-    // select: (data: GetUserInformationResponse) => ({
-    //   profile: data.data,
-    //   message: data.message,
-    // }),
+    select: (data: GetUserInformationResponse) => ({
+      profile: data.data,
+      message: data.message,
+    }),
   });
 }

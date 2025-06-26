@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/lib/store/authStore';
 import { useRouter } from 'next/navigation';
-import { setCookie, deleteCookie } from 'cookies-next';
+import { deleteCookie } from 'cookies-next';
 import fetchAuth, {
   LoginCredentials,
   RegisterRequest,
@@ -147,7 +147,7 @@ export function useLogin() {
   const { mutate: login, isPending: isLoading } = useMutation({
     mutationFn: async (credentials: LoginCredentials): Promise<LoginResponse> => {
       const response = await fetchAuth.login(credentials);
-      if (!response || !response.data?.accessToken) {
+      if (!response || !response.data?.accessToken || !response.data?.refreshToken) {
         const error = {
           message: Array.isArray(response.message) ? response.message[0].message : response.message,
         };
@@ -159,11 +159,8 @@ export function useLogin() {
       try {
         // save token to zustand and cookie
         const token = response.data?.accessToken || null;
-        setToken(token);
-        setCookie('auth-token', token, {
-          maxAge: 60 * 60 * 24 * 7, // 7 days
-          path: '/',
-        });
+        const refreshToken = response.data?.refreshToken || null;
+        setToken(token, refreshToken);
         router.push('/');
         // refresh queries related to auth
         queryClient.invalidateQueries({ queryKey: ['auth', 'login'] });

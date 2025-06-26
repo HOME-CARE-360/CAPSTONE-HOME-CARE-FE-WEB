@@ -10,11 +10,9 @@ type ServiceDetailProps = {
 
 export default function ServiceDetail({ service }: ServiceDetailProps) {
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <div className="w-full max-w-screen px-8 md:px-8 xl:px-32 mx-auto py-16 bg-background text-foreground">
-        <ServiceShowcase service={service} />
-        <ServiceDetailSection service={service} />
-      </div>
-    </div>
+    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <ServiceShowcase service={service} />
+      <ServiceDetailSection service={service} />
+    </main>
   );
 }

@@ -45,7 +45,7 @@ export default function FeaturedServices() {
         <Link href="/services">
           <Button
             variant="outline"
-            className="bg-red-50 text-red-600 border-red-200 hover:bg-red-100 hover:text-red-600 hover:border-red-200"
+            className="bg-green-50 text-green-600 border-green-200 hover:bg-green-100 hover:text-green-600 hover:border-green-200"
           >
             Xem tất cả dịch vụ
           </Button>

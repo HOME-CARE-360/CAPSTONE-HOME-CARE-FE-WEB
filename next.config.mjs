@@ -12,6 +12,11 @@ const nextConfig = {
         pathname: '/**',
       },
       {
+        hostname: 's3.ap-southeast-2.amazonaws.com',
+        protocol: 'https',
+        pathname: '/**',
+      },
+      {
         hostname: 'i.pinimg.com',
         protocol: 'https',
         pathname: '/**',

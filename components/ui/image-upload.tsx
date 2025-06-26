@@ -1,70 +1,107 @@
 'use client';
 
-import { UploadCloud, X } from 'lucide-react';
+import { useCallback } from 'react';
+import { useDropzone } from 'react-dropzone';
+import { cn } from '@/lib/utils';
 import Image from 'next/image';
-import { Button } from './button';
+import { X } from 'lucide-react';
 
-interface ImageUploadProps {
-  value: string[];
+export interface ImageUploadProps {
+  disabled?: boolean;
   onChange: (value: string[]) => void;
-  onRemove: (url: string) => void;
-  onUpload?: (file: File) => Promise<void>;
+  onUpload: (file: File) => Promise<string>;
+  value: string[];
+  className?: string;
+  children?: React.ReactNode;
 }
 
-export function ImageUpload({ value, onChange, onRemove, onUpload }: ImageUploadProps) {
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
-
-    if (onUpload) {
-      // Use custom upload handler
-      for (const file of Array.from(files)) {
-        await onUpload(file);
+export function ImageUpload({
+  disabled,
+  onChange,
+  onUpload,
+  value,
+  className,
+  children,
+}: ImageUploadProps) {
+  const onDrop = useCallback(
+    async (acceptedFiles: File[]) => {
+      try {
+        const uploadPromises = acceptedFiles.map(file => onUpload(file));
+        const uploadedUrls = await Promise.all(uploadPromises);
+        onChange([...value, ...uploadedUrls]);
+      } catch (error) {
+        console.error('Upload failed:', error);
       }
-    } else {
-      // Fallback to local URLs
-      const newUrls = Array.from(files).map(file => URL.createObjectURL(file));
-      onChange([...value, ...newUrls]);
-    }
+    },
+    [onUpload, onChange, value]
+  );
+
+  const handleRemove = (index: number) => {
+    const newImages = value.filter((_, i) => i !== index);
+    onChange(newImages);
   };
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      'image/*': ['.png', '.jpeg', '.jpg'],
+    },
+    disabled,
+    maxFiles: 1,
+  });
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-4">
-        {value.map(url => (
-          <div key={url} className="relative w-[200px] h-[200px] rounded-md overflow-hidden">
-            <div className="z-10 absolute top-2 right-2">
-              <Button
-                type="button"
-                onClick={() => onRemove(url)}
-                variant="destructive"
-                size="icon"
-                className="h-8 w-8"
-              >
-                <X className="h-4 w-4" />
-              </Button>
+      {/* Display existing images */}
+      {value.length > 0 && (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {value.map((url, index) => (
+            <div
+              key={url}
+              className="relative group aspect-square rounded-lg overflow-hidden border border-input"
+            >
+              <Image
+                src={url}
+                alt={`Uploaded image ${index + 1}`}
+                className="w-full h-full object-cover"
+                width={100}
+                height={100}
+                unoptimized
+              />
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                <button
+                  type="button"
+                  onClick={() => handleRemove(index)}
+                  className="p-1.5 rounded-md bg-red-500/80 text-white hover:bg-red-500 transition-colors"
+                  disabled={disabled}
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
-            <Image fill className="object-cover" alt="Image" src={url} />
-          </div>
-        ))}
-      </div>
-      <div className="flex items-center justify-center w-full">
-        <label className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
-          <div className="flex flex-col items-center justify-center pt-5 pb-6">
-            <UploadCloud className="w-8 h-8 mb-4 text-gray-500" />
-            <p className="mb-2 text-sm text-gray-500">
+          ))}
+        </div>
+      )}
+
+      {/* Upload area */}
+      <div
+        {...getRootProps()}
+        className={cn(
+          'relative cursor-pointer rounded-lg border border-dashed border-gray-900/25 transition-colors p-6',
+          isDragActive && 'border-primary bg-primary/5',
+          disabled && 'cursor-not-allowed opacity-50',
+          className
+        )}
+      >
+        <input {...getInputProps()} />
+        {children || (
+          <div className="flex flex-col items-center justify-center gap-1 text-center">
+            <div className="text-sm text-gray-600">
               <span className="font-semibold">Click to upload</span> or drag and drop
-            </p>
-            <p className="text-xs text-gray-500">PNG, JPG or WEBP</p>
+            </div>
+            <p className="text-xs text-gray-500">PNG, JPG, JPEG up to 10MB</p>
           </div>
-          <input
-            type="file"
-            className="hidden"
-            multiple
-            accept="image/*"
-            onChange={handleFileUpload}
-          />
-        </label>
+        )}
       </div>
     </div>
   );

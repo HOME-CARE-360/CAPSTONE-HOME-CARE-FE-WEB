@@ -1,8 +1,5 @@
 import apiService, { RequestParams } from '../core';
-
-export interface Category {
-  name: string;
-}
+import { Category } from './fetchCategory';
 
 export interface Service {
   id: number;
@@ -77,7 +74,10 @@ export const serviceService = {
   getServices: async (filters?: ServiceSearchParams): Promise<ServiceListResponse> => {
     try {
       const params = convertServiceFilters(filters);
-      const response = await apiService.get<ServiceListResponse>('/services', params);
+      const response = await apiService.get<ServiceListResponse>(
+        '/services/get-list-service',
+        params
+      );
       return response.data;
     } catch (error) {
       console.error('Get Services Error:', error);

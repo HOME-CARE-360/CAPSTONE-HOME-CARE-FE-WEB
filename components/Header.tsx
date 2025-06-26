@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserProfile } from '@/hooks/useUser';
@@ -14,9 +15,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { UserCircleIcon, LogOutIcon, SettingsIcon } from 'lucide-react';
-// import { ThemeSwitch } from '@/components/ThemeSwitch';
-import { Home } from 'lucide-react';
+import { UserCircleIcon, LogOutIcon, Menu } from 'lucide-react';
+import { NavigationBar } from './NavigationBar';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+
 export default function Header() {
   const { isAuthenticated, logout } = useAuth();
   const { data: profileData } = useUserProfile();
@@ -47,54 +49,93 @@ export default function Header() {
   const initials = getInitials(user.name);
 
   return (
-    <header className="sticky z-1000 top-0 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border/40">
-      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center justify-between">
-          {/* Logo and Navigation */}
-          <div className="flex items-center gap-8">
-            <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-80">
-              <Home className="h-6 w-6 text-green-600" />
-              <span className="text-xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                HomeCare
-              </span>
-            </Link>
+    <header className="w-full bg-background text-foreground sticky top-0 z-50 border-b border-zinc-300 h-14 flex-shrink-0">
+      <div className="container mx-auto px-4 h-full">
+        <div className="flex h-full items-center justify-between">
+          {/* Logo and Mobile Menu */}
+          <div className="flex items-center gap-4">
+            <Sheet>
+              <SheetTrigger asChild className="md:hidden">
+                <Button variant="ghost" size="icon" className="h-9 w-9">
+                  <Menu className="h-5 w-5" />
+                  <span className="sr-only">Toggle menu</span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-[300px] sm:w-[400px]">
+                <nav className="flex flex-col gap-4 mt-8">
+                  <Link
+                    href="/properties?transactionType=ForSale"
+                    className="text-lg font-medium hover:text-red-500"
+                  >
+                    Bán
+                  </Link>
+                  <Link
+                    href="/properties?transactionType=ForRent"
+                    className="text-lg font-medium hover:text-red-500"
+                  >
+                    Cho thuê
+                  </Link>
+                  <Link
+                    href="/properties?transactionType=ForSale"
+                    className="text-lg font-medium hover:text-red-500"
+                  >
+                    Đất
+                  </Link>
+                  <Link href="#" className="text-lg font-medium hover:text-red-500">
+                    Vay mua nhà
+                  </Link>
+                  <Link href="#" className="text-lg font-medium hover:text-red-500">
+                    Tìm người bán
+                  </Link>
+                  <Link href="#" className="text-lg font-medium hover:text-red-500">
+                    Bất động sản của tôi
+                  </Link>
+                </nav>
+              </SheetContent>
+            </Sheet>
 
-            <nav className="hidden md:flex items-center gap-6">
-              <Link
-                href="/services"
-                className="text-sm font-medium text-foreground/80 transition-colors hover:text-primary"
-              >
-                Dịch vụ
-              </Link>
-              <Link
-                href="/services"
-                className="text-sm font-medium text-foreground/80 transition-colors hover:text-primary"
-              >
-                Nhà cung cấp
-              </Link>
-            </nav>
+            <Link href="/" className="flex items-center">
+              <Image
+                src="/"
+                alt="HomeCare icon"
+                width={50}
+                height={50}
+                priority
+                className="rounded-md"
+              />
+              <div className="lg:block hidden">
+                <Image
+                  src="/"
+                  alt="HomeCare text"
+                  width={120}
+                  height={120}
+                  priority
+                  className="rounded-md"
+                />
+              </div>
+            </Link>
           </div>
 
-          {/* Right Section */}
-          <div className="flex items-center gap-4">
-            {/* <ThemeSwitch /> */}
+          {/* Desktop Navigation - Centered absolutely */}
+          <div className="hidden md:block absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2">
+            <NavigationBar />
+          </div>
 
+          {/* Auth Buttons */}
+          <div className="flex items-center gap-2">
             {isAuthenticated ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className="relative h-9 w-9 rounded-full transition-all hover:bg-accent"
-                  >
-                    <Avatar className="h-9 w-9 ring-2 ring-primary/10">
-                      <AvatarImage src={user.avatar} alt={user.name} />
-                      <AvatarFallback className="bg-primary/10 text-primary">
+                  <Button variant="ghost" className="relative size-10 rounded-full">
+                    <Avatar className="size-10 ring-zinc-300 ring-2">
+                      <AvatarImage src={user.avatar} alt={user.name} className="object-cover" />
+                      <AvatarFallback className="bg-red-500/10 text-red-500">
                         {initials}
                       </AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56" align="end" forceMount sideOffset={8}>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
                       <p className="text-sm font-medium leading-none">{user.name}</p>
@@ -104,35 +145,34 @@ export default function Header() {
                   <DropdownMenuSeparator />
                   <DropdownMenuGroup>
                     <DropdownMenuItem asChild>
-                      <Link href="#" className="cursor-pointer">
+                      <Link href="/myrevo" className="cursor-pointer">
                         <UserCircleIcon className="mr-2 h-4 w-4" />
-                        <span>Dashboard</span>
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/settings/profile" className="cursor-pointer">
-                        <SettingsIcon className="mr-2 h-4 w-4" />
-                        <span>Profile Settings</span>
+                        Tài khoản
                       </Link>
                     </DropdownMenuItem>
                   </DropdownMenuGroup>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={() => logout()}
-                    className="text-destructive focus:text-destructive cursor-pointer"
-                  >
+                  <DropdownMenuItem onClick={() => logout()} className="cursor-pointer">
                     <LogOutIcon className="mr-2 h-4 w-4" />
-                    <span>Log out</span>
+                    Đăng xuất
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <div className="flex items-center gap-3">
-                <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex">
-                  <Link href="/register/email">Đăng ký</Link>
-                </Button>
-                <Button asChild size="sm" className="bg-primary hover:bg-primary/90">
+              <div className="flex items-center gap-2">
+                {/* <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
+                  <Link href="/register">Đăng ký</Link>
+                </Button> */}
+                <Button asChild variant="ghost" size="sm" className="">
                   <Link href="/login">Đăng nhập</Link>
+                </Button>
+                <Button
+                  asChild
+                  variant="default"
+                  size="sm"
+                  className="bg-green-500 hover:bg-green-600"
+                >
+                  <Link href="/register/email">Đăng ký</Link>
                 </Button>
               </div>
             )}

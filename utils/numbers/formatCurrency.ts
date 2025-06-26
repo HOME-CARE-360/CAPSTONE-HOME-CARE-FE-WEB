@@ -32,9 +32,10 @@ export function formatCurrency(
       currency: currencyCode,
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
+      useGrouping: true, // Ensure commas are used for thousands
     }).format(numericAmount);
   } catch (error) {
     // Fallback to basic formatting if Intl formatter fails
-    return `${numericAmount.toLocaleString()} ${currencyCode}`;
+    return `${numericAmount.toLocaleString('vi-VN')} ${currencyCode}`;
   }
 }

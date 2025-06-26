@@ -1,8 +1,9 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { getCookie, setCookie, deleteCookie } from 'cookies-next';
-import apiService from '@/lib/api/core';
+import apiService, { setAuthErrorHandler } from '@/lib/api/core';
 import { jwtDecode, JwtPayload } from 'jwt-decode';
+import fetchAuth from '@/lib/api/services/fetchAuth';
 
 // Define the structure of the decoded token
 interface DecodedToken extends JwtPayload {
@@ -26,10 +27,12 @@ interface User {
 
 interface AuthState {
   token: string | null;
+  refreshToken: string | null;
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  setToken: (token: string | null) => void;
+  setToken: (token: string | null, refreshToken: string | null) => void;
+  refreshAccessToken: () => Promise<boolean>;
   logout: () => void;
 }
 
@@ -62,46 +65,83 @@ const getUserFromToken = (token: string): User | null => {
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set, get) => ({
-      token: null,
-      user: null,
-      isAuthenticated: false,
-      isLoading: true, // Start with loading true
+    (set, get) => {
+      // Set up the auth error handler
+      setAuthErrorHandler(async () => {
+        return get().refreshAccessToken();
+      });
 
-      setToken: token => {
-        if (token) {
-          const user = getUserFromToken(token);
-          if (user) {
-            set({ token, user, isAuthenticated: true, isLoading: false });
-            setCookie('auth-token', token, { maxAge: 60 * 60 * 24 * 7, path: '/' });
-            setCookie('userId', user.id, { maxAge: 60 * 60 * 24 * 7, path: '/' });
-            apiService.setAuthToken(token);
+      return {
+        token: null,
+        refreshToken: null,
+        user: null,
+        isAuthenticated: false,
+        isLoading: true,
+
+        setToken: (token, refreshToken) => {
+          if (token && refreshToken) {
+            const user = getUserFromToken(token);
+            if (user) {
+              set({ token, refreshToken, user, isAuthenticated: true, isLoading: false });
+              setCookie('auth-token', token, { maxAge: 60 * 60 * 24 * 7, path: '/' });
+              setCookie('refresh-token', refreshToken, { maxAge: 60 * 60 * 24 * 7, path: '/' });
+              setCookie('userId', user.id, { maxAge: 60 * 60 * 24 * 7, path: '/' });
+              apiService.setAuthToken(token);
+            } else {
+              get().logout();
+            }
           } else {
-            // If token is invalid, logout
             get().logout();
           }
-        } else {
-          // If no token, logout
-          get().logout();
-        }
-      },
+        },
 
-      logout: () => {
-        deleteCookie('auth-token', { path: '/' });
-        deleteCookie('userId', { path: '/' });
-        apiService.setAuthToken(null);
-        set({ token: null, user: null, isAuthenticated: false, isLoading: false });
-      },
-    }),
+        refreshAccessToken: async () => {
+          try {
+            const currentRefreshToken = get().refreshToken;
+            if (!currentRefreshToken) {
+              get().logout();
+              return false;
+            }
+
+            const response = await fetchAuth.refreshToken(currentRefreshToken);
+            if (response.data?.accessToken && response.data?.refreshToken) {
+              get().setToken(response.data.accessToken, response.data.refreshToken);
+              return true;
+            }
+            return false;
+          } catch (error) {
+            console.error('Failed to refresh token:', error);
+            get().logout();
+            return false;
+          }
+        },
+
+        logout: () => {
+          deleteCookie('auth-token', { path: '/' });
+          deleteCookie('refresh-token', { path: '/' });
+          deleteCookie('userId', { path: '/' });
+          apiService.setAuthToken(null);
+          set({
+            token: null,
+            refreshToken: null,
+            user: null,
+            isAuthenticated: false,
+            isLoading: false,
+          });
+        },
+      };
+    },
     {
       name: 'auth-storage',
-      // Persist only the token, user will be derived from it
       partialize: state => ({
         token: state.token,
+        refreshToken: state.refreshToken,
       }),
     }
   )
 );
 
-// Initial state sync from cookie
-useAuthStore.getState().setToken(getCookie('auth-token') as string | null);
+// Initial state sync from cookies
+const storedToken = getCookie('auth-token') as string | null;
+const storedRefreshToken = getCookie('refresh-token') as string | null;
+useAuthStore.getState().setToken(storedToken, storedRefreshToken);

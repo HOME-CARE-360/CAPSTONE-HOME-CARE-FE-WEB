@@ -1,55 +1,38 @@
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ColumnsIcon, ChevronDownIcon, SlidersHorizontal } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Table } from '@tanstack/react-table';
 import { Category } from '@/lib/api/services/fetchCategory';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { ServiceManager } from '@/lib/api/services/fetchServiceManager';
+import { ServiceManager, ServiceManagerSearchParams } from '@/lib/api/services/fetchServiceManager';
 
 interface ServiceTableFiltersProps {
   table: Table<ServiceManager>;
   categories: Category[];
-  // onLimitChange: (value: string) => void;
-  onFilterChange?: (filters: {
-    searchTerm?: string;
-    category?: string;
-    minPrice?: number;
-    maxPrice?: number;
-    minDuration?: number;
-    maxDuration?: number;
-    limit?: number;
-    page?: number;
-  }) => void;
+  onFilterChange?: (filters: Partial<ServiceManagerSearchParams>) => void;
 }
 
-export function ServiceTableFilters({
-  table,
-  categories,
-  onFilterChange,
-}: ServiceTableFiltersProps) {
+export function ServiceTableFilters({ table, onFilterChange }: ServiceTableFiltersProps) {
   const handleFilterChange = (key: string, value: string | number | undefined) => {
     if (onFilterChange) {
-      onFilterChange({
-        searchTerm: key === 'name' ? (value as string) : undefined,
-        category: key === 'categories' ? (value as string) : undefined,
-        minPrice: key === 'basePrice' ? (value as number) : undefined,
-        maxPrice: key === 'virtualPrice' ? (value as number) : undefined,
-        limit: key === 'limit' ? (value as number) : undefined,
-        page: key === 'page' ? (value as number) : 1,
-      });
+      const filters: Partial<ServiceManagerSearchParams> = {};
+
+      switch (key) {
+        case 'name':
+          filters.name = (value as string) || '';
+          break;
+        case 'minPrice':
+          // filters.minPrice = value as number || 0;
+          break;
+        case 'maxPrice':
+          // filters.maxPrice = value as number || 0;
+          break;
+        case 'limit':
+          filters.limit = (value as number) || 10;
+          break;
+        case 'page':
+          filters.page = (value as number) || 1;
+          break;
+      }
+
+      onFilterChange(filters);
     }
   };
 
@@ -64,41 +47,22 @@ export function ServiceTableFilters({
         }}
         className="max-w-sm"
       />
-      <Select
-        value={(table.getColumn('categories')?.getFilterValue() as string) ?? 'all'}
-        onValueChange={value => {
-          table.getColumn('categories')?.setFilterValue(value);
-          handleFilterChange('categories', value);
-        }}
-      >
-        <SelectTrigger className="w-[180px]">
-          <SelectValue placeholder={'Loại dịch vụ'} />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Loại dịch vụ</SelectItem>
-          {categories.map((category, index) => (
-            <SelectItem key={index} value={category.name.toString()}>
-              {category.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      <Select
-        onValueChange={value => {
-          handleFilterChange('limit', parseInt(value));
-        }}
-      >
-        <SelectTrigger className="w-[120px]">
-          <SelectValue placeholder={'Số lượng'} />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="5">5</SelectItem>
-          <SelectItem value="10">10 </SelectItem>
-          <SelectItem value="20">20 </SelectItem>
-          <SelectItem value="50">50 </SelectItem>
-        </SelectContent>
-      </Select>
-      <Popover>
+      {/* <Select
+          onValueChange={value => {
+            handleFilterChange('limit', parseInt(value));
+          }}
+        >
+          <SelectTrigger className="w-[120px]">
+            <SelectValue placeholder={'Số lượng'} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="5">5</SelectItem>
+            <SelectItem value="10">10 </SelectItem>
+            <SelectItem value="20">20 </SelectItem>
+            <SelectItem value="50">50 </SelectItem>
+          </SelectContent>
+        </Select> */}
+      {/* <Popover>
         <PopoverTrigger asChild>
           <Button variant="outline" size="sm">
             <SlidersHorizontal className="mr-2 h-4 w-4" />
@@ -119,7 +83,7 @@ export function ServiceTableFilters({
                     onChange={e => {
                       const value = e.target.value ? Number(e.target.value) : undefined;
                       table.getColumn('basePrice')?.setFilterValue(value);
-                      handleFilterChange('basePrice', value);
+                      // handleFilterChange('minPrice', value);
                     }}
                   />
                 </div>
@@ -132,39 +96,7 @@ export function ServiceTableFilters({
                     onChange={e => {
                       const value = e.target.value ? Number(e.target.value) : undefined;
                       table.getColumn('virtualPrice')?.setFilterValue(value);
-                      handleFilterChange('virtualPrice', value);
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <h4 className="font-medium leading-none">Khoảng thời gian</h4>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <label className="text-sm text-muted-foreground">Thời gian thấp nhất</label>
-                  <Input
-                    type="number"
-                    placeholder={'Thời gian thấp nhất'}
-                    value={(table.getColumn('durationMinutes')?.getFilterValue() as number) ?? ''}
-                    onChange={e => {
-                      const value = e.target.value ? Number(e.target.value) : undefined;
-                      table.getColumn('durationMinutes')?.setFilterValue(value);
-                      handleFilterChange('durationMinutes', value);
-                    }}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-sm text-muted-foreground">Thời gian cao nhất</label>
-                  <Input
-                    type="number"
-                    placeholder={'Thời gian cao nhất'}
-                    value={(table.getColumn('durationMinutes')?.getFilterValue() as number) ?? ''}
-                    onChange={e => {
-                      const value = e.target.value ? Number(e.target.value) : undefined;
-                      table.getColumn('durationMinutes')?.setFilterValue(value);
-                      handleFilterChange('durationMinutes', value);
+                      // handleFilterChange('maxPrice', value);
                     }}
                   />
                 </div>
@@ -189,8 +121,8 @@ export function ServiceTableFilters({
             </div>
           </div>
         </PopoverContent>
-      </Popover>
-      <DropdownMenu>
+      </Popover> */}
+      {/* <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="outline" className="ml-auto">
             <ColumnsIcon className="mr-2 h-4 w-4" />
@@ -210,12 +142,12 @@ export function ServiceTableFilters({
                   checked={column.getIsVisible()}
                   onCheckedChange={value => column.toggleVisibility(!!value)}
                 >
-                  {`${column.id}`}
+                  {column.id}
                 </DropdownMenuCheckboxItem>
               );
             })}
         </DropdownMenuContent>
-      </DropdownMenu>
+      </DropdownMenu> */}
     </div>
   );
 }

@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 
@@ -27,12 +26,7 @@ import { Input } from '@/components/ui/input';
 import { useRequestOTP } from '@/hooks/useAuth';
 import { OTPType, OTPVerifyRequest } from '@/lib/api/services/fetchAuth';
 import { Mail, ArrowRight, Loader2 } from 'lucide-react';
-
-const emailSchema = z.object({
-  email: z.string().email({ message: 'Vui lòng nhập địa chỉ email hợp lệ' }),
-});
-
-type EmailFormValues = z.infer<typeof emailSchema>;
+import { EmailFormValues, emailSchema } from '@/schemaValidations/auth.schema';
 
 export default function RegisterEmailPage() {
   const { requestOTP, isLoading: isRequestingOTP } = useRequestOTP();

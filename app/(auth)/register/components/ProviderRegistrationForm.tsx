@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,33 +21,12 @@ import { EyeOff, Eye, Lock, User, Building2, MapPin } from 'lucide-react';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { Loader2 } from 'lucide-react';
 import { OTPType, CompanyType } from '@/lib/api/services/fetchAuth';
-
-const providerSchema = z
-  .object({
-    name: z.string().min(2, 'Business name must be at least 2 characters'),
-    phone: z.string().min(10, 'Phone number must be at least 10 digits'),
-    password: z.string().min(6, 'Password must be at least 6 characters'),
-    confirmPassword: z.string(),
-    taxId: z.string().min(10, 'Tax ID must be at least 10 characters'),
-    companyType: z.nativeEnum(CompanyType),
-    industry: z.string().min(2, 'Industry must be at least 2 characters'),
-    address: z.string().min(5, 'Address must be at least 5 characters'),
-    description: z.string().min(10, 'Description must be at least 10 characters'),
-    terms: z.boolean().refine(val => val === true, {
-      message: 'You must agree to the terms and conditions',
-    }),
-  })
-  .refine(data => data.password === data.confirmPassword, {
-    message: 'Passwords do not match',
-    path: ['confirmPassword'],
-  });
-
-const otpSchema = z.object({
-  otp: z.string().length(6, { message: 'OTP must be 6 digits' }),
-});
-
-type ProviderFormValues = z.infer<typeof providerSchema>;
-type OtpFormValues = z.infer<typeof otpSchema>;
+import {
+  OtpFormValues,
+  otpSchema,
+  ProviderFormValues,
+  providerSchema,
+} from '@/schemaValidations/auth.schema';
 
 export function ProviderRegistrationForm() {
   const [showPassword, setShowPassword] = useState(false);

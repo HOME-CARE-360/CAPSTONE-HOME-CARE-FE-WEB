@@ -70,12 +70,12 @@ export function SiteSideFooter() {
     },
   ];
   // Get user data from profile response
-  const user = profileData?.profile
+  const user = profileData?.data
     ? {
-        name: profileData.profile.fullName,
-        email: profileData.profile.email,
-        avatar: profileData.profile.avatar || '',
-        status: profileData.profile.status,
+        name: profileData.data.user.name,
+        email: profileData.data.user.email,
+        avatar: profileData.data.user.avatar || '',
+        status: profileData.data.user.status,
       }
     : {
         name: 'FPT Student Code',
@@ -86,8 +86,8 @@ export function SiteSideFooter() {
 
   // Update status state when profile data loads
   useEffect(() => {
-    if (profileData?.profile?.status) {
-      setStatus(profileData.profile.status);
+    if (profileData?.data?.user?.status) {
+      setStatus(profileData.data.user.status);
     }
   }, [profileData]);
 
@@ -100,24 +100,14 @@ export function SiteSideFooter() {
     formData.append('status', newStatus);
 
     // Get current user data to include in the form
-    if (profileData?.profile) {
-      formData.append('userName', profileData.profile.userName);
-      formData.append('fullName', profileData.profile.fullName);
-      formData.append('email', profileData.profile.email);
+    if (profileData?.data) {
+      formData.append('userName', profileData.data.user.name);
+      formData.append('fullName', profileData.data.user.name);
+      formData.append('email', profileData.data.user.email);
 
-      if (profileData.profile.phoneNumber) {
-        formData.append('phoneNumber', profileData.profile.phoneNumber);
+      if (profileData.data.user.phone) {
+        formData.append('phoneNumber', profileData.data.user.phone);
       }
-
-      if (profileData.profile.about) {
-        formData.append('about', profileData.profile.about);
-      }
-
-      if (profileData.profile.birthDate) {
-        formData.append('birthDate', profileData.profile.birthDate);
-      }
-
-      formData.append('role', profileData.profile.role);
     }
   };
 
@@ -244,7 +234,8 @@ export function SiteSideFooter() {
               <DropdownMenuItem asChild>
                 <Link
                   href={
-                    profileData?.profile?.role === 'Admin' ? '/admin/profile' : '/saler/profile'
+                    // profileData?.data?.user?.role === 'Admin' ? '/admin/profile' : '/saler/profile'
+                    '#'
                   }
                 >
                   <UserCircleIcon className="mr-2 h-4 w-4" />

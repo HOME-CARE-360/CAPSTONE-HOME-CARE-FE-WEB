@@ -18,35 +18,24 @@ import {
 import { UserCircleIcon, LogOutIcon, Menu } from 'lucide-react';
 import { NavigationBar } from './NavigationBar';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { getNameFallback } from '@/utils/helper';
 
 export default function Header() {
   const { isAuthenticated, logout } = useAuth();
   const { data: profileData } = useUserProfile();
 
   // Get user data from profile response
-  const user = profileData?.profile
+  const user = profileData?.data
     ? {
-        name: profileData.profile.fullName,
-        email: profileData.profile.email,
-        avatar: profileData.profile.avatar || '',
+        name: profileData.data.user.name,
+        email: profileData.data.user.email,
+        avatar: profileData.data.user.avatar || '',
       }
     : {
         name: '',
         email: '',
         avatar: '',
       };
-
-  // Create initials from name for avatar fallback
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(part => part[0])
-      .join('')
-      .toUpperCase()
-      .substring(0, 2);
-  };
-
-  const initials = getInitials(user.name);
 
   return (
     <header className="w-full bg-background text-foreground sticky top-0 z-50 border-b border-zinc-300 h-14 flex-shrink-0">
@@ -128,9 +117,13 @@ export default function Header() {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative size-10 rounded-full">
                     <Avatar className="size-10 ring-zinc-300 ring-2">
-                      <AvatarImage src={user.avatar} alt={user.name} className="object-cover" />
+                      <AvatarImage
+                        src={user.avatar || 'https://github.com/shadcn.png'}
+                        alt={user.name}
+                        className="object-cover"
+                      />
                       <AvatarFallback className="bg-red-500/10 text-red-500">
-                        {initials}
+                        {getNameFallback(user.name)}
                       </AvatarFallback>
                     </Avatar>
                   </Button>
@@ -145,9 +138,9 @@ export default function Header() {
                   <DropdownMenuSeparator />
                   <DropdownMenuGroup>
                     <DropdownMenuItem asChild>
-                      <Link href="/myrevo" className="cursor-pointer">
+                      <Link href="/settings/profile" className="cursor-pointer">
                         <UserCircleIcon className="mr-2 h-4 w-4" />
-                        Tài khoản
+                        Hồ sơ của tôi
                       </Link>
                     </DropdownMenuItem>
                   </DropdownMenuGroup>

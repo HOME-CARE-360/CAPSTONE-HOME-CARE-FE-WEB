@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useLogin } from '@/hooks/useAuth';
 import Link from 'next/link';
-import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -25,14 +24,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
-
-// Schema for login form
-const loginSchema = z.object({
-  email: z.string().email({ message: 'Vui lòng nhập địa chỉ email hợp lệ' }),
-  password: z.string().min(1, { message: 'Vui lòng nhập mật khẩu' }),
-});
-
-type LoginFormValues = z.infer<typeof loginSchema>;
+import { LoginFormValues, loginSchema } from '@/schemaValidations/auth.schema';
 
 export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);

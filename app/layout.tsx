@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { Inter } from 'next/font/google';
 import { QueryProvider } from '@/lib/providers/queryProvider';
-import { ThemeProvider } from '@/components/theme-provider';
+// import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/sonner';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -79,16 +79,16 @@ export default function RootLayout({
   return (
     <html lang="vi" suppressHydrationWarning>
       <body className={inter.className}>
-        <ThemeProvider
+        {/* <ThemeProvider
           attribute="class"
-          defaultTheme="light"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <QueryProvider>
-            <main>{children}</main>
-          </QueryProvider>
-        </ThemeProvider>
+          // defaultTheme="light"
+          // enableSystem
+          // disableTransitionOnChange
+        > */}
+        <QueryProvider>
+          <main>{children}</main>
+        </QueryProvider>
+        {/* </ThemeProvider> */}
         <Toaster />
       </body>
     </html>

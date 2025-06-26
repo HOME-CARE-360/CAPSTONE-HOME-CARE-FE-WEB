@@ -1,5 +1,7 @@
+import { CustomerType, UserType } from '@/schemaValidations/user.schema';
 import apiService from '../core';
 import { ValidationError } from './fetchAuth';
+import { ProviderType } from '@/schemaValidations/privder.schema';
 export interface User {
   userName: string;
   fullName: string;
@@ -54,12 +56,34 @@ export interface GetUserInformationResponse {
   statusCode: number;
 }
 
+export interface GetProfileResponse {
+  success: boolean;
+  code: string;
+  message: string;
+  data: {
+    user: UserType;
+    customer: CustomerType;
+  };
+  statusCode: number;
+}
+
+export interface GetProviderResponse {
+  success: boolean;
+  code: string;
+  message: string;
+  data: {
+    user: UserType;
+    provider: ProviderType;
+  };
+  statusCode: number;
+}
+
 // User service with profile-related API methods
 export const userService = {
   // Get current user profile
-  getUserProfile: async (): Promise<UserResponse> => {
+  getUserProfile: async (): Promise<GetProfileResponse> => {
     try {
-      const response = await apiService.get<UserResponse>('/users/profile');
+      const response = await apiService.get<GetProfileResponse>('/publics/get-me');
       return response.data;
     } catch (error) {
       console.error('Get User Profile Error:', error);
@@ -86,6 +110,14 @@ export const userService = {
     const response = await apiService.get<GetUserInformationResponse>(
       `/users/get-customer-information/${userId}`
     );
+    return response.data;
+  },
+
+  getProviderInfomation: async (providerId: string | number): Promise<GetProviderResponse> => {
+    const response = await apiService.get<GetProviderResponse>(
+      `/publics/get-service-provider-information/${providerId}`
+    );
+    console.log('response:: ', response);
     return response.data;
   },
 };

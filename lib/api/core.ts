@@ -29,7 +29,7 @@ export interface ApiResponse<T> {
 
 // Request parameters object
 export interface RequestParams {
-  [key: string]: string | number | boolean | undefined | null | string[];
+  [key: string]: string | number | boolean | undefined | null | string[] | number[];
 }
 
 // Extend AxiosRequestConfig to include skipAuth

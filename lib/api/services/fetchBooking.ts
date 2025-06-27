@@ -1,3 +1,13 @@
+import apiService from '@/lib/api/core';
+
+export interface GetAllBookingsResponse<T> {
+  data: T;
+  totalItems: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 export const serviceBooking = {
   // createBooking: async (data: any) => {
   //     try {
@@ -9,5 +19,13 @@ export const serviceBooking = {
   //       }
   // }
 
-  getAllBookings: async () => {},
+  getAllBookings: async () => {
+    try {
+      const response = await apiService.get(`/manage-bookings/list-service-request`);
+      return response.data;
+    } catch (error) {
+      console.error('Get All Bookings Error:', error);
+      throw error;
+    }
+  },
 };

@@ -12,6 +12,8 @@ import {
   useReactTable,
 } from '@tanstack/react-table';
 import { useStaffTableColumns } from './StaffTableColumns';
+import { StaffTableFilters } from './StaffTableFilters';
+import { StaffTablePagination } from './StaffTablePagination';
 import {
   Table,
   TableBody,
@@ -22,22 +24,27 @@ import {
 } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { ColumnsIcon } from 'lucide-react';
+import { ColumnsIcon, Plus, Search } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useGetAllStaffs } from '@/hooks/useStaff';
-import StaffCreateModal from './StaffCreateModal';
-import { StaffFormData } from './StaffCreateModal';
-import { useCreateStaff } from '@/hooks/useStaff';
-import { Staff } from '@/lib/api/services/fetchStaff';
+import { useGetAllStaffs, useCreateStaff } from '@/hooks/useStaff';
+import { Staff, StaffSearchParams } from '@/lib/api/services/fetchStaff';
+import StaffCreateModal, { StaffFormData } from './StaffCreateModal';
 import { toast } from 'sonner';
 
 export function StaffTable() {
-  const { data: staffs, isLoading, error } = useGetAllStaffs();
+  // State cho filters
+  const [searchFilters, setSearchFilters] = React.useState<StaffSearchParams>({
+    page: 1,
+    limit: 10,
+  });
+
+  const { data: staffsData, isLoading, error } = useGetAllStaffs(searchFilters);
+  const staffs = staffsData?.data || [];
 
   const [rowSelection, setRowSelection] = React.useState({});
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
@@ -46,19 +53,23 @@ export function StaffTable() {
   const [globalFilter, setGlobalFilter] = React.useState('');
   const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
   const [selectedStaff, setSelectedStaff] = React.useState<Staff | null>(null);
+  const [showFilters, setShowFilters] = React.useState(false);
+
   const createStaffMutation = useCreateStaff();
-  // console.log('categoryStaff::', categoryStaff);
-  console.log('staffs', staffs);
 
   const columns = useStaffTableColumns({
     onEdit: (staff: Staff) => {
       setSelectedStaff(staff);
       setIsCreateModalOpen(true);
     },
+    onDelete: (staff: Staff) => {
+      console.log(staff);
+      // deleteStaffMutation.mutate(staff.id);
+    },
   });
 
   const table = useReactTable({
-    data: staffs || [],
+    data: staffs,
     columns,
     state: {
       sorting,
@@ -79,6 +90,30 @@ export function StaffTable() {
     getSortedRowModel: getSortedRowModel(),
   });
 
+  // Handle filter changes
+  const handleFilterChange = (filters: Partial<StaffSearchParams>) => {
+    setSearchFilters(prev => ({ ...prev, ...filters }));
+  };
+
+  // Handle clear filters
+  const handleClearFilters = () => {
+    setSearchFilters({
+      orderBy: 'desc',
+      page: 1,
+      limit: 10,
+    });
+  };
+
+  // Handle page change
+  const handlePageChange = (page: number) => {
+    handleFilterChange({ page });
+  };
+
+  // Handle limit change
+  const handleLimitChange = (limit: number) => {
+    handleFilterChange({ limit, page: 1 });
+  };
+
   const handleCreateStaff = async (data: StaffFormData) => {
     try {
       if (selectedStaff) {
@@ -91,7 +126,6 @@ export function StaffTable() {
       setIsCreateModalOpen(false);
       setSelectedStaff(null);
     } catch (error) {
-      // toast.error(selectedStaff ? 'Cập nhật nhân viên thất bại' : 'Tạo nhân viên thất bại');
       console.error('Error:', error);
     }
   };
@@ -133,24 +167,35 @@ export function StaffTable() {
     );
   }
 
-  console.log('selectedStaff:: ', selectedStaff);
-
   return (
     <div className="space-y-4">
+      {/* Header với search và actions */}
       <div className="flex items-center justify-between">
-        <Input
-          placeholder="Tìm kiếm nhân viên..."
-          value={globalFilter ?? ''}
-          onChange={event => setGlobalFilter(event.target.value)}
-          className="max-w-sm"
-        />
+        <div className="flex items-center gap-2 flex-1 max-w-sm">
+          <div className="relative flex-1">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Tìm kiếm nhân viên..."
+              value={globalFilter ?? ''}
+              onChange={event => setGlobalFilter(event.target.value)}
+              className="pl-8"
+            />
+          </div>
+        </div>
         <div className="flex items-center gap-2">
-          <Button onClick={() => setIsCreateModalOpen(true)}>Tạo nhân viên</Button>
+          <Button variant="outline" onClick={() => setShowFilters(!showFilters)}>
+            <ColumnsIcon className="mr-2 h-4 w-4" />
+            Bộ lọc
+          </Button>
+          <Button onClick={() => setIsCreateModalOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Tạo nhân viên
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm">
                 <ColumnsIcon className="mr-2 h-4 w-4" />
-                Columns
+                Cột
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -173,6 +218,17 @@ export function StaffTable() {
           </DropdownMenu>
         </div>
       </div>
+
+      {/* Filters */}
+      {showFilters && (
+        <StaffTableFilters
+          filters={searchFilters}
+          onFilterChange={handleFilterChange}
+          onClearFilters={handleClearFilters}
+        />
+      )}
+
+      {/* Table */}
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -209,25 +265,20 @@ export function StaffTable() {
           </TableBody>
         </Table>
       </div>
-      <div className="flex items-center justify-end space-x-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage()}
-        >
-          Previous
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.nextPage()}
-          disabled={!table.getCanNextPage()}
-        >
-          Next
-        </Button>
-      </div>
 
+      {/* Pagination */}
+      {staffsData && (
+        <StaffTablePagination
+          currentPage={staffsData.page}
+          totalPages={staffsData.totalPages}
+          totalItems={staffsData.totalItems}
+          limit={staffsData.limit}
+          onPageChange={handlePageChange}
+          onLimitChange={handleLimitChange}
+        />
+      )}
+
+      {/* Create/Edit Modal */}
       <StaffCreateModal
         isOpen={isCreateModalOpen}
         onClose={handleCloseModal}

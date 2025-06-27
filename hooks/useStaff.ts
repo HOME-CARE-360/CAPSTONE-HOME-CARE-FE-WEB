@@ -1,21 +1,12 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { staffService } from '@/lib/api/services/fetchStaff';
-import type { CreateStaffReponse, Staff } from '@/lib/api/services/fetchStaff';
+import type { CreateStaffReponse, StaffSearchParams } from '@/lib/api/services/fetchStaff';
 import { StaffFormData } from '@/app/(provider)/provider/manage-staff/components/StaffCreateModal';
 
-export function useGetAllStaffs() {
-  return useQuery<Staff[]>({
-    queryKey: ['staffs'],
-    queryFn: async () => {
-      try {
-        const response = await staffService.getAllStaff();
-        console.log('response', response);
-        return response.data;
-      } catch (error) {
-        console.error('Error fetching staff:', error);
-        throw error;
-      }
-    },
+export function useGetAllStaffs(filters?: StaffSearchParams) {
+  return useQuery({
+    queryKey: ['staffs', 'list', filters ? JSON.stringify(filters) : 'all'],
+    queryFn: () => staffService.getAllStaff(filters),
   });
 }
 

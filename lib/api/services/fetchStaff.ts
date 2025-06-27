@@ -1,5 +1,5 @@
 import { StaffFormData } from '@/app/(provider)/provider/manage-staff/components/StaffCreateModal';
-import apiService from '@/lib/api/core';
+import apiService, { RequestParams } from '@/lib/api/core';
 
 export interface GetAllStaffResponse<T> {
   data: T;
@@ -42,10 +42,38 @@ export interface CreateStaffReponse {
   message: string;
 }
 
+// Thêm interface cho query parameters
+export interface StaffSearchParams {
+  orderBy?: 'asc' | 'desc';
+  categories?: number[];
+  name?: string;
+  page?: number;
+  limit?: number;
+}
+
+// Convert StaffSearchParams to RequestParams
+const convertStaffFilters = (filters?: StaffSearchParams): RequestParams => {
+  if (!filters) return {};
+
+  const params: RequestParams = {};
+
+  if (filters.orderBy) params.orderBy = filters.orderBy;
+  if (filters.categories && filters.categories.length > 0) {
+    params.categories = filters.categories;
+  }
+  if (filters.name) params.name = filters.name;
+  if (filters.page) params.page = filters.page;
+  if (filters.limit) params.limit = filters.limit;
+
+  return params;
+};
+
 export const staffService = {
-  getAllStaff: async (): Promise<GetAllStaffResponse<Staff[]>> => {
+  getAllStaff: async (filters?: StaffSearchParams): Promise<GetAllStaffResponse<Staff[]>> => {
+    const params = convertStaffFilters(filters);
     const response = await apiService.get<GetAllStaffResponse<Staff[]>>(
-      '/manage-staffs/list-staff'
+      '/manage-staffs/list-staff',
+      params
     );
     return response.data;
   },

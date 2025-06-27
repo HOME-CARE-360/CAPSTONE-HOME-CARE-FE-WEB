@@ -15,6 +15,8 @@ interface ProviderInfoProps {
 
 export default function ProviderInfo({ providerProfile }: ProviderInfoProps) {
   const { user, provider } = providerProfile;
+  console.log('provider::: ', provider);
+  console.log('providerProfile:: ', providerProfile);
 
   return (
     <Card className="border border-gray-200 shadow-sm bg-white">
@@ -27,7 +29,7 @@ export default function ProviderInfo({ providerProfile }: ProviderInfoProps) {
             {user.name}
           </div> */}
           <Avatar className="w-20 h-20">
-            <AvatarImage src={provider.logo || 'https://github.com/shadcn.png'} />
+            <AvatarImage src={provider?.logo || 'https://github.com/shadcn.png'} />
             <AvatarFallback>{getNameFallback(user.name || 'User')}</AvatarFallback>
           </Avatar>
           <div>

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { decodeJwt, isServiceProvider, isCustomer } from './utils/jwt';
+import { decodeJwt, isServiceProvider, isCustomer, isManager } from './utils/jwt';
 
 // Define routes that require authentication
 const protectedRoutes = [
@@ -7,6 +7,7 @@ const protectedRoutes = [
   '/provider',
   '/user/profile',
   '/settings/profile',
+  '/manager',
   // Add other protected routes as needed
 ];
 
@@ -18,6 +19,8 @@ const providerRoutes = ['/provider', '/provider/dashboard'];
 
 // Define customer-only protected routes (not public)
 const customerProtectedRoutes = ['/user/profile'];
+
+const managerProtectedRoutes = ['/manager', '/manager/manage-category'];
 
 export default function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -39,6 +42,10 @@ export default function middleware(request: NextRequest) {
 
   // Check if the route is a provider route
   const isProviderRoute = providerRoutes.some(
+    route => pathname === route || pathname.startsWith(`${route}/`)
+  );
+
+  const isManagerRoute = managerProtectedRoutes.some(
     route => pathname === route || pathname.startsWith(`${route}/`)
   );
 
@@ -72,6 +79,10 @@ export default function middleware(request: NextRequest) {
 
         // Handle protected customer routes - only allow customers
         if (isCustomerProtectedRoute && !isCustomer(decodedToken)) {
+          return NextResponse.redirect(new URL('/', request.url));
+        }
+
+        if (isManagerRoute && !isManager(decodedToken)) {
           return NextResponse.redirect(new URL('/', request.url));
         }
 

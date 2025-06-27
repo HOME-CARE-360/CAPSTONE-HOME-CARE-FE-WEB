@@ -11,7 +11,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table';
-import { useStaffTableColumns } from './StaffTableColumns';
+import { useCategoryTableColumns } from './CategoryTableColumns';
 import {
   Table,
   TableBody,
@@ -22,22 +22,27 @@ import {
 } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { ColumnsIcon } from 'lucide-react';
+import { ColumnsIcon, Plus } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useGetAllStaffs } from '@/hooks/useStaff';
-import StaffCreateModal from './StaffCreateModal';
-import { StaffFormData } from './StaffCreateModal';
-import { useCreateStaff } from '@/hooks/useStaff';
-import { Staff } from '@/lib/api/services/fetchStaff';
-import { toast } from 'sonner';
+import {
+  useCategories,
+  useCreateCategory,
+  useDeleteCategoryById,
+  useUpdateCategoryById,
+} from '@/hooks/useCategory';
+import { Category } from '@/lib/api/services/fetchCategory';
+import CategoryCreateModal, {
+  CategoryFormData,
+} from '@/app/(manager)/manager/manage-category/components/CategoryCreateModal';
 
-export function StaffTable() {
-  const { data: staffs, isLoading, error } = useGetAllStaffs();
+export function CategoryTable() {
+  const { data: categoriesData, isLoading, error } = useCategories();
+  const categories = categoriesData?.categories || [];
 
   const [rowSelection, setRowSelection] = React.useState({});
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
@@ -45,20 +50,28 @@ export function StaffTable() {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = React.useState('');
   const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
-  const [selectedStaff, setSelectedStaff] = React.useState<Staff | null>(null);
-  const createStaffMutation = useCreateStaff();
-  // console.log('categoryStaff::', categoryStaff);
-  console.log('staffs', staffs);
+  const [selectedCategory, setSelectedCategory] = React.useState<Category | null>(null);
+  const deleteCategoryMutation = useDeleteCategoryById();
+  const updateCategoryMutation = useUpdateCategoryById();
+  const createCategoryMutation = useCreateCategory();
 
-  const columns = useStaffTableColumns({
-    onEdit: (staff: Staff) => {
-      setSelectedStaff(staff);
+  const handleSuccess = () => {
+    setIsCreateModalOpen(false);
+    setSelectedCategory(null);
+  };
+
+  const columns = useCategoryTableColumns({
+    onEdit: (category: Category) => {
+      setSelectedCategory(category);
       setIsCreateModalOpen(true);
+    },
+    onDelete: (category: Category) => {
+      deleteCategoryMutation.mutate(category.id);
     },
   });
 
   const table = useReactTable({
-    data: staffs || [],
+    data: categories,
     columns,
     state: {
       sorting,
@@ -79,26 +92,20 @@ export function StaffTable() {
     getSortedRowModel: getSortedRowModel(),
   });
 
-  const handleCreateStaff = async (data: StaffFormData) => {
-    try {
-      if (selectedStaff) {
-        // TODO: Implement update staff API call
-        toast.success('Cập nhật nhân viên thành công');
-      } else {
-        await createStaffMutation.mutateAsync(data);
-        toast.success('Tạo nhân viên thành công');
-      }
-      setIsCreateModalOpen(false);
-      setSelectedStaff(null);
-    } catch (error) {
-      // toast.error(selectedStaff ? 'Cập nhật nhân viên thất bại' : 'Tạo nhân viên thất bại');
-      console.error('Error:', error);
+  const handleCreateCategory = async (data: CategoryFormData) => {
+    if (selectedCategory) {
+      updateCategoryMutation.mutate(
+        { id: selectedCategory.id, data },
+        { onSuccess: handleSuccess }
+      );
+    } else {
+      createCategoryMutation.mutate(data, { onSuccess: handleSuccess });
     }
   };
 
   const handleCloseModal = () => {
     setIsCreateModalOpen(false);
-    setSelectedStaff(null);
+    setSelectedCategory(null);
   };
 
   if (isLoading) {
@@ -106,7 +113,7 @@ export function StaffTable() {
       <div className="flex items-center justify-center h-64 border rounded-lg">
         <div className="flex flex-col items-center gap-2">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          <p className="text-muted-foreground">Loading staff data...</p>
+          <p className="text-muted-foreground">Loading categories...</p>
         </div>
       </div>
     );
@@ -116,9 +123,9 @@ export function StaffTable() {
     return (
       <div className="flex items-center justify-center h-64 border rounded-lg border-destructive bg-destructive/10">
         <div className="flex flex-col items-center gap-2 text-center max-w-md p-6">
-          <div className="text-lg font-medium text-destructive">Error Loading Staff</div>
+          <div className="text-lg font-medium text-destructive">Error Loading Categories</div>
           <p className="text-sm text-muted-foreground">
-            {error.message || 'Failed to load staff data. Please try again later.'}
+            {error.message || 'Failed to load categories. Please try again later.'}
           </p>
           <Button
             variant="outline"
@@ -133,19 +140,20 @@ export function StaffTable() {
     );
   }
 
-  console.log('selectedStaff:: ', selectedStaff);
-
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <Input
-          placeholder="Tìm kiếm nhân viên..."
+          placeholder="Tìm kiếm danh mục..."
           value={globalFilter ?? ''}
           onChange={event => setGlobalFilter(event.target.value)}
           className="max-w-sm"
         />
         <div className="flex items-center gap-2">
-          <Button onClick={() => setIsCreateModalOpen(true)}>Tạo nhân viên</Button>
+          <Button onClick={() => setIsCreateModalOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Tạo danh mục
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm">
@@ -202,7 +210,7 @@ export function StaffTable() {
             ) : (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center">
-                  Không tìm thấy nhân viên
+                  Không tìm thấy danh mục
                 </TableCell>
               </TableRow>
             )}
@@ -228,23 +236,12 @@ export function StaffTable() {
         </Button>
       </div>
 
-      <StaffCreateModal
+      <CategoryCreateModal
         isOpen={isCreateModalOpen}
         onClose={handleCloseModal}
-        onSubmit={handleCreateStaff}
-        mode={selectedStaff ? 'edit' : 'create'}
-        initialData={
-          selectedStaff
-            ? {
-                email: selectedStaff.user.email,
-                name: selectedStaff.user.name,
-                phone: selectedStaff.user.phone,
-                categoryIds: selectedStaff.staffCategories.map(cat => cat.categoryId),
-                password: '',
-                confirmPassword: '',
-              }
-            : undefined
-        }
+        onSubmit={handleCreateCategory}
+        mode={selectedCategory ? 'edit' : 'create'}
+        initialData={selectedCategory ?? undefined}
       />
     </div>
   );

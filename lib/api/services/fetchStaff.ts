@@ -54,4 +54,11 @@ export const staffService = {
     const response = await apiService.post<CreateStaffReponse>('/manage-staffs/create-staff', data);
     return response.data;
   },
+
+  // getStaffInfomation: async (staffId: string | number): Promise<GetStaffResponse> => {
+  //   const response = await apiService.get<GetProviderResponse>(
+  //     `/publics/get-staff-information/${staffId}`
+  //   );
+  //   return response.data;
+  // }
 };

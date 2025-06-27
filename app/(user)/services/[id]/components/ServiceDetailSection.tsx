@@ -1,3 +1,4 @@
+'use client';
 import { Service } from '@/lib/api/services/fetchService';
 import { formatCurrency } from '@/utils/numbers/formatCurrency';
 import {
@@ -17,7 +18,9 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { useGetProviderInfomation } from '@/hooks/useUser';
+import { useRouter } from 'next/navigation';
 import ProviderInfo from '@/app/(user)/services/[id]/components/ProviderInfo';
+
 interface ServiceDetailsSectionProps {
   service: Service;
 }
@@ -29,6 +32,9 @@ export default function ServiceDetailsSection({ service }: ServiceDetailsSection
     : 0;
 
   const { data: profileProvider } = useGetProviderInfomation(service.providerId);
+  const router = useRouter();
+
+  console.log('service::: ', service);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
@@ -200,6 +206,7 @@ export default function ServiceDetailsSection({ service }: ServiceDetailsSection
               <Button
                 className="w-full bg-gray-900 hover:bg-gray-800 text-white py-4 text-lg font-semibold shadow-lg hover:shadow-xl transition-all rounded-xl"
                 size="lg"
+                onClick={() => router.push(`/booking/${service.id}`)}
               >
                 <Calendar className="w-5 h-5 mr-2" />
                 Đặt lịch ngay

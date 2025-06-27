@@ -71,9 +71,9 @@ export const useStaffTableColumns = ({
           <Button variant="ghost" size="sm" onClick={() => onEdit && onEdit(row.original)}>
             Edit
           </Button>
-          <Button variant="ghost" size="sm" className="text-destructive">
+          {/* <Button variant="ghost" size="sm" className="text-destructive">
             Delete
-          </Button>
+          </Button> */}
         </div>
       ),
     },

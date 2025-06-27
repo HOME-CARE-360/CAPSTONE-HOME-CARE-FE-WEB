@@ -1,8 +1,6 @@
 'use client';
 
 import ServiceDetail from './components/ServiceDetail';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
 import { useService } from '@/hooks/useService';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -13,7 +11,6 @@ import Link from 'next/link';
 function ServiceDetailSkeleton() {
   return (
     <div className="min-h-screen bg-white">
-      <Header />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Breadcrumb skeleton */}
         <div className="mb-10">
@@ -103,7 +100,6 @@ function ServiceDetailSkeleton() {
           </div>
         </div>
       </div>
-      <Footer />
     </div>
   );
 }
@@ -112,7 +108,6 @@ function ServiceDetailSkeleton() {
 function ServiceError({ error, onRetry }: { error: Error; onRetry: () => void }) {
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      <Header />
       <div className="flex-1 flex items-center justify-center px-4">
         <div className="text-center max-w-md">
           <div className="w-20 h-20 mx-auto mb-8 rounded-full bg-gray-100 flex items-center justify-center border-2 border-gray-200">
@@ -142,7 +137,6 @@ function ServiceError({ error, onRetry }: { error: Error; onRetry: () => void })
           </div>
         </div>
       </div>
-      <Footer />
     </div>
   );
 }
@@ -151,7 +145,6 @@ function ServiceError({ error, onRetry }: { error: Error; onRetry: () => void })
 function ServiceNotFound() {
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      <Header />
       <div className="flex-1 flex items-center justify-center px-4">
         <div className="text-center max-w-md">
           <div className="text-8xl mb-8 text-gray-400">🔍</div>
@@ -167,7 +160,6 @@ function ServiceNotFound() {
           </Link>
         </div>
       </div>
-      <Footer />
     </div>
   );
 }
@@ -189,9 +181,7 @@ export default function Page({ params }: { params: { id: string } }) {
 
   return (
     <div className="min-h-screen bg-white">
-      <Header />
       <ServiceDetail service={data.service} />
-      <Footer />
     </div>
   );
 }

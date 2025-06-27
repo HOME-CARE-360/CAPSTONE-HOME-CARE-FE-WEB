@@ -34,18 +34,27 @@ export const isServiceProvider = (token: DecodedToken | null): boolean => {
   if (!token) return false;
 
   const result = hasRole(token, Roles.SERVICE_PROVIDER);
+  console.log('isServiceProvider', result);
   return result;
 };
 
 export const isCustomer = (token: DecodedToken | null): boolean => {
   if (!token) return false;
   const result = hasRole(token, Roles.CUSTOMER);
+  console.log('isCustomer', result);
+
   return result;
 };
 
 export const isAdmin = (token: DecodedToken | null): boolean => {
   if (!token) return false;
   const result = hasRole(token, Roles.Admin);
+  return result;
+};
+
+export const isManager = (token: DecodedToken | null): boolean => {
+  if (!token) return false;
+  const result = hasRole(token, Roles.MANAGER);
   return result;
 };
 

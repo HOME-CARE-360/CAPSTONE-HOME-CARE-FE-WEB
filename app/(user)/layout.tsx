@@ -1,6 +1,8 @@
 import type React from 'react';
 import '@/app/globals.css';
 import type { Metadata } from 'next';
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 
 export const metadata: Metadata = {
   title: 'HomeCare 360 - Your Comprehensive Home Service Solution',
@@ -13,5 +15,11 @@ export default function UserLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return <div className="font-mann">{children}</div>;
+  return (
+    <div className="font-mann">
+      <Header />
+      {children}
+      <Footer />
+    </div>
+  );
 }

@@ -15,6 +15,7 @@ export enum Roles {
   Admin = 'Admin',
   SERVICE_PROVIDER = 'SERVICE PROVIDER',
   CUSTOMER = 'CUSTOMER',
+  MANAGER = 'MANAGER',
 }
 
 export interface LoginCredentials {

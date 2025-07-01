@@ -117,7 +117,6 @@ export const userService = {
     const response = await apiService.get<GetProviderResponse>(
       `/publics/get-service-provider-information/${providerId}`
     );
-    console.log('response:: ', response);
     return response.data;
   },
 };

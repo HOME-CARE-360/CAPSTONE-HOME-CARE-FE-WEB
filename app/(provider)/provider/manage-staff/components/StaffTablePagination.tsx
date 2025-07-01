@@ -9,82 +9,113 @@ import {
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 
 interface StaffTablePaginationProps {
-  currentPage: number;
+  page: number;
   totalPages: number;
   totalItems: number;
-  limit: number;
+  pageSize: number;
   onPageChange: (page: number) => void;
-  onLimitChange: (limit: number) => void;
+  onPageSizeChange: (pageSize: number) => void;
+  loading?: boolean;
+  showPageSizeSelector?: boolean;
+  showItemsInfo?: boolean;
+  pageSizeOptions?: number[];
+  maxVisiblePages?: number;
 }
 
 export function StaffTablePagination({
-  currentPage,
+  page,
   totalPages,
   totalItems,
-  limit,
+  pageSize,
   onPageChange,
-  onLimitChange,
+  onPageSizeChange,
+  loading = false,
+  showPageSizeSelector = true,
+  showItemsInfo = true,
+  pageSizeOptions = [5, 10, 20, 50],
+  maxVisiblePages = 5,
 }: StaffTablePaginationProps) {
-  const startItem = (currentPage - 1) * limit + 1;
-  const endItem = Math.min(currentPage * limit, totalItems);
+  const startItem = totalItems > 0 ? (page - 1) * pageSize + 1 : 0;
+  const endItem = Math.min(page * pageSize, totalItems);
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages && !loading) {
+      onPageChange(newPage);
+    }
+  };
+
+  const handlePageSizeChange = (newPageSize: number) => {
+    if (loading) return;
+    onPageSizeChange(newPageSize);
+  };
 
   return (
     <div className="flex items-center justify-between px-2">
-      <div className="flex items-center space-x-2">
-        <p className="text-sm font-medium">Hiển thị</p>
-        <Select value={limit.toString()} onValueChange={value => onLimitChange(parseInt(value))}>
-          <SelectTrigger className="h-8 w-[70px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="5">5</SelectItem>
-            <SelectItem value="10">10</SelectItem>
-            <SelectItem value="20">20</SelectItem>
-            <SelectItem value="50">50</SelectItem>
-          </SelectContent>
-        </Select>
-        <p className="text-sm text-muted-foreground">
-          {startItem}-{endItem} trong tổng số {totalItems} nhân viên
-        </p>
-      </div>
+      {showItemsInfo && (
+        <div className="flex items-center space-x-2">
+          <p className="text-sm font-medium">Hiển thị</p>
+          {showPageSizeSelector && (
+            <Select
+              value={pageSize.toString()}
+              onValueChange={value => handlePageSizeChange(parseInt(value))}
+              disabled={loading}
+            >
+              <SelectTrigger className="h-8 w-[70px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {pageSizeOptions.map(size => (
+                  <SelectItem key={size} value={size.toString()}>
+                    {size}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          <p className="text-sm text-muted-foreground">
+            {startItem}-{endItem} trong tổng số {totalItems} nhân viên
+          </p>
+        </div>
+      )}
 
       <div className="flex items-center space-x-2">
         <Button
           variant="outline"
           size="sm"
-          onClick={() => onPageChange(1)}
-          disabled={currentPage === 1}
+          onClick={() => handlePageChange(1)}
+          disabled={loading || page === 1}
         >
           <ChevronsLeft className="h-4 w-4" />
         </Button>
         <Button
           variant="outline"
           size="sm"
-          onClick={() => onPageChange(currentPage - 1)}
-          disabled={currentPage === 1}
+          onClick={() => handlePageChange(page - 1)}
+          disabled={loading || page === 1}
         >
           <ChevronLeft className="h-4 w-4" />
         </Button>
 
         <div className="flex items-center space-x-1">
-          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+          {Array.from({ length: Math.min(maxVisiblePages, totalPages) }, (_, i) => {
             let pageNum;
-            if (totalPages <= 5) {
+            if (totalPages <= maxVisiblePages) {
               pageNum = i + 1;
-            } else if (currentPage <= 3) {
+            } else if (page <= 3) {
               pageNum = i + 1;
-            } else if (currentPage >= totalPages - 2) {
+            } else if (page >= totalPages - 2) {
               pageNum = totalPages - 4 + i;
             } else {
-              pageNum = currentPage - 2 + i;
+              pageNum = page - 2 + i;
             }
 
             return (
               <Button
                 key={pageNum}
-                variant={currentPage === pageNum ? 'default' : 'outline'}
+                variant={page === pageNum ? 'default' : 'outline'}
                 size="sm"
-                onClick={() => onPageChange(pageNum)}
+                onClick={() => handlePageChange(pageNum)}
+                disabled={loading}
                 className="w-8 h-8"
               >
                 {pageNum}
@@ -96,16 +127,16 @@ export function StaffTablePagination({
         <Button
           variant="outline"
           size="sm"
-          onClick={() => onPageChange(currentPage + 1)}
-          disabled={currentPage === totalPages}
+          onClick={() => handlePageChange(page + 1)}
+          disabled={loading || page === totalPages}
         >
           <ChevronRight className="h-4 w-4" />
         </Button>
         <Button
           variant="outline"
           size="sm"
-          onClick={() => onPageChange(totalPages)}
-          disabled={currentPage === totalPages}
+          onClick={() => handlePageChange(totalPages)}
+          disabled={loading || page === totalPages}
         >
           <ChevronsRight className="h-4 w-4" />
         </Button>

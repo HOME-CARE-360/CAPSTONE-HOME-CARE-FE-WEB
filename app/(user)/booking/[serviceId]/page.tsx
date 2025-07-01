@@ -18,7 +18,6 @@ import { Badge } from '@/components/ui/badge';
 import {
   CalendarIcon,
   User,
-  Phone,
   CreditCard,
   Building2,
   FileText,
@@ -33,17 +32,8 @@ import { useParams } from 'next/navigation';
 import { useService } from '@/hooks/useService';
 import { useGetProviderInfomation } from '@/hooks/useUser';
 import Image from 'next/image';
-
-interface BookingFormData {
-  customerId: number;
-  providerId: number;
-  note: string;
-  preferredDate: string;
-  location: string;
-  categoryId: number;
-  phoneNumber: string;
-  paymentMethod: 'BANK_TRANSFER' | 'CASH' | 'CREDIT_CARD' | 'E_WALLET';
-}
+import { CreateBookingRequest } from '@/lib/api/services/fetchBooking';
+import { useCreateBooking } from '@/hooks/useBooking';
 
 const paymentMethods = [
   {
@@ -53,28 +43,15 @@ const paymentMethods = [
     icon: <Building2 className="h-5 w-5" />,
   },
   {
-    value: 'CASH' as const,
-    label: 'Tiền mặt',
-    description: 'Thanh toán bằng tiền mặt khi hoàn thành',
-    icon: <CreditCard className="h-5 w-5" />,
-  },
-  {
     value: 'CREDIT_CARD' as const,
     label: 'Thẻ tín dụng',
     description: 'Thanh toán bằng thẻ tín dụng',
     icon: <CreditCard className="h-5 w-5" />,
   },
-  {
-    value: 'E_WALLET' as const,
-    label: 'Ví điện tử',
-    description: 'MoMo, ZaloPay, VNPay',
-    icon: <Phone className="h-5 w-5" />,
-  },
 ];
 
 export default function NewBookingPage() {
   const [selectedDate, setSelectedDate] = useState<Date>();
-  // const [availableProviders, setAvailableProviders] = useState(providers);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { data: profifeData } = useUserProfile();
@@ -84,11 +61,9 @@ export default function NewBookingPage() {
   const { data: profileProvider } = useGetProviderInfomation(
     serviceData?.service?.providerId ? String(serviceData.service.providerId) : ''
   );
-  console.log('profifeData:: ', profifeData);
-  // console.log('serviceData:: ', serviceData.service.name);
+  const { mutateAsync: createBooking } = useCreateBooking();
 
-  const [formData, setFormData] = useState<BookingFormData>({
-    customerId: 0, // Mặc định customer đầu tiên (trong thực tế lấy từ auth)
+  const [formData, setFormData] = useState<CreateBookingRequest>({
     providerId: 0,
     note: '',
     preferredDate: '',
@@ -98,9 +73,7 @@ export default function NewBookingPage() {
     paymentMethod: 'BANK_TRANSFER',
   });
 
-  console.log('profileProvider:: ', profileProvider);
-
-  const [errors, setErrors] = useState<Partial<BookingFormData>>({});
+  const [errors, setErrors] = useState<Partial<CreateBookingRequest>>({});
 
   // Filter providers based on selected category
   useEffect(() => {
@@ -136,10 +109,9 @@ export default function NewBookingPage() {
   }, [selectedDate]);
 
   useEffect(() => {
-    if (profifeData?.data?.user?.id) {
+    if (profifeData?.data?.user?.phone) {
       setFormData(prev => ({
         ...prev,
-        customerId: profifeData.data.user.id,
         phoneNumber: profifeData.data.user.phone || prev.phoneNumber,
       }));
     }
@@ -151,13 +123,13 @@ export default function NewBookingPage() {
       setFormData(prev => ({
         ...prev,
         providerId: serviceData.service.providerId,
-        // categoryId: serviceData.service.categoryId || prev.categoryId,
+        categoryId: 1, // Set a default categoryId for validation
       }));
     }
   }, [serviceData]);
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<BookingFormData> = {};
+    const newErrors: Partial<CreateBookingRequest> = {};
 
     if (!formData.categoryId) newErrors.categoryId = 0;
     if (!formData.providerId) newErrors.providerId = 0;
@@ -165,6 +137,7 @@ export default function NewBookingPage() {
     if (!formData.location.trim()) newErrors.location = '';
     if (!formData.phoneNumber.trim()) newErrors.phoneNumber = '';
 
+    console.log('Form validation:', { formData, errors: newErrors });
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -181,49 +154,30 @@ export default function NewBookingPage() {
 
   const confirmBooking = async () => {
     setIsSubmitting(true);
+    console.log('Sending booking data:', formData);
 
     try {
-      // API call to create booking
-      const response = await fetch('/api/bookings', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
+      await createBooking(formData);
+
+      // Reset form on success
+      setFormData({
+        providerId: 0,
+        note: '',
+        preferredDate: '',
+        location: '',
+        categoryId: 0,
+        phoneNumber: '',
+        paymentMethod: 'BANK_TRANSFER',
       });
-
-      console.log('formData:: ', formData);
-
-      if (response.ok) {
-        const result = await response.json();
-        console.log('Booking created:', result);
-        alert('Đặt lịch thành công! Mã đặt lịch: ' + (result.id || 'BK' + Date.now()));
-
-        // Reset form
-        setFormData({
-          customerId: 1,
-          providerId: 0,
-          note: '',
-          preferredDate: '',
-          location: '',
-          categoryId: 0,
-          phoneNumber: '',
-          paymentMethod: 'BANK_TRANSFER',
-        });
-        setSelectedDate(undefined);
-        setShowConfirmation(false);
-      } else {
-        throw new Error('Có lỗi xảy ra khi đặt lịch');
-      }
+      setSelectedDate(undefined);
+      setShowConfirmation(false);
     } catch (error) {
+      // Error is handled by the hook with toast
       console.error('Booking error:', error);
-      alert('Có lỗi xảy ra. Vui lòng thử lại!');
     } finally {
       setIsSubmitting(false);
     }
   };
-
-  console.log('formDataa:::: ', formData);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -268,12 +222,11 @@ export default function NewBookingPage() {
                       <Input
                         id="phoneNumber"
                         type="tel"
-                        value={profifeData?.data?.user?.phone}
+                        value={formData.phoneNumber}
                         onChange={e =>
                           setFormData(prev => ({ ...prev, phoneNumber: e.target.value }))
                         }
-                        placeholder={profifeData?.data?.user?.phone}
-                        disabled
+                        placeholder={profifeData?.data?.user?.phone || 'Nhập số điện thoại'}
                         className={errors.phoneNumber ? 'border-red-500' : ''}
                       />
                     </div>
@@ -436,7 +389,7 @@ export default function NewBookingPage() {
                       onValueChange={value =>
                         setFormData(prev => ({
                           ...prev,
-                          paymentMethod: value as BookingFormData['paymentMethod'],
+                          paymentMethod: value as CreateBookingRequest['paymentMethod'],
                         }))
                       }
                     >

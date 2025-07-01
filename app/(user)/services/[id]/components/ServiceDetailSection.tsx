@@ -34,8 +34,6 @@ export default function ServiceDetailsSection({ service }: ServiceDetailsSection
   const { data: profileProvider } = useGetProviderInfomation(service.providerId);
   const router = useRouter();
 
-  console.log('service::: ', service);
-
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
       {/* Main Content */}

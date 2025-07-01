@@ -1,4 +1,3 @@
-import { StaffFormData } from '@/app/(provider)/provider/manage-staff/components/StaffCreateModal';
 import apiService, { RequestParams } from '@/lib/api/core';
 
 export interface GetAllStaffResponse<T> {
@@ -32,6 +31,16 @@ export interface CategoriesStaff {
   staffId: number;
   categoryId: number;
   category: CategoryName;
+}
+
+export interface CreateStaffRequest {
+  email: string;
+  password: string;
+  name: string;
+  phone: string;
+  confirmPassword: string;
+  categoryIds: number[];
+  [key: string]: unknown;
 }
 
 export interface CategoryName {
@@ -78,7 +87,7 @@ export const staffService = {
     return response.data;
   },
 
-  createStaff: async (data: StaffFormData): Promise<CreateStaffReponse> => {
+  createStaff: async (data: CreateStaffRequest): Promise<CreateStaffReponse> => {
     const response = await apiService.post<CreateStaffReponse>('/manage-staffs/create-staff', data);
     return response.data;
   },

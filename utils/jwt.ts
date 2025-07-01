@@ -32,17 +32,13 @@ export const hasRole = (token: DecodedToken, roleName: string): boolean => {
 
 export const isServiceProvider = (token: DecodedToken | null): boolean => {
   if (!token) return false;
-
   const result = hasRole(token, Roles.SERVICE_PROVIDER);
-  console.log('isServiceProvider', result);
   return result;
 };
 
 export const isCustomer = (token: DecodedToken | null): boolean => {
   if (!token) return false;
   const result = hasRole(token, Roles.CUSTOMER);
-  console.log('isCustomer', result);
-
   return result;
 };
 

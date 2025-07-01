@@ -61,14 +61,14 @@ export function useServiceTableColumns() {
       accessorKey: 'categories',
       header: 'Loại dịch vụ',
       cell: ({ row }) => {
-        const categories = row.getValue('categories') as string[];
-        return <div>{categories.join(', ')}</div>;
+        const categories = row.getValue('categories') as Array<{ id: number; name: string }>;
+        return <div>{categories?.map(cat => cat.name).join(', ') || '--'}</div>;
       },
       enableHiding: true,
       filterFn: (row, id, value) => {
         if (value === 'all') return true;
-        const categories = row.getValue(id) as string[];
-        return categories.includes(value);
+        const categories = row.getValue(id) as Array<{ id: number; name: string }>;
+        return categories?.some(cat => cat.name.includes(value)) || false;
       },
     },
     {
@@ -76,7 +76,6 @@ export function useServiceTableColumns() {
       header: 'Thao tác',
       cell: ({ row }) => {
         const service = row.original;
-        console.log('Rendering edit link for service ID:', service.id);
         return (
           <div className="text-right">
             <Button variant="ghost" size="icon" asChild>

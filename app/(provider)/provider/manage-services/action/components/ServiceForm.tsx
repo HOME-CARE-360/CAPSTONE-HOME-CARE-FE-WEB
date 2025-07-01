@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import { serviceSchema, ServiceFormValues } from '@/schemaValidations/service.schema';
 import { useCreateService, useUpdateService } from '@/hooks/useServiceManager';
 import { useUploadImage } from '@/hooks/useImage';
 import { formatCurrency, Currency } from '@/utils/numbers/formatCurrency';
@@ -18,24 +18,14 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { CardFooter } from '@/components/ui/card';
 import { AutocompleteSelect } from './AutocompleteSelect';
 import { DraggableImageUpload } from './DraggableImageUpload';
 import { Category } from '@/lib/api/services/fetchCategory';
 import { ServiceManager } from '@/lib/api/services/fetchServiceManager';
-
-const serviceSchema = z.object({
-  name: z.string().min(1, 'Service name is required'),
-  description: z.string().min(1, 'Description is required'),
-  basePrice: z.number().min(0, 'Base price must be greater than 0'),
-  virtualPrice: z.number().min(0, 'Virtual price must be greater than 0'),
-  durationMinutes: z.number().min(1, 'Duration must be greater than 0'),
-  categories: z.array(z.number()).default([]),
-  images: z.array(z.string()).default([]),
-});
-
-type ServiceFormValues = z.infer<typeof serviceSchema>;
+import { ClockIcon } from 'lucide-react';
 
 interface ServiceFormProps {
   initialData?: ServiceManager;
@@ -45,6 +35,9 @@ interface ServiceFormProps {
 
 export function ServiceForm({ initialData, categories, isEditMode }: ServiceFormProps) {
   const [images, setImages] = useState<string[]>(initialData?.images || []);
+  const [basePriceInput, setBasePriceInput] = useState('');
+  const [virtualPriceInput, setVirtualPriceInput] = useState('');
+
   const { mutate: createService, isPending: isCreating } = useCreateService();
   const { mutate: updateService, isPending: isUpdating } = useUpdateService();
   const { mutate: uploadImage } = useUploadImage();
@@ -76,6 +69,8 @@ export function ServiceForm({ initialData, categories, isEditMode }: ServiceForm
         images: initialData.images,
       });
       setImages(initialData.images);
+      setBasePriceInput(formatNumber(initialData.basePrice));
+      setVirtualPriceInput(formatNumber(initialData.virtualPrice));
     }
   }, [isEditMode, initialData, form]);
 
@@ -120,12 +115,61 @@ export function ServiceForm({ initialData, categories, isEditMode }: ServiceForm
 
   const isPending = isCreating || isUpdating;
 
-  // Custom price input handler
-  const handlePriceChange = (value: string, onChange: (value: number) => void) => {
+  // Helper function to format number for display (with thousand separators)
+  const formatNumber = (value: number | string): string => {
+    const numericValue = typeof value === 'string' ? parseFloat(value) || 0 : value;
+    return numericValue.toLocaleString('vi-VN');
+  };
+
+  // Helper function to format Vietnamese currency
+  const formatVietnameseCurrency = (amount: number): string => {
+    return formatCurrency(amount, Currency.VND);
+  };
+
+  // Helper function to format duration
+  const formatDuration = (minutes: number): string => {
+    if (minutes < 60) {
+      return `${minutes} phút`;
+    }
+
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+
+    if (remainingMinutes === 0) {
+      return `${hours} giờ`;
+    }
+
+    return `${hours}:${remainingMinutes.toString().padStart(2, '0')} giờ`;
+  };
+
+  // Helper function to handle price input
+  const handlePriceInput = (
+    inputType: 'basePrice' | 'virtualPrice',
+    value: string,
+    onChange: (value: number) => void
+  ) => {
     // Remove all non-numeric characters
     const numericValue = value.replace(/[^0-9]/g, '');
-    // Convert to number
     const numberValue = numericValue ? parseInt(numericValue) : 0;
+
+    // Update form value
+    onChange(numberValue);
+
+    // Update display value
+    if (inputType === 'basePrice') {
+      setBasePriceInput(formatNumber(numberValue));
+    } else {
+      setVirtualPriceInput(formatNumber(numberValue));
+    }
+  };
+
+  // Helper function to handle duration input
+  const handleDurationInput = (value: string, onChange: (value: number) => void) => {
+    // Remove all non-numeric characters
+    const numericValue = value.replace(/[^0-9]/g, '');
+    const numberValue = numericValue ? parseInt(numericValue) : 0;
+
+    // Update form value
     onChange(numberValue);
   };
 
@@ -164,28 +208,43 @@ export function ServiceForm({ initialData, categories, isEditMode }: ServiceForm
           )}
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
           <FormField
             control={form.control}
             name="basePrice"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Giá cơ bản</FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <Input
-                      type="text"
-                      placeholder="0"
-                      className="pr-20"
-                      value={formatCurrency(field.value, Currency.VND)}
-                      onChange={e => handlePriceChange(e.target.value, field.onChange)}
-                    />
-                    <div className="absolute inset-y-0 right-3 flex items-center text-sm text-muted-foreground">
-                      VND
-                    </div>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="basePrice" className="text-sm font-medium">
+                      Giá cơ bản
+                    </Label>
+                    <span className="text-destructive text-sm">*</span>
                   </div>
-                </FormControl>
-                <FormDescription>Giá cơ bản cho dịch vụ này</FormDescription>
+                  <FormControl>
+                    <div className="relative">
+                      <Input
+                        id="basePrice"
+                        value={formatNumber(field.value || 0)}
+                        onChange={e =>
+                          handlePriceInput('basePrice', e.target.value, field.onChange)
+                        }
+                        className="h-11 pl-12"
+                        placeholder="Nhập giá cơ bản"
+                      />
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">
+                        ₫
+                      </span>
+                    </div>
+                  </FormControl>
+                  <p className="text-xs text-muted-foreground">
+                    Giá cơ bản của dịch vụ: {formatVietnameseCurrency(field.value || 0)}
+                  </p>
+                  {/* Display the controlled input value for debugging/usage */}
+                  <p className="text-xs text-muted-foreground">
+                    (Giá cơ bản nhập: {basePriceInput})
+                  </p>
+                </div>
                 <FormMessage />
               </FormItem>
             )}
@@ -196,22 +255,37 @@ export function ServiceForm({ initialData, categories, isEditMode }: ServiceForm
             name="virtualPrice"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Giá ảo</FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <Input
-                      type="text"
-                      placeholder="0"
-                      className="pr-20"
-                      value={formatCurrency(field.value, Currency.VND)}
-                      onChange={e => handlePriceChange(e.target.value, field.onChange)}
-                    />
-                    <div className="absolute inset-y-0 right-3 flex items-center text-sm text-muted-foreground">
-                      VND
-                    </div>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="virtualPrice" className="text-sm font-medium">
+                      Giá ảo
+                    </Label>
+                    <span className="text-destructive text-sm">*</span>
                   </div>
-                </FormControl>
-                <FormDescription>Giá ảo cho dịch vụ này</FormDescription>
+                  <FormControl>
+                    <div className="relative">
+                      <Input
+                        id="virtualPrice"
+                        value={formatNumber(field.value || 0)}
+                        onChange={e =>
+                          handlePriceInput('virtualPrice', e.target.value, field.onChange)
+                        }
+                        className="h-11 pl-12"
+                        placeholder="Nhập giá ảo"
+                      />
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">
+                        ₫
+                      </span>
+                    </div>
+                  </FormControl>
+                  <p className="text-xs text-muted-foreground">
+                    Giá ảo của dịch vụ: {formatVietnameseCurrency(field.value || 0)}
+                  </p>
+                  {/* Display the controlled input value for debugging/usage */}
+                  <p className="text-xs text-muted-foreground">
+                    (Giá ảo nhập: {virtualPriceInput})
+                  </p>
+                </div>
                 <FormMessage />
               </FormItem>
             )}
@@ -221,19 +295,35 @@ export function ServiceForm({ initialData, categories, isEditMode }: ServiceForm
         <FormField
           control={form.control}
           name="durationMinutes"
-          render={({ field: { onChange, ...field } }) => (
+          render={({ field: { onChange, value, ...field } }) => (
             <FormItem>
-              <FormLabel>Thời gian (phút)</FormLabel>
-              <FormControl>
-                <Input
-                  type="number"
-                  placeholder="30"
-                  min={1}
-                  onChange={e => onChange(Number(e.target.value))}
-                  {...field}
-                />
-              </FormControl>
-              <FormDescription>Thời gian thực hiện dịch vụ</FormDescription>
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="durationMinutes" className="text-sm font-medium">
+                    Thời gian thực hiện
+                  </Label>
+                  <span className="text-destructive text-sm">*</span>
+                </div>
+                <FormControl>
+                  <div className="relative">
+                    <Input
+                      id="durationMinutes"
+                      type="text"
+                      value={formatNumber(value || 0)}
+                      onChange={e => handleDurationInput(e.target.value, onChange)}
+                      className="h-11 pl-12"
+                      placeholder="Nhập thời gian"
+                      {...field}
+                    />
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">
+                      <ClockIcon className="w-4 h-4" />
+                    </span>
+                  </div>
+                </FormControl>
+                <p className="text-xs text-muted-foreground">
+                  Thời gian thực hiện dịch vụ: {formatDuration(value || 0)}
+                </p>
+              </div>
               <FormMessage />
             </FormItem>
           )}

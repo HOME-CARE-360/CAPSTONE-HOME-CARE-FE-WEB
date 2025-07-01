@@ -8,16 +8,26 @@ export interface GetAllBookingsResponse<T> {
   totalPages: number;
 }
 
+export interface CreateBookingRequest {
+  providerId: number;
+  note?: string;
+  preferredDate: string;
+  location: string;
+  categoryId: number;
+  phoneNumber: string;
+  paymentMethod: 'BANK_TRANSFER' | 'CREDIT_CARD';
+}
+
 export const serviceBooking = {
-  // createBooking: async (data: any) => {
-  //     try {
-  //         const response = await apiService.post(`/bookings/create-service-request`, data);
-  //         return response.data;
-  //       } catch (error) {
-  //         console.error('Create Booking Service Error:', error);
-  //         throw error;
-  //       }
-  // }
+  createBooking: async (data: CreateBookingRequest) => {
+    try {
+      const response = await apiService.post(`/bookings/create-service-request`, data);
+      return response.data;
+    } catch (error) {
+      console.error('Create Booking Service Error:', error);
+      throw error;
+    }
+  },
 
   getAllBookings: async () => {
     try {

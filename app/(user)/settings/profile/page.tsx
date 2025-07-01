@@ -16,14 +16,10 @@ import { cn } from '@/lib/utils';
 import { getNameFallback } from '@/utils/helper';
 
 export default function ProfilePage() {
-  const { data: profile, error } = useUserProfile();
-  console.log('Profile: ', profile);
+  const { data: profile } = useUserProfile();
   const [dateOfBirth, setDateOfBirth] = useState(
     profile?.data?.customer.dateOfBirth ? new Date(profile?.data.customer.dateOfBirth) : undefined
   );
-
-  console.log('error: ', error);
-  console.log('Profile: ', profile);
 
   const formatDate = (date: Date | undefined) => {
     if (!date) return 'Chọn ngày sinh';

@@ -17,8 +17,9 @@ export const useStaffTableColumns = ({
 }: StaffTableColumnsProps = {}): ColumnDef<Staff>[] => {
   return [
     {
-      accessorKey: 'user.name',
+      id: 'name',
       header: 'Tên',
+      accessorFn: row => row.user.name,
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
           {row.original.user.avatar && (
@@ -31,6 +32,8 @@ export const useStaffTableColumns = ({
           <span>{row.original.user.name}</span>
         </div>
       ),
+      enableHiding: true,
+      filterFn: 'includesString',
     },
     {
       accessorKey: 'user.email',

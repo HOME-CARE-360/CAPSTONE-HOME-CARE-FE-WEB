@@ -162,7 +162,6 @@ export const fetchAuth = {
   // Google login
   googleLogin: async (): Promise<GoogleLoginResponse> => {
     const response = await apiService.get<GoogleLoginResponse>('/auth/google-link');
-    console.log('response', response);
     return response.data;
   },
 

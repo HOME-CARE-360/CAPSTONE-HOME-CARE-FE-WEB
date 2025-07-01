@@ -40,6 +40,7 @@ export default function ChangePasswordPage() {
     },
   });
 
+  // TODO: Implement change password API call
   const onSubmit = (data: FormData) => {
     console.log('Submitted:', data);
     // Gọi API đổi mật khẩu ở đây

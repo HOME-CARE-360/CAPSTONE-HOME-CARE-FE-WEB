@@ -156,7 +156,6 @@ export function DraggableImageUpload({
                   <ImageUpload
                     value={[]}
                     onChange={urls => {
-                      // The ImageUpload will handle multiple files, but we only want the new ones
                       const newUrls = urls.filter(url => !value.includes(url));
                       if (newUrls.length > 0) {
                         onChange([...value, ...newUrls.slice(0, maxImages - value.length)]);
@@ -167,9 +166,9 @@ export function DraggableImageUpload({
                   >
                     <div className="flex flex-col items-center justify-center h-full gap-2 text-muted-foreground">
                       <ImagePlus className="w-8 h-8" />
-                      <span className="text-sm font-medium">Upload Image</span>
+                      <span className="text-sm font-medium">Tải lên ảnh</span>
                       <span className="text-xs">
-                        {value.length} of {maxImages} images
+                        {value.length} trên {maxImages} ảnh
                       </span>
                     </div>
                   </ImageUpload>

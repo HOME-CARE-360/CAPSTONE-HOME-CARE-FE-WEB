@@ -15,8 +15,6 @@ interface ProviderInfoProps {
 
 export default function ProviderInfo({ providerProfile }: ProviderInfoProps) {
   const { user, provider } = providerProfile;
-  console.log('provider::: ', provider);
-  console.log('providerProfile:: ', providerProfile);
 
   return (
     <Card className="border border-gray-200 shadow-sm bg-white">

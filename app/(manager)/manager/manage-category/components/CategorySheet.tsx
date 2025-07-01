@@ -2,19 +2,17 @@
 
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetFooter,
+} from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { useCategories } from '@/hooks/useCategory';
 import {
   Select,
@@ -25,62 +23,52 @@ import {
 } from '@/components/ui/select';
 import React from 'react';
 import { Category } from '@/lib/api/services/fetchCategory';
+import { Loader2 } from 'lucide-react';
+import { categoryCreateSchema, type CategoryCreateType } from '@/schemaValidations/category.schema';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
-const categorySchema = z.object({
-  name: z.string().min(1, 'Tên danh mục không được để trống'),
-  logo: z.string().optional(),
-  parentCategoryId: z.number().optional(),
-  description: z.string().optional(),
-});
-
-export type CategoryFormData = z.infer<typeof categorySchema>;
-
-interface CategoryCreateModalProps {
+interface CategorySheetProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (categoryData: CategoryFormData) => void;
+  onSubmit: (categoryData: CategoryCreateType) => void;
   initialData?: Category;
   mode?: 'create' | 'edit';
 }
 
-export default function CategoryCreateModal({
+export default function CategorySheet({
   isOpen,
   onClose,
   onSubmit,
   initialData,
   mode = 'create',
-}: CategoryCreateModalProps) {
-  const {
-    data: categoriesData,
-    // isLoading: isLoadingCategories,
-    // error: errorCategories,
-  } = useCategories();
+}: CategorySheetProps) {
+  const { data: categoriesData, isLoading: isLoadingCategories } = useCategories();
 
   const categories = categoriesData?.categories || [];
-
-  console.log('categories:: ', categories);
 
   const {
     control,
     handleSubmit,
+    watch,
     reset,
-    formState: { errors },
-  } = useForm<CategoryFormData>({
-    resolver: zodResolver(categorySchema),
+    formState: { errors, isSubmitting },
+  } = useForm<CategoryCreateType>({
+    resolver: zodResolver(categoryCreateSchema),
     defaultValues: initialData
       ? {
           name: initialData.name,
           logo: initialData.logo || '',
           parentCategoryId: initialData.parentCategory?.id,
-          description: '',
         }
       : {
           name: '',
           logo: '',
           parentCategoryId: undefined,
-          description: '',
         },
   });
+
+  const watchLogo = watch('logo');
+  const watchName = watch('name');
 
   React.useEffect(() => {
     if (initialData) {
@@ -88,38 +76,43 @@ export default function CategoryCreateModal({
         name: initialData.name,
         logo: initialData.logo || '',
         parentCategoryId: initialData.parentCategory?.id,
-        description: '',
       });
     } else {
       reset({
         name: '',
         logo: '',
         parentCategoryId: undefined,
-        description: '',
       });
     }
   }, [initialData, reset]);
 
-  const onSubmitForm = (data: CategoryFormData) => {
-    onSubmit(data);
+  const onSubmitForm = (data: CategoryCreateType) => {
+    // Only submit the logo if it's a valid URL
+    const formData = {
+      ...data,
+      logo: data.logo && data.logo.startsWith('http') ? data.logo : '',
+    };
+    onSubmit(formData);
     reset();
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={open => !open && onClose()}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>{mode === 'create' ? 'Tạo danh mục mới' : 'Chỉnh sửa danh mục'}</DialogTitle>
-          <DialogDescription>
+    <Sheet open={isOpen} onOpenChange={open => !open && onClose()}>
+      <SheetContent className="sm:max-w-2xl">
+        <SheetHeader>
+          <SheetTitle>{mode === 'create' ? 'Tạo danh mục mới' : 'Chỉnh sửa danh mục'}</SheetTitle>
+          <SheetDescription>
             {mode === 'create'
               ? 'Nhập thông tin để tạo danh mục mới.'
               : 'Chỉnh sửa thông tin danh mục.'}
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmitForm)} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="name">Tên danh mục *</Label>
+          </SheetDescription>
+        </SheetHeader>
+        <form onSubmit={handleSubmit(onSubmitForm)} className="space-y-6 py-6">
+          <div className="grid grid-cols-1 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="name">
+                Tên danh mục <span className="text-destructive">*</span>
+              </Label>
               <Controller
                 name="name"
                 control={control}
@@ -127,28 +120,41 @@ export default function CategoryCreateModal({
                   <Input {...field} id="name" placeholder="Nhập tên danh mục" />
                 )}
               />
-              {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>}
+              {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
             </div>
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="logo">Logo URL</Label>
-              <Controller
-                name="logo"
-                control={control}
-                render={({ field }) => (
-                  <Input {...field} id="logo" placeholder="https://example.com/logo.png" />
-                )}
-              />
-              {errors.logo && <p className="text-red-500 text-sm mt-1">{errors.logo.message}</p>}
+              <div className="flex items-center gap-4">
+                <Avatar className="h-10 w-10">
+                  {watchLogo && watchLogo.startsWith('http') && (
+                    <AvatarImage src={watchLogo} alt={watchName} />
+                  )}
+                  <AvatarFallback className="bg-primary/10">
+                    {watchName?.substring(0, 2).toUpperCase() || 'NA'}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                  <Controller
+                    name="logo"
+                    control={control}
+                    render={({ field }) => (
+                      <Input {...field} id="logo" placeholder="https://example.com/logo.png" />
+                    )}
+                  />
+                  {errors.logo && <p className="text-sm text-destructive">{errors.logo.message}</p>}
+                </div>
+              </div>
             </div>
           </div>
 
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="parentCategoryId">Danh mục cha</Label>
             <Controller
               name="parentCategoryId"
               control={control}
               render={({ field }) => (
                 <Select
+                  disabled={isLoadingCategories}
                   onValueChange={value =>
                     field.onChange(value === 'none' ? undefined : parseInt(value))
                   }
@@ -171,37 +177,27 @@ export default function CategoryCreateModal({
               )}
             />
             {errors.parentCategoryId && (
-              <p className="text-red-500 text-sm mt-1">{errors.parentCategoryId.message}</p>
+              <p className="text-sm text-destructive">{errors.parentCategoryId.message}</p>
             )}
           </div>
 
-          <div>
-            <Label htmlFor="description">Mô tả</Label>
-            <Controller
-              name="description"
-              control={control}
-              render={({ field }) => (
-                <Textarea
-                  {...field}
-                  id="description"
-                  placeholder="Mô tả chi tiết về danh mục (tùy chọn)"
-                  rows={3}
-                />
-              )}
-            />
-            {errors.description && (
-              <p className="text-red-500 text-sm mt-1">{errors.description.message}</p>
-            )}
-          </div>
-
-          <DialogFooter className="flex justify-end gap-4 mt-6">
+          <SheetFooter>
             <Button type="button" variant="outline" onClick={onClose}>
               Hủy
             </Button>
-            <Button type="submit">{mode === 'create' ? 'Tạo danh mục' : 'Cập nhật'}</Button>
-          </DialogFooter>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {mode === 'create' ? 'Đang tạo...' : 'Đang cập nhật...'}
+                </>
+              ) : (
+                <>{mode === 'create' ? 'Tạo danh mục' : 'Cập nhật'}</>
+              )}
+            </Button>
+          </SheetFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }

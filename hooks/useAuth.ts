@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/lib/store/authStore';
 import { useRouter } from 'next/navigation';
 import { deleteCookie } from 'cookies-next';
@@ -254,8 +254,25 @@ export function useAuth() {
 }
 
 export function useGoogleLogin() {
-  return useQuery({
-    queryKey: ['google-login'],
-    queryFn: () => fetchAuth.googleLogin(),
-  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const loginWithGoogle = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const { url } = await fetchAuth.googleLogin();
+      window.location.href = url;
+    } catch (err) {
+      setError('Không thể lấy liên kết Google.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return {
+    loginWithGoogle,
+    isLoading,
+    error,
+  };
 }

@@ -178,7 +178,7 @@ export const fetchAuth = {
     }
   },
 
-  //
+  // Change Password
 
   //   // Reset password request
   //   requestPasswordReset: async (email: string): Promise<AuthResponse> => {

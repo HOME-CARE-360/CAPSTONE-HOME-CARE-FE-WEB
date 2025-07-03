@@ -2,11 +2,13 @@ import {
   CustomerType,
   UpdateUserProfileRequestType,
   UpdateUserProfileResponseType,
+  ChangePasswordRequestType,
   UserType,
 } from '@/schemaValidations/user.schema';
 import apiService from '../core';
 import { ValidationError } from './fetchAuth';
 import { ProviderType } from '@/schemaValidations/privder.schema';
+
 export interface User {
   userName: string;
   fullName: string;
@@ -124,6 +126,12 @@ export const userService = {
     const response = await apiService.get<GetProviderResponse>(
       `/publics/get-service-provider-information/${providerId}`
     );
+    return response.data;
+  },
+
+  // Change Passwod
+  changePassword: async (data: ChangePasswordRequestType) => {
+    const response = await apiService.patch<{ message: string }>('/publics/change-password', data);
     return response.data;
   },
 };

@@ -45,7 +45,19 @@ export const updateUserProfileResponseSchema = z.object({
   statusCode: z.number(),
 });
 
+export const changPasswordRequestSchema = z
+  .object({
+    currentPassword: z.string().min(6, 'Ít nhất 6 ký tự'),
+    newPassword: z.string().min(6, 'Ít nhất 6 ký tự'),
+    confirmNewPassword: z.string().min(6, 'Ít nhất 6 ký tự'),
+  })
+  .refine(data => data.newPassword === data.confirmNewPassword, {
+    message: 'Mật khẩu mới không khớp',
+    path: ['confirmNewPassword'],
+  });
+
 export type UserType = z.infer<typeof userSchema>;
 export type CustomerType = z.infer<typeof customerSchema>;
 export type UpdateUserProfileRequestType = z.infer<typeof updateUserProfileRequestSchema>;
 export type UpdateUserProfileResponseType = z.infer<typeof updateUserProfileResponseSchema>;
+export type ChangePasswordRequestType = z.infer<typeof changPasswordRequestSchema>;

@@ -187,7 +187,7 @@ export function LoginForm() {
       <CardFooter className="flex flex-col gap-4 pt-2">
         <p className="px-6 text-center text-sm text-muted-foreground">
           Chưa có tài khoản?{' '}
-          <Link href="/register/email" className="underline underline-offset-4 hover:text-primary">
+          <Link href="/register" className="underline underline-offset-4 hover:text-primary">
             Tạo tài khoản
           </Link>
         </p>

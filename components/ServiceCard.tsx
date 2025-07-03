@@ -125,18 +125,19 @@ export function ServiceCard({ service, priority = false, onHover, size = 'md' }:
 
           {/* Top Badges */}
           <div className="absolute top-4 left-4 flex gap-2">
-            {service.categories.slice(0, 2).map(category => (
-              <Badge
-                key={category.name}
-                variant="outline"
-                className={cn(
-                  'bg-white/90 backdrop-blur-sm hover:bg-white/90 z-10',
-                  size === 'sm' && 'text-[10px] px-2 py-0.5'
-                )}
-              >
-                {category.name}
-              </Badge>
-            ))}
+            {Array.isArray(service.categories) &&
+              service.categories.slice(0, 2).map(category => (
+                <Badge
+                  key={category.name}
+                  variant="outline"
+                  className={cn(
+                    'bg-white/90 backdrop-blur-sm hover:bg-white/90 z-10',
+                    size === 'sm' && 'text-[10px] px-2 py-0.5'
+                  )}
+                >
+                  {category.name}
+                </Badge>
+              ))}
             {isDiscounted && (
               <Badge
                 variant="outline"
@@ -229,8 +230,15 @@ export function ServiceCard({ service, priority = false, onHover, size = 'md' }:
               <Clock className={cn('size-4 mr-1', size === 'sm' && 'size-3')} />
               <span>{service.durationMinutes} phút</span>
             </div>
-            <div className={cn('text-sm text-muted-foreground', size === 'sm' && 'text-xs')}>
-              {service.categories.length > 0 ? service.categories[0].name : 'Dịch vụ'}
+            <div
+              className={cn('text-sm text-muted-foreground', size === 'sm' && 'text-xs')}
+              aria-label="Service category"
+            >
+              {Array.isArray(service.categories) &&
+              service.categories.length > 0 &&
+              typeof service.categories[0]?.name === 'string'
+                ? service.categories[0].name
+                : 'Dịch vụ'}
             </div>
           </div>
 

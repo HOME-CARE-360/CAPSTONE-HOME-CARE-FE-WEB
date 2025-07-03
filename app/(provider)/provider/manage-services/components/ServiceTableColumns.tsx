@@ -3,7 +3,7 @@ import { ServiceManager } from '@/lib/api/services/fetchServiceManager';
 import { Currency, formatCurrency } from '@/utils/numbers/formatCurrency';
 import { Button } from '@/components/ui/button';
 import { Edit } from 'lucide-react';
-import Link from 'next/link';
+import { ServiceSheet } from './ServiceSheet';
 
 export function useServiceTableColumns() {
   const columns: ColumnDef<ServiceManager>[] = [
@@ -61,14 +61,14 @@ export function useServiceTableColumns() {
       accessorKey: 'categories',
       header: 'Loại dịch vụ',
       cell: ({ row }) => {
-        const categories = row.getValue('categories') as Array<{ id: number; name: string }>;
-        return <div>{categories?.map(cat => cat.name).join(', ') || '--'}</div>;
+        const category = row.getValue('categories') as { id: number; name: string };
+        return <div>{category?.name || '--'}</div>;
       },
       enableHiding: true,
       filterFn: (row, id, value) => {
         if (value === 'all') return true;
-        const categories = row.getValue(id) as Array<{ id: number; name: string }>;
-        return categories?.some(cat => cat.name.includes(value)) || false;
+        const category = row.getValue(id) as { id: number; name: string };
+        return category?.name?.includes(value) || false;
       },
     },
     {
@@ -78,11 +78,14 @@ export function useServiceTableColumns() {
         const service = row.original;
         return (
           <div className="text-right">
-            <Button variant="ghost" size="icon" asChild>
-              <Link href={`/provider/manage-services/action?id=${service.id}`}>
-                <Edit className="h-4 w-4" />
-              </Link>
-            </Button>
+            <ServiceSheet
+              serviceId={service.id}
+              trigger={
+                <Button variant="ghost" size="icon">
+                  <Edit className="h-4 w-4" />
+                </Button>
+              }
+            />
           </div>
         );
       },

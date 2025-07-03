@@ -1,10 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/lib/store/authStore';
-import userService, {
-  User,
-  UserUpdateResponse,
-  GetUserInformationResponse,
-} from '@/lib/api/services/fetchUser';
+import userService, { GetUserInformationResponse } from '@/lib/api/services/fetchUser';
+import {
+  UpdateUserProfileRequestType,
+  UpdateUserProfileResponseType,
+} from '@/schemaValidations/user.schema';
 
 /**
  * Hook to fetch current user's profile
@@ -30,9 +30,9 @@ export function useUpdateProfile() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (profileData: Partial<User> | FormData) =>
+    mutationFn: (profileData: UpdateUserProfileRequestType) =>
       userService.updateUserProfile(profileData),
-    onSuccess: (data: UserUpdateResponse) => {
+    onSuccess: (data: UpdateUserProfileResponseType) => {
       if (data.message) {
         queryClient.invalidateQueries({ queryKey: ['users', 'profile'] });
       }

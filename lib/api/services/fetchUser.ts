@@ -1,4 +1,9 @@
-import { CustomerType, UserType } from '@/schemaValidations/user.schema';
+import {
+  CustomerType,
+  UpdateUserProfileRequestType,
+  UpdateUserProfileResponseType,
+  UserType,
+} from '@/schemaValidations/user.schema';
 import apiService from '../core';
 import { ValidationError } from './fetchAuth';
 import { ProviderType } from '@/schemaValidations/privder.schema';
@@ -92,11 +97,13 @@ export const userService = {
   },
 
   // Update current user profile
-  updateUserProfile: async (profileData: Partial<User> | FormData): Promise<UserUpdateResponse> => {
+  updateUserProfile: async (
+    profileData: UpdateUserProfileRequestType
+  ): Promise<UpdateUserProfileResponseType> => {
     try {
       // The API service already handles FormData appropriately in its interceptors
-      const response = await apiService.put<UserUpdateResponse, Partial<User> | FormData>(
-        '/users/update-profile',
+      const response = await apiService.patch<UpdateUserProfileResponseType>(
+        '/users/update-customer-information',
         profileData
       );
       return response.data;

@@ -31,20 +31,20 @@ export default function RegisterPage() {
         <div className="relative z-20 mt-auto">
           <blockquote className="space-y-2">
             <p className="text-lg">
-              &ldquo;Đăng ký tài khoản để trở thành một người bán trên Marketplace&rdquo;
+              &ldquo;Đăng ký tài khoản để trở thành một phần của Marketplace&rdquo;
             </p>
-            <footer className="text-sm">Nguyễn Văn A</footer>
+            <footer className="text-sm">Marketplace Team</footer>
           </blockquote>
         </div>
       </div>
       <div className="lg:p-8">
-        <Card className="mx-auto w-full max-w-[450px]">
+        <Card className="mx-auto w-full max-w-[500px]">
           <CardHeader className="space-y-2">
             <CardTitle className="text-2xl font-semibold tracking-tight text-center">
               Đăng ký tài khoản
             </CardTitle>
             <CardDescription className="text-center">
-              Đăng ký tài khoản để trở thành một người bán trên Marketplace
+              Nhập thông tin để tạo tài khoản mới
             </CardDescription>
           </CardHeader>
           <CardContent>

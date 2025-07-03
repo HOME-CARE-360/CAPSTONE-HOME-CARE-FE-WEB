@@ -31,9 +31,10 @@ interface ServiceFormProps {
   initialData?: ServiceManager;
   categories: Category[];
   isEditMode: boolean;
+  onSuccess?: () => void;
 }
 
-export function ServiceForm({ initialData, categories, isEditMode }: ServiceFormProps) {
+export function ServiceForm({ initialData, categories, isEditMode, onSuccess }: ServiceFormProps) {
   const [images, setImages] = useState<string[]>(initialData?.images || []);
   const [basePriceInput, setBasePriceInput] = useState('');
   const [virtualPriceInput, setVirtualPriceInput] = useState('');
@@ -50,7 +51,7 @@ export function ServiceForm({ initialData, categories, isEditMode }: ServiceForm
       basePrice: 0,
       virtualPrice: 0,
       durationMinutes: 30,
-      categories: [],
+      categoryId: 0,
       images: [],
     },
   });
@@ -63,9 +64,7 @@ export function ServiceForm({ initialData, categories, isEditMode }: ServiceForm
         basePrice: initialData.basePrice,
         virtualPrice: initialData.virtualPrice,
         durationMinutes: Number(initialData.durationMinutes),
-        categories: Array.isArray(initialData.categories)
-          ? initialData.categories.map((c: Category) => c.id)
-          : [],
+        categoryId: initialData.categories?.id || 0,
         images: initialData.images,
       });
       setImages(initialData.images);
@@ -81,16 +80,33 @@ export function ServiceForm({ initialData, categories, isEditMode }: ServiceForm
       basePrice: Number(data.basePrice),
       virtualPrice: Number(data.virtualPrice),
       durationMinutes: Number(data.durationMinutes),
-      categories: data.categories,
+      categoryId: data.categoryId,
     };
 
     if (isEditMode && initialData?.id) {
-      updateService({
-        id: initialData.id,
-        ...formData,
-      });
+      updateService(
+        {
+          id: initialData.id,
+          ...formData,
+        },
+        {
+          onSuccess: () => {
+            onSuccess?.();
+          },
+        }
+      );
     } else {
-      createService(formData);
+      createService(
+        {
+          ...formData,
+          serviceItemsId: [],
+        },
+        {
+          onSuccess: () => {
+            onSuccess?.();
+          },
+        }
+      );
     }
   };
 
@@ -331,22 +347,21 @@ export function ServiceForm({ initialData, categories, isEditMode }: ServiceForm
 
         <FormField
           control={form.control}
-          name="categories"
+          name="categoryId"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Danh mục</FormLabel>
               <FormControl>
                 <AutocompleteSelect
-                  value={field.value}
+                  value={field.value ? [field.value] : []}
                   onChange={(values: number[]) => {
-                    const numberValues = values.map(Number);
-                    field.onChange(numberValues);
+                    field.onChange(values[0] || 0);
                   }}
                   options={categories}
                   placeholder="Chọn danh mục..."
                 />
               </FormControl>
-              <FormDescription>Tìm kiếm và chọn nhiều danh mục cho dịch vụ của bạn</FormDescription>
+              <FormDescription>Chọn một danh mục cho dịch vụ của bạn</FormDescription>
               <FormMessage />
             </FormItem>
           )}

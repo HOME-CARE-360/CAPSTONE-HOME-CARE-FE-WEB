@@ -13,6 +13,7 @@ export const emailSchema = z.object({
 
 export const customerSchema = z
   .object({
+    email: z.string().email({ message: 'Vui lòng nhập địa chỉ email hợp lệ' }),
     name: z.string().min(2, 'Name must be at least 2 characters'),
     phone: z.string().min(10, 'Phone number must be at least 10 digits'),
     password: z.string().min(6, 'Password must be at least 6 characters'),
@@ -32,6 +33,7 @@ export const otpSchema = z.object({
 
 export const providerSchema = z
   .object({
+    email: z.string().email({ message: 'Vui lòng nhập địa chỉ email hợp lệ' }),
     name: z.string().min(2, 'Business name must be at least 2 characters'),
     phone: z.string().min(10, 'Phone number must be at least 10 digits'),
     password: z.string().min(6, 'Password must be at least 6 characters'),

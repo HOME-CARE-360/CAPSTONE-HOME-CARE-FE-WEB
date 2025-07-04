@@ -11,6 +11,7 @@ import {
   ServiceItemSearchParams,
   ServiceItemUpdateRequest,
   ServiceItemDetailResponse,
+  ServiceItemResponse,
 } from '@/lib/api/services/fetchServiceManager';
 import { toast } from 'sonner';
 
@@ -73,7 +74,7 @@ export function useCreateService() {
 
 // Service Item Management Hooks
 export function useServiceItems(params: ServiceItemSearchParams) {
-  return useQuery({
+  return useQuery<ServiceItemResponse>({
     queryKey: ['service-items', 'list', params],
     queryFn: () => serviceManagerService.getListServiceItems(params),
   });

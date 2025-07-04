@@ -23,13 +23,16 @@ export interface ServiceItem {
   name: string;
   unitPrice: number;
   warrantyPeriod: number;
+  createdAt: string;
+  deletedAt: string;
+  updatedAt: string;
   brand: string;
   description: string;
   isActive: boolean;
   model: string;
   stockQuantity: number;
-  createdAt: string;
-  updatedAt: string;
+  unit: string;
+  providerId: number;
 }
 
 export interface ServiceManagerSearchParams {
@@ -60,11 +63,13 @@ export interface ServiceManagerResponse {
 }
 
 export interface ServiceItemResponse {
-  data: ServiceItem[];
-  totalItems: number;
-  page: number;
-  limit: number;
-  totalPages: number;
+  data: {
+    data: ServiceItem[];
+    totalItems: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
   message: string;
 }
 

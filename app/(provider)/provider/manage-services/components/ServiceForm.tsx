@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { serviceSchema, ServiceFormValues } from '@/schemaValidations/service.schema';
-import { useCreateService, useUpdateService } from '@/hooks/useServiceManager';
+import { useCreateService, useUpdateService, useServiceItems } from '@/hooks/useServiceManager';
 import { useUploadImage } from '@/hooks/useImage';
 import { formatCurrency, Currency } from '@/utils/numbers/formatCurrency';
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { CardFooter } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { AutocompleteSelect } from './AutocompleteSelect';
 import { DraggableImageUpload } from './DraggableImageUpload';
 import { Category } from '@/lib/api/services/fetchCategory';
@@ -38,10 +45,22 @@ export function ServiceForm({ initialData, categories, isEditMode, onSuccess }: 
   const [images, setImages] = useState<string[]>(initialData?.images || []);
   const [basePriceInput, setBasePriceInput] = useState('');
   const [virtualPriceInput, setVirtualPriceInput] = useState('');
+  const [selectedServiceItems, setSelectedServiceItems] = useState<number[]>([]);
 
   const { mutate: createService, isPending: isCreating } = useCreateService();
   const { mutate: updateService, isPending: isUpdating } = useUpdateService();
   const { mutate: uploadImage } = useUploadImage();
+
+  // Fetch service items for selection
+  const { data: serviceItemsData, isFetching: isServiceItemsFetching } = useServiceItems({
+    sortBy: 'createdAt',
+    orderBy: 'desc',
+    name: '',
+    brand: '',
+    isActive: true, // Only show active service items
+    limit: 100, // Get more items for selection
+    page: 1,
+  });
 
   const form = useForm<ServiceFormValues>({
     resolver: zodResolver(serviceSchema),
@@ -70,6 +89,8 @@ export function ServiceForm({ initialData, categories, isEditMode, onSuccess }: 
       setImages(initialData.images);
       setBasePriceInput(formatNumber(initialData.basePrice));
       setVirtualPriceInput(formatNumber(initialData.virtualPrice));
+      // Set selected service items if available (you might need to add this field to ServiceManager interface)
+      // setSelectedServiceItems(initialData.serviceItemsId || []);
     }
   }, [isEditMode, initialData, form]);
 
@@ -88,6 +109,7 @@ export function ServiceForm({ initialData, categories, isEditMode, onSuccess }: 
         {
           id: initialData.id,
           ...formData,
+          serviceItemsId: selectedServiceItems,
         },
         {
           onSuccess: () => {
@@ -99,7 +121,7 @@ export function ServiceForm({ initialData, categories, isEditMode, onSuccess }: 
       createService(
         {
           ...formData,
-          serviceItemsId: [],
+          serviceItemsId: selectedServiceItems,
         },
         {
           onSuccess: () => {
@@ -188,6 +210,13 @@ export function ServiceForm({ initialData, categories, isEditMode, onSuccess }: 
     // Update form value
     onChange(numberValue);
   };
+
+  // Get service items for autocomplete
+  const serviceItems = serviceItemsData?.data?.data || [];
+  const serviceItemOptions = serviceItems.map(item => ({
+    id: item.id,
+    name: `${item.name} - ${item.brand} (${formatVietnameseCurrency(item.unitPrice)})`,
+  }));
 
   return (
     <Form {...form}>
@@ -345,28 +374,51 @@ export function ServiceForm({ initialData, categories, isEditMode, onSuccess }: 
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="categoryId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Danh mục</FormLabel>
-              <FormControl>
-                <AutocompleteSelect
-                  value={field.value ? [field.value] : []}
-                  onChange={(values: number[]) => {
-                    field.onChange(values[0] || 0);
-                  }}
-                  options={categories}
-                  placeholder="Chọn danh mục..."
-                />
-              </FormControl>
-              <FormDescription>Chọn một danh mục cho dịch vụ của bạn</FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+          <FormField
+            control={form.control}
+            name="categoryId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Danh mục</FormLabel>
+                <Select
+                  onValueChange={value => field.onChange(Number(value))}
+                  value={field.value ? String(field.value) : ''}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Chọn danh mục..." />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {categories.map(category => (
+                      <SelectItem key={category.id} value={String(category.id)}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormDescription>Chọn một danh mục cho dịch vụ của bạn</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
+          <FormItem>
+            <FormLabel>Vật tư thiết bị</FormLabel>
+            <FormControl>
+              <AutocompleteSelect
+                value={selectedServiceItems}
+                onChange={setSelectedServiceItems}
+                options={serviceItemOptions}
+                placeholder={isServiceItemsFetching ? 'Đang tải...' : 'Chọn vật tư thiết bị...'}
+              />
+            </FormControl>
+            <FormDescription>
+              Chọn các vật tư thiết bị sẽ được sử dụng trong dịch vụ này
+            </FormDescription>
+          </FormItem>
+        </div>
         <FormItem>
           <FormLabel>Ảnh dịch vụ</FormLabel>
           <FormControl>

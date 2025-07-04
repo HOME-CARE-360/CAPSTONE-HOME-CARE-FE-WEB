@@ -41,7 +41,7 @@ export default function ServiceDetailsSection({ service }: ServiceDetailsSection
         {/* Service Header */}
         <div className="space-y-6">
           <div className="flex flex-wrap items-center gap-3 mb-6">
-            {service.categories.map((category, index) => (
+            {(service.categories || []).map((category, index) => (
               <Badge
                 key={index}
                 variant="secondary"
@@ -142,36 +142,38 @@ export default function ServiceDetailsSection({ service }: ServiceDetailsSection
         </Card>
 
         {/* Categories */}
-        <Card className="border border-gray-200 shadow-sm bg-white">
-          <CardHeader className="pb-6">
-            <CardTitle className="flex items-center gap-3 text-2xl font-semibold text-gray-900">
-              <div className="w-8 h-8 bg-gray-900 rounded-lg flex items-center justify-center">
-                <Tag className="w-5 h-5 text-white" />
-              </div>
-              Danh mục dịch vụ
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {service.categories.map((category, index) => (
-                <div
-                  key={index}
-                  className="flex items-center gap-4 p-5 bg-gray-50 rounded-xl border border-gray-200 hover:bg-gray-100 transition-colors"
-                >
-                  <div className="w-12 h-12 bg-white border-2 border-gray-300 rounded-lg flex items-center justify-center">
-                    <Tag className="w-6 h-6 text-gray-600" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-gray-900 capitalize text-lg">
-                      {category.name}
-                    </p>
-                    <p className="text-sm text-gray-500">Dịch vụ chuyên nghiệp</p>
-                  </div>
+        {service.categories && service.categories.length > 0 && (
+          <Card className="border border-gray-200 shadow-sm bg-white">
+            <CardHeader className="pb-6">
+              <CardTitle className="flex items-center gap-3 text-2xl font-semibold text-gray-900">
+                <div className="w-8 h-8 bg-gray-900 rounded-lg flex items-center justify-center">
+                  <Tag className="w-5 h-5 text-white" />
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                Danh mục dịch vụ
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {service.categories.map((category, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center gap-4 p-5 bg-gray-50 rounded-xl border border-gray-200 hover:bg-gray-100 transition-colors"
+                  >
+                    <div className="w-12 h-12 bg-white border-2 border-gray-300 rounded-lg flex items-center justify-center">
+                      <Tag className="w-6 h-6 text-gray-600" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-900 capitalize text-lg">
+                        {category.name}
+                      </p>
+                      <p className="text-sm text-gray-500">Dịch vụ chuyên nghiệp</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Booking Sidebar */}

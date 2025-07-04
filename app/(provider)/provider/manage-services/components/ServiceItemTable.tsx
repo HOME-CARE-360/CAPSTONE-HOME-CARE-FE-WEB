@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 'use client';
 
-import * as React from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import {
   ColumnFiltersState,
   SortingState,
@@ -32,7 +32,7 @@ interface ServiceItemTableProps {
   data: ServiceItem[];
   onFilterChange?: (filters: ServiceItemSearchParams) => void;
   isLoading?: boolean;
-  error?: Error | null;
+  error?: unknown;
   limit?: number;
   page?: number;
   totalPages?: number;
@@ -41,26 +41,55 @@ interface ServiceItemTableProps {
 }
 
 export function ServiceItemTable({
-  data,
+  data = [],
   onFilterChange,
-  isLoading,
+  isLoading = false,
   error,
-  limit,
-  page,
-  totalPages,
-  totalItems,
+  limit = 10,
+  page = 1,
+  totalPages = 1,
+  totalItems = 0,
   searchFilters,
 }: ServiceItemTableProps) {
-  const [rowSelection, setRowSelection] = React.useState({});
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
-  const [sorting, setSorting] = React.useState<SortingState>([]);
+  const [rowSelection, setRowSelection] = useState({});
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [sorting, setSorting] = useState<SortingState>([]);
 
   const columns = useServiceItemTableColumns();
 
+  const debouncedFilterChange = useCallback(
+    (filters: ServiceItemSearchParams) => {
+      if (onFilterChange && filters) {
+        try {
+          onFilterChange(filters);
+        } catch (error) {
+          console.error('Error in filter change:', error);
+        }
+      }
+    },
+    [onFilterChange]
+  );
+
+  const handleFilterChange = useCallback(
+    (filters: Partial<ServiceItemSearchParams>) => {
+      if (onFilterChange) {
+        const currentFilters = searchFilters || {};
+        onFilterChange({
+          ...currentFilters,
+          ...filters,
+        } as ServiceItemSearchParams);
+      }
+    },
+    [onFilterChange, searchFilters]
+  );
+
+  const safeData = useMemo(() => (Array.isArray(data) ? data : []), [data]);
+  const safeColumns = useMemo(() => columns || [], [columns]);
+
   const table = useReactTable({
-    data,
-    columns: columns as ColumnDef<ServiceItem>[],
+    data: safeData,
+    columns: safeColumns as ColumnDef<ServiceItem>[],
     state: {
       sorting,
       columnVisibility,
@@ -78,39 +107,24 @@ export function ServiceItemTable({
     getSortedRowModel: getSortedRowModel(),
   });
 
-  // Debounce filter changes
-  const debouncedFilterChange = React.useCallback(
-    (filters: ServiceItemSearchParams) => {
-      if (onFilterChange) {
-        onFilterChange(filters);
-      }
-    },
-    [onFilterChange]
-  );
-
-  const handleFilterChange = (filters: Partial<ServiceItemSearchParams>) => {
-    if (onFilterChange) {
-      onFilterChange({
-        ...searchFilters,
-        ...filters,
-      } as ServiceItemSearchParams);
-    }
-  };
-
-  // Handle filter changes with debounce
-  React.useEffect(() => {
+  useEffect(() => {
     const timeoutId = setTimeout(() => {
+      if (!Array.isArray(columnFilters)) return;
+
       const filters: ServiceItemSearchParams = {
         page: page || 1,
         limit: limit || 10,
-        name: (columnFilters.find(f => f.id === 'name')?.value as string) || '',
-        brand: (columnFilters.find(f => f.id === 'brand')?.value as string) || '',
-        isActive: columnFilters.find(f => f.id === 'isActive')?.value as boolean | undefined,
-        sortBy: (columnFilters.find(f => f.id === 'sortBy')?.value as string) || 'createdAt',
-        orderBy: (columnFilters.find(f => f.id === 'orderBy')?.value as string) || 'desc',
+        name: (columnFilters.find(f => f?.id === 'name')?.value as string) || '',
+        brand: (columnFilters.find(f => f?.id === 'brand')?.value as string) || '',
+        isActive: columnFilters.find(f => f?.id === 'isActive')?.value as boolean | undefined,
+        sortBy: (columnFilters.find(f => f?.id === 'sortBy')?.value as string) || 'createdAt',
+        orderBy: (columnFilters.find(f => f?.id === 'orderBy')?.value as string) || 'desc',
       };
-      debouncedFilterChange(filters);
-    }, 300); // 300ms debounce
+
+      if (debouncedFilterChange) {
+        debouncedFilterChange(filters);
+      }
+    }, 300);
 
     return () => clearTimeout(timeoutId);
   }, [columnFilters, limit, page, debouncedFilterChange]);
@@ -132,7 +146,7 @@ export function ServiceItemTable({
     <div className="space-y-4">
       <ServiceItemTableFilters table={table} onFilterChange={handleFilterChange} />
       <div className="rounded-md border">
-        <Table>
+        <Table className="table-fixed">
           <TableHeader>
             {table.getHeaderGroups().map(headerGroup => (
               <TableRow key={headerGroup.id}>
@@ -148,9 +162,9 @@ export function ServiceItemTable({
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              Array.from({ length: limit || 10 }).map((_, index) => (
+              Array.from({ length: limit }).map((_, index) => (
                 <TableRow key={index}>
-                  {columns.map((_column: ColumnDef<ServiceItem>, colIndex: number) => (
+                  {safeColumns.map((_column: ColumnDef<ServiceItem>, colIndex: number) => (
                     <TableCell key={colIndex}>
                       <Skeleton className="h-5 w-full" />
                     </TableCell>
@@ -159,9 +173,9 @@ export function ServiceItemTable({
               ))
             ) : table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map(row => (
-                <TableRow key={row.id}>
+                <TableRow key={`row-${row.original.id}`}>
                   {row.getVisibleCells().map(cell => (
-                    <TableCell key={cell.id}>
+                    <TableCell key={`cell-${row.original.id}-${cell.column.id}`}>
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}
@@ -169,7 +183,7 @@ export function ServiceItemTable({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
+                <TableCell colSpan={safeColumns.length} className="h-24 text-center">
                   Chưa có vật tư nào
                 </TableCell>
               </TableRow>
@@ -178,10 +192,10 @@ export function ServiceItemTable({
         </Table>
       </div>
       <ServiceItemTablePagination
-        page={page || 1}
-        totalPages={totalPages || 1}
-        totalItems={totalItems || 0}
-        pageSize={limit || 10}
+        page={page}
+        totalPages={totalPages}
+        totalItems={totalItems}
+        pageSize={limit}
         onPageChange={(newPage: number) => handleFilterChange({ page: newPage })}
         onPageSizeChange={(newSize: number) =>
           handleFilterChange({

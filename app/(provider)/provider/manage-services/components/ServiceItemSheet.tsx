@@ -43,16 +43,9 @@ type ServiceItemFormData = z.infer<typeof serviceItemSchema>;
 interface ServiceItemSheetProps {
   serviceItemId?: number | null;
   trigger?: React.ReactNode;
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
 }
 
-export function ServiceItemSheet({
-  serviceItemId,
-  trigger,
-  open,
-  onOpenChange,
-}: ServiceItemSheetProps) {
+export function ServiceItemSheet({ serviceItemId, trigger }: ServiceItemSheetProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [unitPriceInput, setUnitPriceInput] = useState('');
@@ -100,25 +93,18 @@ export function ServiceItemSheet({
     setUnitPriceInput(formatNumber(numberValue));
   };
 
-  // Handle controlled open state
-  const handleOpenChange = (newOpen: boolean) => {
-    if (onOpenChange) {
-      onOpenChange(newOpen);
-    } else {
-      setIsOpen(newOpen);
-    }
-
-    if (!newOpen) {
+  // Handle open change
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open);
+    if (!open) {
       // Reset form when closing
       form.reset();
       setUnitPriceInput('0');
     }
   };
 
-  const actualOpen = open !== undefined ? open : isOpen;
-
   useEffect(() => {
-    if (isEditing && serviceItemDetail?.data && actualOpen) {
+    if (isEditing && serviceItemDetail?.data && isOpen) {
       const item = serviceItemDetail.data;
       form.reset({
         name: item.name,
@@ -131,7 +117,7 @@ export function ServiceItemSheet({
         stockQuantity: item.stockQuantity,
       });
       setUnitPriceInput(formatNumber(item.unitPrice));
-    } else if (!isEditing && actualOpen) {
+    } else if (!isEditing && isOpen) {
       form.reset({
         name: '',
         unitPrice: 0,
@@ -144,7 +130,7 @@ export function ServiceItemSheet({
       });
       setUnitPriceInput('0');
     }
-  }, [serviceItemDetail, form, isEditing, actualOpen]);
+  }, [serviceItemDetail, form, isEditing, isOpen]);
 
   const handleSubmit = async (data: ServiceItemFormData) => {
     setIsLoading(true);
@@ -155,7 +141,7 @@ export function ServiceItemSheet({
           {
             onSuccess: () => {
               toast.success('Cập nhật vật tư thành công');
-              handleOpenChange(false);
+              setIsOpen(false);
             },
             onError: () => {
               toast.error('Cập nhật vật tư thất bại');
@@ -177,7 +163,7 @@ export function ServiceItemSheet({
         createServiceItem(serviceItemData, {
           onSuccess: () => {
             toast.success('Tạo vật tư thành công');
-            handleOpenChange(false);
+            setIsOpen(false);
           },
           onError: () => {
             toast.error('Tạo vật tư thất bại');
@@ -190,7 +176,7 @@ export function ServiceItemSheet({
   };
 
   return (
-    <Sheet open={actualOpen} onOpenChange={handleOpenChange}>
+    <Sheet open={isOpen} onOpenChange={handleOpenChange}>
       {trigger && <SheetTrigger asChild>{trigger}</SheetTrigger>}
       <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
         <SheetHeader>
@@ -315,7 +301,7 @@ export function ServiceItemSheet({
           </div>
 
           <div className="flex justify-end gap-4 pt-4 border-t">
-            <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
+            <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>
               <X className="h-4 w-4 mr-2" />
               Hủy
             </Button>

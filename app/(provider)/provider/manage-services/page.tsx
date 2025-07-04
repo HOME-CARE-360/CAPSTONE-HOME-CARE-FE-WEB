@@ -33,8 +33,11 @@ export default function ManageServicesPage() {
     page: 1,
   });
   const { data: serviceData, isFetching: isServiceFetching } = useServiceManager(searchParams);
-  const { data: serviceItemData, isFetching: isServiceItemFetching } =
-    useServiceItems(searchParamsItem);
+  const {
+    data: serviceItemData,
+    isFetching: isServiceItemFetching,
+    error: serviceItemError,
+  } = useServiceItems(searchParamsItem);
   const { data: categoryData, isFetching: isCategoryFetching } = useCategories();
 
   const handleFilterChange = (params: Partial<ServiceManagerSearchParams>) => {
@@ -119,12 +122,13 @@ export default function ManageServicesPage() {
             </div>
 
             <ServiceItemTable
-              data={Array.isArray(serviceItemData?.data) ? serviceItemData.data : []}
+              data={Array.isArray(serviceItemData?.data?.data) ? serviceItemData.data.data : []}
               isLoading={isServiceItemFetching}
-              page={serviceItemData?.page}
-              limit={serviceItemData?.limit}
-              totalPages={serviceItemData?.totalPages}
-              totalItems={serviceItemData?.totalItems}
+              error={serviceItemError}
+              page={serviceItemData?.data?.page || 1}
+              limit={serviceItemData?.data?.limit || 10}
+              totalPages={serviceItemData?.data?.totalPages || 1}
+              totalItems={serviceItemData?.data?.totalItems || 0}
               onFilterChange={handleFilterChangeItem}
               searchFilters={searchParamsItem}
             />

@@ -49,6 +49,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         icon: UsersIcon,
       },
       {
+        title: 'Quản lý hàng hoá dịch vụ',
+        url: '/provider/manage-services-item',
+        icon: UsersIcon,
+      },
+      {
         title: 'Hòm thư',
         url: '/provider/manage-feedback-review',
         icon: UserRoundPen,

@@ -2,7 +2,7 @@
 
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
+import { useEffect } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,24 +15,15 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-
-// ✅ Schema validation
-const formSchema = z
-  .object({
-    currentPassword: z.string().min(6, 'Ít nhất 6 ký tự'),
-    newPassword: z.string().min(6, 'Ít nhất 6 ký tự'),
-    confirmNewPassword: z.string().min(6, 'Ít nhất 6 ký tự'),
-  })
-  .refine(data => data.newPassword === data.confirmNewPassword, {
-    message: 'Mật khẩu mới không khớp',
-    path: ['confirmNewPassword'],
-  });
-
-type FormData = z.infer<typeof formSchema>;
+import {
+  ChangePasswordRequestType,
+  changPasswordRequestSchema,
+} from '@/schemaValidations/user.schema';
+import { useChangePassword } from '@/hooks/useUser';
 
 export default function ChangePasswordPage() {
-  const form = useForm<FormData>({
-    resolver: zodResolver(formSchema),
+  const form = useForm<ChangePasswordRequestType>({
+    resolver: zodResolver(changPasswordRequestSchema),
     defaultValues: {
       currentPassword: '',
       newPassword: '',
@@ -40,10 +31,73 @@ export default function ChangePasswordPage() {
     },
   });
 
-  // TODO: Implement change password API call
-  const onSubmit = (data: FormData) => {
-    console.log('Submitted:', data);
-    // Gọi API đổi mật khẩu ở đây
+  const changePasswordMutation = useChangePassword();
+
+  // Handle API errors and set them to form fields
+  useEffect(() => {
+    if (changePasswordMutation.error) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const error = changePasswordMutation.error as any;
+
+      // Handle the specific error structure you're getting
+      if (error?.response?.data?.details) {
+        const details = error.response.data.details;
+
+        if (details.path && Array.isArray(details.path) && details.message) {
+          // Get the first path element (field name)
+          const fieldName = details.path[0] as keyof ChangePasswordRequestType;
+
+          if (
+            fieldName &&
+            ['currentPassword', 'newPassword', 'confirmNewPassword'].includes(fieldName)
+          ) {
+            form.setError(fieldName, {
+              type: 'server',
+              message: details.message,
+            });
+          }
+        }
+      }
+
+      // Also handle the case where error message is directly in response.data
+      if (error?.response?.data?.message && !error.response.data.details) {
+        const errorMessage = error.response.data.message;
+
+        if (Array.isArray(errorMessage)) {
+          // Handle validation errors from API
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          errorMessage.forEach((err: any) => {
+            if (err.path && err.message) {
+              // Map API field names to form field names
+              const fieldMap: Record<string, keyof ChangePasswordRequestType> = {
+                currentPassword: 'currentPassword',
+                newPassword: 'newPassword',
+                confirmNewPassword: 'confirmNewPassword',
+              };
+
+              const fieldName = fieldMap[err.path];
+              if (fieldName) {
+                form.setError(fieldName, {
+                  type: 'server',
+                  message: err.message,
+                });
+              }
+            }
+          });
+        }
+      }
+    }
+  }, [changePasswordMutation.error, form]);
+
+  const onSubmit = (data: ChangePasswordRequestType) => {
+    // Clear any previous errors
+    form.clearErrors();
+
+    changePasswordMutation.mutate({
+      currentPassword: data.currentPassword,
+      newPassword: data.newPassword,
+      confirmNewPassword: data.confirmNewPassword,
+    });
   };
 
   return (
@@ -63,7 +117,12 @@ export default function ChangePasswordPage() {
                   <FormItem>
                     <FormLabel>Mật khẩu hiện tại</FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="Nhập mật khẩu hiện tại" {...field} />
+                      <Input
+                        type="password"
+                        placeholder="Nhập mật khẩu hiện tại"
+                        {...field}
+                        disabled={changePasswordMutation.isPending}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -77,7 +136,12 @@ export default function ChangePasswordPage() {
                   <FormItem>
                     <FormLabel>Mật khẩu mới</FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="Nhập mật khẩu mới" {...field} />
+                      <Input
+                        type="password"
+                        placeholder="Nhập mật khẩu mới"
+                        {...field}
+                        disabled={changePasswordMutation.isPending}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -91,7 +155,12 @@ export default function ChangePasswordPage() {
                   <FormItem>
                     <FormLabel>Nhập lại mật khẩu mới</FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="Nhập lại mật khẩu mới" {...field} />
+                      <Input
+                        type="password"
+                        placeholder="Nhập lại mật khẩu mới"
+                        {...field}
+                        disabled={changePasswordMutation.isPending}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -100,8 +169,8 @@ export default function ChangePasswordPage() {
             </CardContent>
 
             <CardFooter>
-              <Button type="submit" className="w-full">
-                Lưu thay đổi
+              <Button type="submit" className="w-full" disabled={changePasswordMutation.isPending}>
+                {changePasswordMutation.isPending ? 'Đang xử lý...' : 'Lưu thay đổi'}
               </Button>
             </CardFooter>
           </form>

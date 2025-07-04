@@ -178,6 +178,8 @@ export const fetchAuth = {
     }
   },
 
+  // Change Password
+
   //   // Reset password request
   //   requestPasswordReset: async (email: string): Promise<AuthResponse> => {
   //     const response = await apiService.post<AuthResponse>('/auth/forgot-password', { email });

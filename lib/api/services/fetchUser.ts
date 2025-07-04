@@ -1,7 +1,14 @@
-import { CustomerType, UserType } from '@/schemaValidations/user.schema';
+import {
+  CustomerType,
+  UpdateUserProfileRequestType,
+  UpdateUserProfileResponseType,
+  ChangePasswordRequestType,
+  UserType,
+} from '@/schemaValidations/user.schema';
 import apiService from '../core';
 import { ValidationError } from './fetchAuth';
 import { ProviderType } from '@/schemaValidations/privder.schema';
+
 export interface User {
   userName: string;
   fullName: string;
@@ -92,11 +99,13 @@ export const userService = {
   },
 
   // Update current user profile
-  updateUserProfile: async (profileData: Partial<User> | FormData): Promise<UserUpdateResponse> => {
+  updateUserProfile: async (
+    profileData: UpdateUserProfileRequestType
+  ): Promise<UpdateUserProfileResponseType> => {
     try {
       // The API service already handles FormData appropriately in its interceptors
-      const response = await apiService.put<UserUpdateResponse, Partial<User> | FormData>(
-        '/users/update-profile',
+      const response = await apiService.patch<UpdateUserProfileResponseType>(
+        '/users/update-customer-information',
         profileData
       );
       return response.data;
@@ -117,6 +126,12 @@ export const userService = {
     const response = await apiService.get<GetProviderResponse>(
       `/publics/get-service-provider-information/${providerId}`
     );
+    return response.data;
+  },
+
+  // Change Passwod
+  changePassword: async (data: ChangePasswordRequestType) => {
+    const response = await apiService.patch<{ message: string }>('/publics/change-password', data);
     return response.data;
   },
 };

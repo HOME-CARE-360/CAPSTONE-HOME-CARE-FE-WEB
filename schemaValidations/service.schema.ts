@@ -6,7 +6,7 @@ export const serviceSchema = z.object({
   basePrice: z.number().min(0, 'Base price must be greater than 0'),
   virtualPrice: z.number().min(0, 'Virtual price must be greater than 0'),
   durationMinutes: z.number().min(1, 'Duration must be greater than 0'),
-  categories: z.array(z.number()).default([]),
+  categoryId: z.number().min(1, 'Category is required'),
   images: z.array(z.string()).default([]),
 });
 

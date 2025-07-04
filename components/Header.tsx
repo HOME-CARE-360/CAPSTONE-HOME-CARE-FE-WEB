@@ -165,7 +165,7 @@ export default function Header() {
                   size="sm"
                   className="bg-green-500 hover:bg-green-600"
                 >
-                  <Link href="/register/email">Đăng ký</Link>
+                  <Link href="/register">Đăng ký</Link>
                 </Button>
               </div>
             )}

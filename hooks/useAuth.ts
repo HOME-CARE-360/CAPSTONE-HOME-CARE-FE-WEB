@@ -18,7 +18,6 @@ import { toast } from 'sonner';
 export function useRequestOTP() {
   const queryClient = useQueryClient();
   const [error, setError] = useState<ValidationError | null>(null);
-  const router = useRouter();
   const { mutate: requestOTP, isPending: isLoading } = useMutation({
     mutationFn: fetchAuth.verifyEmailWithOTP,
     onSettled: (data: OTPVerifyResponse | undefined) => {
@@ -26,7 +25,6 @@ export function useRequestOTP() {
       if (data?.message) {
         toast.success(data.message as string);
       }
-      router.push('/register');
     },
     onError: (error: ValidationError) => {
       setError(error);
@@ -46,7 +44,7 @@ export function useRequestOTP() {
 // Register hook
 export function useRegister() {
   const [error, setError] = useState<ValidationError | null>(null);
-
+  const router = useRouter();
   const {
     mutate: registerMutation,
     isPending: isLoading,
@@ -64,6 +62,7 @@ export function useRegister() {
         }
       }
       toast.error(errorMessage);
+      router.push('/login');
     },
   });
 

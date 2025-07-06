@@ -80,6 +80,9 @@ export function ProviderRegistrationForm() {
       setEmailVerified(true);
     } catch (error) {
       console.error('Failed to send OTP:', error);
+      // Don't show OTP input if there's an error
+      setShowOTP(false);
+      setEmailVerified(false);
     }
   };
 

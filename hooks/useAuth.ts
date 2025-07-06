@@ -28,7 +28,13 @@ export function useRequestOTP() {
     },
     onError: (error: ValidationError) => {
       setError(error);
-      toast.error(error.message as string);
+      let errorMessage = 'An unexpected error occurred';
+      if (error?.message && Array.isArray(error.message) && error.message.length > 0) {
+        errorMessage = error.message[0]?.message || errorMessage;
+      } else if (typeof error?.message === 'string') {
+        errorMessage = error.message;
+      }
+      toast.error(errorMessage);
     },
   });
 

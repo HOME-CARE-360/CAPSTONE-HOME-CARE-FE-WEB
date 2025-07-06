@@ -26,7 +26,7 @@ export interface Booking {
   location: string;
   phoneNumber: string;
   categoryId: number;
-  Category: BookingCategory;
+  category: BookingCategory;
   customer: BookingCustomer;
 }
 

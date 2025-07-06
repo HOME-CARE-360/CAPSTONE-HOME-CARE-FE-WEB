@@ -215,14 +215,14 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                   <h3 className="text-sm font-medium">Dịch vụ</h3>
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
-                      {booking.Category.logo ? (
-                        <img src={booking.Category.logo} alt="" className="w-8 h-8" />
+                      {booking.category.logo ? (
+                        <img src={booking.category.logo} alt="" className="w-8 h-8" />
                       ) : (
                         <div className="w-8 h-8 bg-gray-300 rounded" />
                       )}
                     </div>
                     <div>
-                      <p className="font-medium text-gray-900">{booking.Category.name}</p>
+                      <p className="font-medium text-gray-900">{booking.category.name}</p>
                       <p className="text-sm text-gray-500">Dịch vụ được yêu cầu</p>
                     </div>
                   </div>
@@ -316,13 +316,13 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
         {/* Service Information */}
         <div className="flex items-center gap-2 mb-3">
           <div className="w-6 h-6 bg-gray-100 rounded flex items-center justify-center">
-            {booking.Category.logo ? (
-              <img src={booking.Category.logo} alt="" className="w-4 h-4" />
+            {booking.category.logo ? (
+              <img src={booking.category.logo} alt="" className="w-4 h-4" />
             ) : (
               <div className="w-4 h-4 bg-gray-300 rounded" />
             )}
           </div>
-          <span className="text-sm font-medium text-gray-700">{booking.Category.name}</span>
+          <span className="text-sm font-medium text-gray-700">{booking.category.name}</span>
         </div>
 
         {/* Contact Information */}

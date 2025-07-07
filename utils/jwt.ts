@@ -44,7 +44,7 @@ export const isCustomer = (token: DecodedToken | null): boolean => {
 
 export const isAdmin = (token: DecodedToken | null): boolean => {
   if (!token) return false;
-  const result = hasRole(token, Roles.Admin);
+  const result = hasRole(token, Roles.ADMIN);
   return result;
 };
 

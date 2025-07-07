@@ -12,7 +12,7 @@ export interface ValidationError {
 }
 
 export enum Roles {
-  Admin = 'Admin',
+  ADMIN = 'ADMIN',
   SERVICE_PROVIDER = 'SERVICE PROVIDER',
   CUSTOMER = 'CUSTOMER',
   MANAGER = 'MANAGER',

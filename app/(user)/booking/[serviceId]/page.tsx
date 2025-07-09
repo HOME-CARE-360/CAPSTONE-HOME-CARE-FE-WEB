@@ -137,7 +137,6 @@ export default function NewBookingPage() {
     if (!formData.location.trim()) newErrors.location = '';
     if (!formData.phoneNumber.trim()) newErrors.phoneNumber = '';
 
-    console.log('Form validation:', { formData, errors: newErrors });
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -154,7 +153,6 @@ export default function NewBookingPage() {
 
   const confirmBooking = async () => {
     setIsSubmitting(true);
-    console.log('Sending booking data:', formData);
 
     try {
       await createBooking(formData);

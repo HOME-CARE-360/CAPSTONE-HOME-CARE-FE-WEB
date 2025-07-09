@@ -114,13 +114,6 @@ export function BookingKanban({ onRefresh }: BookingKanbanProps) {
           : booking
       )
     );
-
-    // TODO: Implement actual API call to update booking status
-    console.log('Update booking status:', {
-      bookingId: draggableId,
-      from: source.droppableId,
-      to: destination.droppableId,
-    });
   };
 
   const renderKanbanColumns = (columns: typeof ACTIVE_COLUMNS) => (

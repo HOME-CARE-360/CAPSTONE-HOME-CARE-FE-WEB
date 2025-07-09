@@ -34,8 +34,6 @@ export default function middleware(request: NextRequest) {
   // token via cookies. This requires changes to how we store tokens.
   const token = request.cookies.get('auth-token')?.value;
 
-  console.log('Token in middleware', token);
-
   // Check if the route requires authentication
   const isProtectedRoute = protectedRoutes.some(
     route => pathname === route || pathname.startsWith(`${route}/`)

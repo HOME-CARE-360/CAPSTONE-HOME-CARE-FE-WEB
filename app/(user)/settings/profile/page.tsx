@@ -138,8 +138,6 @@ export default function ProfilePage() {
       setIsLoading(true);
       // Update dateOfBirth in the form data
       data.customer.dateOfBirth = dateOfBirth ? dateOfBirth.toISOString() : null;
-
-      console.log('Data Update Profile Form Data: ', data);
       await updateUserMutation.mutateAsync(data);
       toast.success('Cập nhật hồ sơ thành công!');
       refetch();

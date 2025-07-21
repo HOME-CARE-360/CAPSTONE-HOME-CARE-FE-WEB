@@ -1,7 +1,7 @@
 import { Shield, Award, Users } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ProviderType } from '@/schemaValidations/privder.schema';
+import { ProviderType } from '@/schemaValidations/provider.schema';
 import { UserType } from '@/schemaValidations/user.schema';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getNameFallback } from '@/utils/helper';

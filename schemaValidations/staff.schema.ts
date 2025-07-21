@@ -1,6 +1,15 @@
 import { z } from 'zod';
 
-export const staffSchema = z
+export const staffSchema = z.object({
+  id: z.number(),
+  userId: z.number(),
+  providerId: z.number(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  isActive: z.boolean(),
+});
+
+export const staffFormSchema = z
   .object({
     email: z.string().email('Email không hợp lệ'),
     password: z.string().min(6, 'Mật khẩu phải có ít nhất 6 ký tự'),
@@ -14,4 +23,6 @@ export const staffSchema = z
     path: ['confirmPassword'],
   });
 
-export type StaffFormData = z.infer<typeof staffSchema>;
+export type StaffFormData = z.infer<typeof staffFormSchema>;
+
+export type StaffType = z.infer<typeof staffSchema>;

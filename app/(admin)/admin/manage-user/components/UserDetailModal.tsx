@@ -24,7 +24,10 @@ interface UserDetailModalProps {
 export function UserDetailModal({ isOpen, onClose, userId }: UserDetailModalProps) {
   const { data: userData, isLoading, error } = useGetUserById(userId || 0);
 
-  const user = userData?.data;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const user = userData?.data as any;
+
+  console.log('user: ', user);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -107,7 +110,7 @@ export function UserDetailModal({ isOpen, onClose, userId }: UserDetailModalProp
                 Vai trò
               </h4>
               <div className="flex flex-wrap gap-2">
-                {user.roles.map((role, index) => (
+                {user.roles?.map((role: { name: string }, index: number) => (
                   <Badge key={index} variant="secondary">
                     {role.name}
                   </Badge>

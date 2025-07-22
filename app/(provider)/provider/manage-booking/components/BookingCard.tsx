@@ -29,6 +29,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import Image from 'next/image';
 
 interface BookingCardProps {
   booking: Booking;
@@ -216,7 +217,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
                       {booking.category.logo ? (
-                        <img src={booking.category.logo} alt="" className="w-8 h-8" />
+                        <Image src={booking.category.logo} alt="" className="w-8 h-8" />
                       ) : (
                         <div className="w-8 h-8 bg-gray-300 rounded" />
                       )}
@@ -317,7 +318,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
         <div className="flex items-center gap-2 mb-3">
           <div className="w-6 h-6 bg-gray-100 rounded flex items-center justify-center">
             {booking.category.logo ? (
-              <img src={booking.category.logo} alt="" className="w-4 h-4" />
+              <Image src={booking.category.logo} alt="" className="w-4 h-4" />
             ) : (
               <div className="w-4 h-4 bg-gray-300 rounded" />
             )}

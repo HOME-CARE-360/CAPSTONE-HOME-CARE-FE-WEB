@@ -7,7 +7,7 @@ import {
 } from '@/schemaValidations/user.schema';
 import apiService from '../core';
 import { ValidationError } from './fetchAuth';
-import { ProviderType } from '@/schemaValidations/privder.schema';
+import { ProviderType } from '@/schemaValidations/provider.schema';
 
 export interface User {
   userName: string;

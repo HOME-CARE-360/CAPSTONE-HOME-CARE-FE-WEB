@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { staffFormSchema, StaffFormData } from '@/schemaValidations/staff.schema';
+import { userFormSchema, UserFormData } from '@/schemaValidations/admin.schema';
 import {
   Sheet,
   SheetContent,
@@ -15,7 +15,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { useCategories } from '@/hooks/useCategory';
 import {
   Select,
   SelectTrigger,
@@ -25,49 +24,43 @@ import {
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { User, Mail, Phone, Lock, Shield, Users } from 'lucide-react';
-import Image from 'next/image';
 
-interface StaffCreateModalProps {
+interface UserCreateModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (staffData: StaffFormData) => void;
-  initialData?: StaffFormData;
+  onSubmit: (userData: UserFormData) => void;
+  initialData?: UserFormData;
   mode?: 'create' | 'edit';
   isLoading?: boolean;
 }
 
-export default function StaffCreateModal({
+export default function UserCreateModal({
   isOpen,
   onClose,
   onSubmit,
   initialData,
   mode = 'create',
   isLoading = false,
-}: StaffCreateModalProps) {
-  const { data: categoryStaff, isLoading: isCategoriesLoading } = useCategories();
-
+}: UserCreateModalProps) {
   const {
     control,
     handleSubmit,
     reset,
-    watch,
     formState: { errors, isValid, isDirty },
-  } = useForm<StaffFormData>({
-    resolver: zodResolver(staffFormSchema),
+  } = useForm<UserFormData>({
+    resolver: zodResolver(userFormSchema),
     defaultValues: initialData || {
       email: '',
       password: '',
-      confirmPassword: '',
       name: '',
       phone: '',
-      categoryIds: [],
+      avatar: '',
+      status: 'ACTIVE',
+      role: 'USER',
     },
     mode: 'onChange',
   });
-
-  const selectedCategoryIds = watch('categoryIds');
 
   useEffect(() => {
     if (initialData) {
@@ -75,7 +68,8 @@ export default function StaffCreateModal({
     }
   }, [initialData, reset]);
 
-  const onSubmitForm = (data: StaffFormData) => {
+  const onSubmitForm = (data: UserFormData) => {
+    console.log('userData:: ', data);
     onSubmit(data);
     if (mode === 'create') {
       reset();
@@ -101,12 +95,12 @@ export default function StaffCreateModal({
             </div>
             <div>
               <SheetTitle className="text-xl">
-                {mode === 'create' ? 'Thêm nhân viên mới' : 'Chỉnh sửa nhân viên'}
+                {mode === 'create' ? 'Thêm người dùng mới' : 'Chỉnh sửa người dùng'}
               </SheetTitle>
               <SheetDescription className="text-sm text-muted-foreground">
                 {mode === 'create'
-                  ? 'Tạo tài khoản nhân viên mới cho hệ thống'
-                  : 'Cập nhật thông tin nhân viên hiện có'}
+                  ? 'Tạo tài khoản người dùng mới cho hệ thống'
+                  : 'Cập nhật thông tin người dùng hiện có'}
               </SheetDescription>
             </div>
           </div>
@@ -124,7 +118,7 @@ export default function StaffCreateModal({
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="name" className="text-sm font-medium">
-                    Tên nhân viên <span className="text-destructive">*</span>
+                    Tên người dùng <span className="text-destructive">*</span>
                   </Label>
                   <Controller
                     name="name"
@@ -185,7 +179,7 @@ export default function StaffCreateModal({
                         {...field}
                         id="email"
                         type="email"
-                        placeholder="example@company.com"
+                        placeholder="example@email.com"
                         className="pl-10"
                         disabled={mode === 'edit' || isLoading}
                       />
@@ -199,8 +193,30 @@ export default function StaffCreateModal({
                   </p>
                 )}
               </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="avatar" className="text-sm font-medium">
+                  URL Ảnh đại diện
+                </Label>
+                <Controller
+                  name="avatar"
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      {...field}
+                      id="avatar"
+                      placeholder="https://example.com/avatar.jpg"
+                      disabled={isLoading}
+                    />
+                  )}
+                />
+                {errors.avatar && (
+                  <p className="text-xs text-destructive">{errors.avatar.message}</p>
+                )}
+              </div>
             </CardContent>
           </Card>
+
           {/* Password Section - Only for create mode */}
           {mode === 'create' && (
             <Card>
@@ -267,70 +283,73 @@ export default function StaffCreateModal({
               </CardContent>
             </Card>
           )}
-          {/* Role & Permissions Section */}
+
+          {/* Role & Status Section */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
                 <Shield className="h-4 w-4" />
-                Vai trò & quyền hạn
+                Vai trò & trạng thái
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="categoryIds" className="text-sm font-medium">
-                  Danh mục phụ trách <span className="text-destructive">*</span>
-                </Label>
-                <Controller
-                  name="categoryIds"
-                  control={control}
-                  render={({ field }) => (
-                    <Select
-                      onValueChange={value => field.onChange([parseInt(value)])}
-                      value={field.value[0]?.toString()}
-                      disabled={isCategoriesLoading || isLoading}
-                    >
-                      <SelectTrigger id="categoryIds">
-                        <SelectValue placeholder="Chọn danh mục dịch vụ" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categoryStaff?.categories.map(category => (
-                          <SelectItem key={category.id} value={category.id.toString()}>
-                            <div className="flex items-center gap-2">
-                              {category.logo && (
-                                <Image
-                                  src={category.logo}
-                                  alt={category.name}
-                                  width={16}
-                                  height={16}
-                                  className="h-4 w-4 rounded-sm object-cover"
-                                  unoptimized
-                                />
-                              )}
-                              {category.name}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-                {errors.categoryIds && (
-                  <p className="text-xs text-destructive">{errors.categoryIds.message}</p>
-                )}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="role" className="text-sm font-medium">
+                    Vai trò <span className="text-destructive">*</span>
+                  </Label>
+                  <Controller
+                    name="role"
+                    control={control}
+                    render={({ field }) => (
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                        disabled={isLoading}
+                      >
+                        <SelectTrigger id="role">
+                          <SelectValue placeholder="Chọn vai trò" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {/* <SelectItem value="USER">Người dùng</SelectItem>
+                          <SelectItem value="PROVIDER">Nhà cung cấp</SelectItem>
+                          <SelectItem value="ADMIN">Quản trị viên</SelectItem> */}
+                          <SelectItem value="MANAGER">Người quản lý</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  {errors.role && <p className="text-xs text-destructive">{errors.role.message}</p>}
+                </div>
 
-                {/* Selected categories preview */}
-                {selectedCategoryIds && selectedCategoryIds.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {selectedCategoryIds.map(categoryId => {
-                      const category = categoryStaff?.categories.find(c => c.id === categoryId);
-                      return category ? (
-                        <Badge key={categoryId} variant="secondary" className="text-xs">
-                          {category.name}
-                        </Badge>
-                      ) : null;
-                    })}
-                  </div>
-                )}
+                <div className="space-y-2">
+                  <Label htmlFor="status" className="text-sm font-medium">
+                    Trạng thái <span className="text-destructive">*</span>
+                  </Label>
+                  <Controller
+                    name="status"
+                    control={control}
+                    render={({ field }) => (
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                        disabled={isLoading}
+                      >
+                        <SelectTrigger id="status">
+                          <SelectValue placeholder="Chọn trạng thái" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="ACTIVE">Hoạt động</SelectItem>
+                          <SelectItem value="INACTIVE">Không hoạt động</SelectItem>
+                          <SelectItem value="BLOCKED">Bị cấm</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  {errors.status && (
+                    <p className="text-xs text-destructive">{errors.status.message}</p>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -358,7 +377,7 @@ export default function StaffCreateModal({
                   {mode === 'create' ? 'Đang tạo...' : 'Đang cập nhật...'}
                 </div>
               ) : mode === 'create' ? (
-                'Tạo nhân viên'
+                'Tạo người dùng'
               ) : (
                 'Cập nhật thông tin'
               )}

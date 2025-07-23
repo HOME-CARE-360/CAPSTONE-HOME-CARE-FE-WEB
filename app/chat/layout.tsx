@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 
 export const metadata = {
   title: 'OpenAI and AI SDK Chatbot',
-  description: 'A simple chatbot built using the AI SDK and gpt-4o-mini.',
+  description: 'A simple chatbot built using the OpenAI API.',
 };
 
 export default function ChatLayout({ children }: { children: ReactNode }) {

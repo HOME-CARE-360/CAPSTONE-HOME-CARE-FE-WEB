@@ -2,191 +2,73 @@ import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/lib/store/authStore';
 import { useRouter } from 'next/navigation';
-import { useToast } from '@/hooks/useToast';
-import { setCookie, deleteCookie } from 'cookies-next';
+import { deleteCookie } from 'cookies-next';
 import fetchAuth, {
   LoginCredentials,
   RegisterRequest,
   LoginResponse,
-  OTPVerifyRequest,
   RegisterProviderRequest,
+  OTPVerifyResponse,
+  ValidationError,
+  RegisterProviderResponse,
 } from '@/lib/api/services/fetchAuth';
-
-interface ApiError extends Error {
-  status?: number;
-  originalError?: unknown;
-  error?: {
-    message?: string | { message: string; path?: string }[];
-  };
-  message: string;
-}
+import { toast } from 'sonner';
 
 // OTP verification hook
 export function useRequestOTP() {
   const queryClient = useQueryClient();
-  const [error, setError] = useState<string | null>(null);
-
+  const [error, setError] = useState<ValidationError | null>(null);
   const { mutate: requestOTP, isPending: isLoading } = useMutation({
-    mutationFn: async (data: OTPVerifyRequest) => {
-      try {
-        console.log('Sending OTP request with data:', data);
-        const response = await fetchAuth.verifyEmailWithOTP(data);
-        console.log('OTP Response in hook:', response);
-
-        // Check if the response contains an error message
-        if (response.message && !response.status) {
-          console.error('OTP Error from API response:', response.message);
-          throw new Error(JSON.stringify(response.message));
-        }
-
-        // Successful response
-        return response;
-      } catch (error: unknown) {
-        console.error('OTP verification failed in mutation function:', error);
-
-        // Type guard and check for successful responses
-        const typedError = error as ApiError;
-
-        // Don't process errors if they're actually successful responses
-        if (typedError.status === 201 || typedError.status === 200) {
-          console.log('Request was actually successful:', typedError);
-          return { status: true };
-        }
-
-        // Transform the error to a standard format to make it easier to handle
-        let errorMessage = '';
-
-        // Handle various error formats
-        if (typedError.error?.message) {
-          if (Array.isArray(typedError.error.message)) {
-            errorMessage = typedError.error.message[0]?.message || 'OTP verification failed';
-          } else {
-            errorMessage = typedError.error.message;
-          }
-        } else if (Array.isArray(typedError.message)) {
-          errorMessage =
-            (typedError.message as unknown as { message: string }[])[0]?.message ||
-            'OTP verification failed';
-        } else if (typeof typedError.message === 'string') {
-          try {
-            // Try to parse JSON error message
-            const parsed = JSON.parse(typedError.message);
-            errorMessage = Array.isArray(parsed)
-              ? parsed[0]?.message || 'OTP verification failed'
-              : parsed.message || 'OTP verification failed';
-          } catch {
-            errorMessage = typedError.message;
-          }
-        } else {
-          errorMessage = 'OTP verification failed';
-        }
-
-        // Create a standardized error object
-        const standardError = new Error(errorMessage) as ApiError;
-        // Attach original error for reference
-        standardError.originalError = error;
-        throw standardError;
+    mutationFn: fetchAuth.verifyEmailWithOTP,
+    onSettled: (data: OTPVerifyResponse | undefined) => {
+      queryClient.invalidateQueries({ queryKey: ['auth', 'otpVerify'] });
+      if (data?.message) {
+        toast.success(data.message as string);
       }
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['auth', 'otpVerify'] });
-    },
-    onError: (error: Error) => {
-      console.error('OTP verification failed in onError:', error);
-      setError(error.message || 'OTP verification failed');
-      // Do NOT re-throw here as it breaks React Query's error handling
+    onError: (error: ValidationError) => {
+      setError(error);
+      let errorMessage = 'An unexpected error occurred';
+      if (error?.message && Array.isArray(error.message) && error.message.length > 0) {
+        errorMessage = error.message[0]?.message || errorMessage;
+      } else if (typeof error?.message === 'string') {
+        errorMessage = error.message;
+      }
+      toast.error(errorMessage);
     },
   });
 
   return {
-    requestOTP: (data: OTPVerifyRequest) => {
-      // Clear previous errors before making a new request
-      setError(null);
-      return new Promise<void>((resolve, reject) => {
-        requestOTP(data, {
-          onSuccess: () => resolve(),
-          onError: err => reject(err),
-        });
-      });
-    },
+    requestOTP,
     isLoading,
     error,
+    errorMessage: error ? (error.message as string) : null,
     clearError: () => setError(null),
   };
 }
 
 // Register hook
 export function useRegister() {
-  const [error, setError] = useState<string | null>(null);
-
+  const [error, setError] = useState<ValidationError | null>(null);
+  const router = useRouter();
   const {
     mutate: registerMutation,
     isPending: isLoading,
     error: registerError,
   } = useMutation({
-    mutationFn: async (data: RegisterRequest) => {
-      try {
-        console.log('Registering user with data:', { ...data, password: '***' });
-        const response = await fetchAuth.register(data);
-        console.log('Register response:', response);
-
-        // Check if this is an error message - since some APIs might include a success message
-        // that shouldn't be treated as an error
-        if (
-          response.message &&
-          typeof response.message === 'object' &&
-          !response.message.toString().includes('Thank you')
-        ) {
-          console.error('Register error from API response:', response.message);
-          throw new Error(JSON.stringify(response.message));
+    mutationFn: fetchAuth.register,
+    onError: (error: ValidationError) => {
+      let errorMessage = 'An unexpected error occurred';
+      if (typeof error === 'object' && error !== null && 'message' in error) {
+        const errorObj = error as { message: string | ValidationError[] };
+        if (Array.isArray(errorObj.message)) {
+          errorMessage = errorObj.message[0]?.message || errorMessage;
+        } else if (typeof errorObj.message === 'string') {
+          errorMessage = errorObj.message;
         }
-
-        // If we get here, consider it a success
-        return response;
-      } catch (error: unknown) {
-        console.error('Registration failed in mutation function:', error);
-
-        // Type guard for error
-        const typedError = error as ApiError;
-
-        // Transform the error to a standard format
-        let errorMessage = '';
-
-        // Handle various error formats
-        if (typedError.error?.message) {
-          if (Array.isArray(typedError.error.message)) {
-            errorMessage = typedError.error.message[0]?.message || 'Registration failed';
-          } else {
-            errorMessage = typedError.error.message;
-          }
-        } else if (Array.isArray(typedError.message)) {
-          errorMessage =
-            (typedError.message as unknown as { message: string }[])[0]?.message ||
-            'Registration failed';
-        } else if (typeof typedError.message === 'string') {
-          try {
-            // Try to parse JSON error message
-            const parsed = JSON.parse(typedError.message);
-            errorMessage = Array.isArray(parsed)
-              ? parsed[0]?.message || 'Registration failed'
-              : parsed.message || 'Registration failed';
-          } catch {
-            errorMessage = typedError.message;
-          }
-        } else {
-          errorMessage = 'Registration failed';
-        }
-
-        // Create a standardized error object
-        const standardError = new Error(errorMessage) as ApiError;
-        // Attach original error for reference
-        standardError.originalError = error;
-        throw standardError;
       }
-    },
-    onError: (error: Error) => {
-      console.error('Registration failed in onError:', error);
-      setError(error.message || 'Registration failed');
+      toast.error(errorMessage);
+      router.push('/login');
     },
   });
 
@@ -201,79 +83,43 @@ export function useRegister() {
     });
   };
 
+  const currentError = error || (registerError as ValidationError | null);
+
   return {
     register,
     isLoading,
-    error: error || registerError?.message || null,
+    error: currentError,
+    errorMessage: currentError ? (currentError.message as string) : null,
     clearError: () => setError(null),
   };
 }
 
 // Register provider hook
 export function useRegisterProvider() {
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const router = useRouter();
+  const [error, setError] = useState<ValidationError | null>(null);
 
   const { mutate: registerProviderMutation, isPending: isLoading } = useMutation({
-    mutationFn: async (data: RegisterProviderRequest) => {
-      try {
-        const response = await fetchAuth.registerProvider(data);
-        // Check if this is an error message - since some APIs might include a success message
-        // that shouldn't be treated as an error
-        if (
-          response.message &&
-          typeof response.message === 'object' &&
-          !response.message.toString().includes('Thank you')
-        ) {
-          console.error('Register provider error from API response:', response.message);
-          throw new Error(JSON.stringify(response.message));
-        }
-
-        // If we get here, consider it a success
-        return response;
-      } catch (error: unknown) {
-        console.error('Provider registration failed in mutation function:', error);
-
-        // Type guard for error
-        const typedError = error as ApiError;
-
-        // Transform the error to a standard format
-        let errorMessage = '';
-
-        // Handle various error formats
-        if (typedError.error?.message) {
-          if (Array.isArray(typedError.error.message)) {
-            errorMessage = typedError.error.message[0]?.message || 'Registration failed';
-          } else {
-            errorMessage = typedError.error.message;
-          }
-        } else if (Array.isArray(typedError.message)) {
-          errorMessage =
-            (typedError.message as unknown as { message: string }[])[0]?.message ||
-            'Registration failed';
-        } else if (typeof typedError.message === 'string') {
-          try {
-            // Try to parse JSON error message
-            const parsed = JSON.parse(typedError.message);
-            errorMessage = Array.isArray(parsed)
-              ? parsed[0]?.message || 'Registration failed'
-              : parsed.message || 'Registration failed';
-          } catch {
-            errorMessage = typedError.message;
-          }
-        } else {
-          errorMessage = 'Registration failed';
-        }
-
-        // Create a standardized error object
-        const standardError = new Error(errorMessage) as ApiError;
-        // Attach original error for reference
-        standardError.originalError = error;
-        throw standardError;
+    mutationFn: fetchAuth.registerProvider,
+    onSettled: (data: RegisterProviderResponse | undefined) => {
+      queryClient.invalidateQueries({ queryKey: ['auth', 'registerProvider'] });
+      if (data?.message) {
+        toast.success(data.message as string);
       }
+      router.push('/login');
     },
-    onError: (error: Error) => {
-      console.error('Provider registration failed in onError:', error);
-      setError(error.message || 'Registration failed');
+    onError: (error: ValidationError) => {
+      let errorMessage = 'An unexpected error occurred';
+      if (typeof error === 'object' && error !== null && 'message' in error) {
+        const errorObj = error as { message: string | ValidationError[] };
+        if (Array.isArray(errorObj.message)) {
+          errorMessage = errorObj.message[0]?.message || errorMessage;
+        } else if (typeof errorObj.message === 'string') {
+          errorMessage = errorObj.message;
+        }
+      }
+      toast.error(errorMessage);
     },
   });
 
@@ -292,6 +138,7 @@ export function useRegisterProvider() {
     registerProvider,
     isLoading,
     error,
+    errorMessage: error ? (error.message as string) : null,
     clearError: () => setError(null),
   };
 }
@@ -300,50 +147,47 @@ export function useRegisterProvider() {
 export function useLogin() {
   const queryClient = useQueryClient();
   const { setToken } = useAuthStore();
-  const [error, setError] = useState<string | null>(null);
-
+  const [error, setError] = useState<ValidationError | null>(null);
+  const router = useRouter();
   const { mutate: login, isPending: isLoading } = useMutation({
     mutationFn: async (credentials: LoginCredentials): Promise<LoginResponse> => {
-      try {
-        const response = await fetchAuth.login(credentials);
-
-        if (!response || !response.message) {
-          throw new Error(`${response?.message?.path} ${response?.message?.message}`);
-        }
-
-        return response;
-      } catch (err) {
-        console.error('Login API Error:', err);
-        throw new Error(err instanceof Error ? err.message : 'Login failed');
+      const response = await fetchAuth.login(credentials);
+      if (!response || !response.data?.accessToken || !response.data?.refreshToken) {
+        const error = {
+          message: Array.isArray(response.message) ? response.message[0].message : response.message,
+        };
+        throw error;
       }
+      return response;
     },
     onSuccess: (response: LoginResponse) => {
       try {
         // save token to zustand and cookie
         const token = response.data?.accessToken || null;
-        setToken(token);
-
-        setCookie('auth-token', token, {
-          maxAge: 60 * 60 * 24 * 7, // 7 days
-          path: '/',
-        });
-
+        const refreshToken = response.data?.refreshToken || null;
+        setToken(token, refreshToken);
+        router.push('/');
         // refresh queries related to auth
         queryClient.invalidateQueries({ queryKey: ['auth', 'login'] });
-
-        // clear error
         setError(null);
       } catch (err) {
-        console.error('Error storing token:', err);
-        setError('Error storing token');
+        setError({ message: 'Error storing token', code: 'TOKEN_ERROR' } as ValidationError);
+        toast.error('Error storing token');
       }
     },
-    onError: (error: Error) => {
-      console.error('Login failed:', error);
-      setError(error.message || 'Login failed');
+    onError: (error: unknown) => {
+      let errorMessage = 'An unexpected error occurred';
+      if (typeof error === 'object' && error !== null && 'message' in error) {
+        const errorObj = error as { message: string | ValidationError[] };
+        if (Array.isArray(errorObj.message)) {
+          errorMessage = errorObj.message[0]?.message || errorMessage;
+        } else if (typeof errorObj.message === 'string') {
+          errorMessage = errorObj.message;
+        }
+      }
+      toast.error(errorMessage);
     },
   });
-
   return {
     login,
     isLoading,
@@ -361,7 +205,6 @@ export function useAuth() {
   const registerHook = useRegister();
   const otpHook = useRequestOTP();
   const registerProviderHook = useRegisterProvider();
-  const { toast } = useToast();
 
   const { mutate: logout, isPending: isLoggingOut } = useMutation({
     mutationFn: () => fetchAuth.logout(),
@@ -372,25 +215,20 @@ export function useAuth() {
       window.dispatchEvent(new Event('logout'));
       queryClient.clear(); // Clear all queries
       router.push('/login');
-      toast({
-        title: 'Logged out',
-        description: 'You have been logged out successfully',
-      });
     },
-    onError: (error: Error) => {
-      console.error('Logout failed:', error);
+    onError: () => {
       // Still logout locally even if API call fails
       storeLogout();
       deleteCookie('auth-token', { path: '/' });
 
       router.push('/login');
-      toast({
-        title: 'Logged out',
-        description: 'You have been logged out successfully',
-        variant: 'default',
-      });
     },
   });
+
+  // Combine errors from all hooks
+  const error =
+    loginHook.error || registerHook.error || otpHook.error || registerProviderHook.error;
+  const errorMessage = error ? (error.message as string) : null;
 
   return {
     token,
@@ -401,12 +239,14 @@ export function useAuth() {
       isLoggingOut ||
       otpHook.isLoading ||
       registerProviderHook.isLoading,
-    error: loginHook.error || registerHook.error || otpHook.error || registerProviderHook.error,
+    error,
+    errorMessage,
 
     login: loginHook.login,
     logout,
     register: registerHook.register,
     requestOTP: otpHook.requestOTP,
+    isRequestingOTP: otpHook.isLoading,
     registerProvider: registerProviderHook.registerProvider,
 
     clearError: () => {
@@ -415,5 +255,29 @@ export function useAuth() {
       otpHook.clearError();
       registerProviderHook.clearError();
     },
+  };
+}
+
+export function useGoogleLogin() {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const loginWithGoogle = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const { url } = await fetchAuth.googleLogin();
+      window.location.href = url;
+    } catch (err) {
+      setError('Không thể lấy liên kết Google.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return {
+    loginWithGoogle,
+    isLoading,
+    error,
   };
 }

@@ -1,15 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { decodeJwt, isServiceProvider, isCustomer, isManager, isAdmin } from './utils/jwt';
 
 // Define routes that require authentication
 const protectedRoutes = [
-  '/dashboard',
-  '/profile',
-  '/property',
+  '/provider/dashboard',
+  '/provider',
+  '/user/profile',
+  '/settings/profile',
+  '/manager',
+  '/admin',
+  '/admin/manage-user',
   // Add other protected routes as needed
 ];
 
 // Define routes that should be redirected to dashboard if user is logged in
 const authRoutes = ['/login', '/register', '/forgot-password'];
+
+// Define provider-only routes
+const providerRoutes = ['/provider', '/provider/dashboard'];
+
+// Define customer-only protected routes (not public)
+const customerProtectedRoutes = ['/user/profile'];
+
+const managerProtectedRoutes = ['/manager', '/manager/manage-category'];
+
+const adminProtectedRoutes = ['/admin', '/admin/manage-user'];
 
 export default function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -18,6 +33,8 @@ export default function middleware(request: NextRequest) {
   // Note: Since middleware runs on the server, we need to access the client-stored
   // token via cookies. This requires changes to how we store tokens.
   const token = request.cookies.get('auth-token')?.value;
+
+  console.log('Token in middleware', token);
 
   // Check if the route requires authentication
   const isProtectedRoute = protectedRoutes.some(
@@ -29,9 +46,26 @@ export default function middleware(request: NextRequest) {
     route => pathname === route || pathname.startsWith(`${route}/`)
   );
 
+  // Check if the route is a provider route
+  const isProviderRoute = providerRoutes.some(
+    route => pathname === route || pathname.startsWith(`${route}/`)
+  );
+
+  const isManagerRoute = managerProtectedRoutes.some(
+    route => pathname === route || pathname.startsWith(`${route}/`)
+  );
+
+  const isAdminRoute = adminProtectedRoutes.some(
+    route => pathname === route || pathname.startsWith(`${route}/`)
+  );
+
+  // Check if the route is a protected customer route
+  const isCustomerProtectedRoute = customerProtectedRoutes.some(
+    route => pathname === route || pathname.startsWith(`${route}/`)
+  );
+
   // If the route requires authentication and user is not logged in
   if (isProtectedRoute && !token) {
-    console.log('[AUTH] Redirecting to login, no valid token found');
     const redirectUrl = new URL('/login', request.url);
     redirectUrl.searchParams.set('from', pathname);
     return NextResponse.redirect(redirectUrl);
@@ -39,8 +73,50 @@ export default function middleware(request: NextRequest) {
 
   // If the user is logged in and tries to access auth routes, redirect to dashboard
   if (isAuthRoute && token) {
-    console.log('[AUTH] Redirecting to dashboard, user already logged in');
     return NextResponse.redirect(new URL('/', request.url));
+  }
+
+  // If token exists, decode it and check role-based access
+  if (token) {
+    try {
+      const decodedToken = decodeJwt(token);
+
+      if (decodedToken) {
+        // Handle provider routes - only allow service providers
+        if (isProviderRoute && !isServiceProvider(decodedToken)) {
+          return NextResponse.redirect(new URL('/', request.url));
+        }
+
+        // Handle protected customer routes - only allow customers
+        if (isCustomerProtectedRoute && !isCustomer(decodedToken)) {
+          return NextResponse.redirect(new URL('/', request.url));
+        }
+
+        if (isManagerRoute && !isManager(decodedToken)) {
+          return NextResponse.redirect(new URL('/', request.url));
+        }
+
+        if (isAdminRoute && !isAdmin(decodedToken)) {
+          return NextResponse.redirect(new URL('/', request.url));
+        }
+
+        // Redirect to appropriate dashboard based on role when accessing root
+        if (pathname === '/') {
+          if (isServiceProvider(decodedToken)) {
+            return NextResponse.redirect(new URL('/provider/dashboard', request.url));
+          }
+          // No redirect for customers at root - they stay on the homepage
+        }
+      }
+    } catch (error) {
+      console.error('[AUTH] Error processing token:', error);
+      // If there's an error with the token, treat user as not authenticated
+      if (isProtectedRoute) {
+        const redirectUrl = new URL('/login', request.url);
+        redirectUrl.searchParams.set('from', pathname);
+        return NextResponse.redirect(redirectUrl);
+      }
+    }
   }
 
   return NextResponse.next();

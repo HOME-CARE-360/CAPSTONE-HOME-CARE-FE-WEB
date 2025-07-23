@@ -1,8 +1,21 @@
 import apiService from '../core';
 
+export interface ValidationError {
+  validation?: string;
+  code: string;
+  message: string;
+  path?: string;
+  minimum?: number;
+  type?: string;
+  inclusive?: boolean;
+  exact?: boolean;
+}
+
 export enum Roles {
-  Admin = 'Admin',
-  Customer = 'Customer',
+  ADMIN = 'ADMIN',
+  SERVICE_PROVIDER = 'SERVICE PROVIDER',
+  CUSTOMER = 'CUSTOMER',
+  MANAGER = 'MANAGER',
 }
 
 export interface LoginCredentials {
@@ -10,14 +23,20 @@ export interface LoginCredentials {
   password: string;
 }
 
+export enum OTPType {
+  REGISTER = 'REGISTER',
+  FORGOT_PASSWORD = 'FORGOT_PASSWORD',
+  DISABLE_2FA = 'DISABLE_2FA',
+  LOGIN = 'LOGIN',
+}
+
 export interface OTPVerifyRequest {
   email: string;
-  type: 'REGISTER' | 'RESET_PASSWORD';
+  type: OTPType;
 }
 
 export interface OTPVerifyResponse {
-  status?: boolean;
-  message?: Message;
+  message?: string | ValidationError[];
 }
 
 export interface RegisterRequest {
@@ -34,41 +53,26 @@ export interface Token {
   refreshToken: string;
 }
 
-export interface Message {
-  message: string;
-  path: string;
-}
-
 export interface LoginResponse {
   data?: Token;
-  message?: Message;
+  message?: string | ValidationError[];
 }
 
 export interface RegisterResponse {
-  data?: {
-    id: number;
-    email: string;
-    name: string;
-    phone: string;
-    avatar: string | null;
-    status: string;
-    createdById: string | null;
-    updatedById: string | null;
-    deletedById: string | null;
-    deletedAt: string | null;
-    createdAt: string;
-    updatedAt: string;
-    roles: Array<{
-      id: number;
-      name: string;
-    }>;
-  };
-  message?: Message;
+  message?: string | ValidationError[];
+}
+
+export enum CompanyType {
+  SOLE_PROPRIETORSHIP = 'SOLE_PROPRIETORSHIP',
+  LIMITED_LIABILITY = 'LIMITED_LIABILITY',
+  JOINT_STOCK = 'JOINT_STOCK',
+  PARTNERSHIP = 'PARTNERSHIP',
+  OTHER = 'OTHER',
 }
 
 export interface RegisterProviderRequest {
   taxId: string;
-  companyType: 'SOLE_PROPRIETORSHIP' | 'LIMITED_LIABILITY' | 'PARTNERSHIP' | 'OTHER';
+  companyType: CompanyType;
   industry: string;
   address: string;
   description: string;
@@ -81,21 +85,16 @@ export interface RegisterProviderRequest {
 }
 
 export interface RegisterProviderResponse {
-  data?: {
-    id: number;
-    email: string;
-    name: string;
-    phone: string;
-    taxId: string;
-    companyType: string;
-    industry: string;
-    address: string;
-    description: string;
-    status: string;
-    createdAt: string;
-    updatedAt: string;
-  };
-  message?: Message;
+  message?: string | ValidationError[];
+}
+
+export interface GoogleLoginResponse {
+  url: string;
+}
+
+export interface RefreshTokenResponse {
+  data?: Token;
+  message?: string | ValidationError[];
 }
 
 export const fetchAuth = {
@@ -106,38 +105,25 @@ export const fetchAuth = {
         '/auth/otp',
         data
       );
-
-      // Check if this is a successful response (status 200 or 201)
-      if (response.status === 200 || response.status === 201) {
-        // Ensure we return a proper success response even if the data structure is empty
-        return { status: true };
-      }
-
       return response.data;
-    } catch (error: unknown) {
-      // Properly type the error
-      const apiError = error as { status?: number };
-
-      // Check if this is actually a success response being treated as an error
-      if (apiError.status === 200 || apiError.status === 201) {
-        return { status: true };
-      }
-
-      // Enhanced error logging to see full error structure
-      console.error('OTP API Error - Full structure:', JSON.stringify(error, null, 2));
-
-      // Do not transform the error here, just pass it along to be handled by the hook
+    } catch (error) {
+      console.error('OTP API Error:', error);
       throw error;
     }
   },
 
   // Login with credentials
   login: async (credentials: LoginCredentials): Promise<LoginResponse> => {
-    const response = await apiService.post<LoginResponse, LoginCredentials>(
-      '/auth/login',
-      credentials
-    );
-    return response.data;
+    try {
+      const response = await apiService.post<LoginResponse, LoginCredentials>(
+        '/auth/login',
+        credentials
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Login API Error:', error);
+      throw error;
+    }
   },
 
   // Register new user
@@ -147,21 +133,9 @@ export const fetchAuth = {
         '/auth/register',
         data
       );
-      console.log('Register API Response:', response);
-
-      // Check if this is a successful response (status 200 or 201)
-      if (response.status === 200 || response.status === 201) {
-        console.log('Registration successful with status:', response.status);
-        // Ensure we return a proper success response
-        return response.data || { status: true };
-      }
-
       return response.data;
-    } catch (error: unknown) {
-      // Enhanced error logging to see full error structure
-      console.error('Register API Error - Full structure:', JSON.stringify(error, null, 2));
-
-      // Do not transform the error here, just pass it along to be handled by the hook
+    } catch (error) {
+      console.error('Register API Error:', error);
       throw error;
     }
   },
@@ -173,24 +147,9 @@ export const fetchAuth = {
         '/auth/register-provider',
         data
       );
-      console.log('Register Provider API Response:', response);
-
-      // Check if this is a successful response (status 200 or 201)
-      if (response.status === 200 || response.status === 201) {
-        console.log('Provider registration successful with status:', response.status);
-        // Ensure we return a proper success response
-        return response.data || { status: true };
-      }
-
       return response.data;
-    } catch (error: unknown) {
-      // Enhanced error logging to see full error structure
-      console.error(
-        'Register Provider API Error - Full structure:',
-        JSON.stringify(error, null, 2)
-      );
-
-      // Do not transform the error here, just pass it along to be handled by the hook
+    } catch (error) {
+      console.error('Register Provider API Error:', error);
       throw error;
     }
   },
@@ -200,11 +159,26 @@ export const fetchAuth = {
     return Promise.resolve();
   },
 
-  //   // Refresh token
-  //   refreshToken: async (): Promise<AuthResponse> => {
-  //     const response = await apiService.post<AuthResponse>('/auth/refresh-token', {});
-  //     return response.data;
-  //   },
+  // Google login
+  googleLogin: async (): Promise<GoogleLoginResponse> => {
+    const response = await apiService.get<GoogleLoginResponse>('/auth/google-link');
+    return response.data;
+  },
+
+  // Refresh token
+  refreshToken: async (refreshToken: string): Promise<RefreshTokenResponse> => {
+    try {
+      const response = await apiService.post<RefreshTokenResponse>('/auth/refresh-token', {
+        refreshToken,
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Refresh Token API Error:', error);
+      throw error;
+    }
+  },
+
+  // Change Password
 
   //   // Reset password request
   //   requestPasswordReset: async (email: string): Promise<AuthResponse> => {

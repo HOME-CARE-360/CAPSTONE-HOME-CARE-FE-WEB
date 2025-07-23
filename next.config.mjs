@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Enable standalone output for Docker
+  output: 'standalone',
   eslint: {
     // Don't run ESLint during builds
     // ignoreDuringBuilds: true,
@@ -8,6 +10,11 @@ const nextConfig = {
     remotePatterns: [
       {
         hostname: 'storage.googleapis.com',
+        protocol: 'https',
+        pathname: '/**',
+      },
+      {
+        hostname: 's3.ap-southeast-2.amazonaws.com',
         protocol: 'https',
         pathname: '/**',
       },
@@ -38,6 +45,21 @@ const nextConfig = {
       },
       {
         hostname: 'flagcdn.com',
+        protocol: 'https',
+        pathname: '/**',
+      },
+      {
+        hostname: 'github.com',
+        protocol: 'https',
+        pathname: '/**',
+      },
+      {
+        hostname: 'avatars.githubusercontent.com',
+        protocol: 'https',
+        pathname: '/**',
+      },
+      {
+        hostname: 'placehold.co',
         protocol: 'https',
         pathname: '/**',
       },

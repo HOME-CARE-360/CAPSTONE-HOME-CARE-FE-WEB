@@ -4,262 +4,291 @@ import Image from 'next/image';
 import {
   ChevronLeft,
   ChevronRight,
-  //MapPin,
   X,
   ZoomIn,
   ZoomOut,
-  Camera,
+  Images,
   ChevronRight as ChevronRightIcon,
+  ArrowLeft,
 } from 'lucide-react';
-import { useState } from 'react';
-//import { formatCurrency } from '@/utils/numbers/formatCurrency';
+import { useState, useCallback } from 'react';
 import { Service } from '@/lib/api/services/fetchService';
 import { Button } from '@/components/ui/button';
-import { useTranslation } from 'react-i18next';
+import { Badge } from '@/components/ui/badge';
 import { AnimatePresence, motion } from 'framer-motion';
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
 
 interface ServiceShowcaseProps {
   service: Service;
 }
 
 export default function ServiceShowcase({ service }: ServiceShowcaseProps) {
-  const { t } = useTranslation();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [showAllImages, setShowAllImages] = useState(false);
-  const [showFocusedImage, setShowFocusedImage] = useState(false);
+  const [showLightbox, setShowLightbox] = useState(false);
   const [isZoomed, setIsZoomed] = useState(false);
 
-  // Only display first 5 images in the grid
-  const displayImages = service.images.slice(0, 5);
-
-  const handleNextImage = () => {
+  const handleNextImage = useCallback(() => {
     setCurrentImageIndex(prev => (prev === service.images.length - 1 ? 0 : prev + 1));
-  };
+  }, [service.images.length]);
 
-  const handlePrevImage = () => {
+  const handlePrevImage = useCallback(() => {
     setCurrentImageIndex(prev => (prev === 0 ? service.images.length - 1 : prev - 1));
-  };
+  }, [service.images.length]);
 
-  const toggleZoom = () => {
-    setIsZoomed(!isZoomed);
-  };
-
-  const openFocusedImage = (index: number) => {
+  const openLightbox = useCallback((index: number) => {
     setCurrentImageIndex(index);
-    setShowFocusedImage(true);
-  };
+    setShowLightbox(true);
+    setIsZoomed(false);
+  }, []);
+
+  const closeLightbox = useCallback(() => {
+    setShowLightbox(false);
+    setIsZoomed(false);
+  }, []);
+
+  // Get main image and thumbnail images
+  const mainImage = service.images[0];
+  const thumbnailImages = service.images.slice(1, 5);
 
   return (
-    <div className="mb-12">
+    <div className="mb-16">
       {/* Breadcrumb Navigation */}
-      <nav className="flex items-center space-x-1 text-sm text-muted-foreground mb-6">
-        <Link href="/services" className="hover:text-foreground transition-colors">
-          {t('service_showcase.search')}
+      <nav className="flex items-center space-x-3 text-sm mb-10" aria-label="Breadcrumb">
+        <Link
+          href="/services"
+          className="flex items-center text-gray-500 hover:text-gray-900 transition-colors font-medium"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Dịch vụ
         </Link>
-        <ChevronRightIcon className="h-4 w-4" />
-        <span className="text-foreground font-medium">{service.name}</span>
+        <ChevronRightIcon className="w-4 h-4 text-gray-300" />
+        <span className="text-gray-900 font-semibold truncate max-w-sm">{service.name}</span>
       </nav>
 
-      {/* Main Gallery Layout - 5 Images */}
-      <div className="relative w-full mb-8 rounded-xl overflow-hidden group">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-2 h-[20rem] md:h-[40rem]">
-          {/* Main Large Image */}
-          <div
-            className="col-span-1 md:col-span-6 relative cursor-zoom-in overflow-hidden"
-            onClick={() => {
-              setCurrentImageIndex(0);
-              setShowAllImages(true);
-            }}
-          >
+      {/* Main Gallery */}
+      <div className="relative rounded-2xl overflow-hidden bg-white border-2 border-gray-200 shadow-lg">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 h-[28rem] md:h-[36rem]">
+          {/* Main Image */}
+          <div className="lg:col-span-3 relative group cursor-pointer overflow-hidden bg-gray-50">
             <Image
-              src={displayImages[0]}
-              alt={`${service.name} - Main View`}
+              src={mainImage}
+              alt={service.name}
               fill
-              className="object-cover rounded-t-xl md:rounded-l-xl md:rounded-t-none transition-transform duration-300 group-hover:scale-105"
-              sizes="(max-inline-size: 768px) 100vw, 50vw"
+              className="object-cover transition-transform duration-500 group-hover:scale-105"
+              sizes="(max-width: 1024px) 100vw, 75vw"
               priority
-              loading="eager"
-              quality={75}
+              quality={90}
+              onClick={() => openLightbox(0)}
             />
-            <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-          </div>
 
-          {/* Right Side Grid - 4 Images */}
-          <div className="hidden md:grid md:col-span-6 grid-cols-2 grid-rows-2 gap-2">
-            {displayImages.slice(1, 5).map((image: string, index: number) => (
-              <motion.div
-                key={index}
-                className={`relative cursor-zoom-in overflow-hidden ${
-                  index === 0 ? 'rounded-tr-xl' : index === 3 ? 'rounded-br-xl' : ''
-                }`}
-                whileHover={{ scale: 1.02 }}
-                onClick={() => {
-                  setCurrentImageIndex(index + 1);
-                  setShowAllImages(true);
-                }}
+            {/* Gradient overlay on hover */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+            {/* Image counter */}
+            <div className="absolute top-6 left-6">
+              <Badge className="bg-black/80 text-white backdrop-blur-sm border-0 px-3 py-2 font-semibold">
+                1 / {service.images.length}
+              </Badge>
+            </div>
+
+            {/* View all photos button */}
+            {service.images.length > 1 && (
+              <Button
+                onClick={() => openLightbox(0)}
+                className="absolute bottom-6 right-6 bg-white hover:bg-gray-100 text-gray-900 shadow-xl border-2 border-gray-200 font-semibold"
+                size="default"
               >
-                <Image
-                  src={image}
-                  alt={`${service.name} - View ${index + 2}`}
-                  fill
-                  className="object-cover transition-transform duration-300 hover:scale-105"
-                  sizes="(max-inline-size: 768px) 100vw, 25vw"
-                  loading="lazy"
-                  quality={75}
-                />
-                <div className="absolute inset-0 bg-black/10 opacity-0 hover:opacity-100 transition-opacity duration-300" />
-              </motion.div>
-            ))}
-          </div>
-        </div>
-
-        {/* Show All Photos Button */}
-        <Button
-          variant="outline"
-          className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-sm text-black font-medium rounded-full shadow-lg hover:bg-white hover:scale-105 transition-all duration-300 opacity-90 group-hover:opacity-100"
-          onClick={() => setShowAllImages(true)}
-        >
-          <Camera className="w-4 h-4 mr-2" />
-          {t('service_detail.view_all')} {service.images.length} {t('service_detail.photos')}
-        </Button>
-
-        {/* Image Counter Badge */}
-        <div className="absolute top-4 right-4 bg-black/70 backdrop-blur-sm text-white px-3 py-1 rounded-full text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-          {currentImageIndex + 1} / {service.images.length}
-        </div>
-      </div>
-
-      {/* Full Gallery Modal */}
-      {showAllImages && (
-        <div className="fixed inset-0 bg-white z-50 overflow-y-auto">
-          {/* Gallery Header */}
-          <div className="sticky top-0 z-10 flex justify-between items-center p-4 bg-white border-b">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="rounded-full hover:bg-gray-100"
-              onClick={() => setShowAllImages(false)}
-            >
-              <X className="h-5 w-5" />
-            </Button>
-            <h2 className="text-lg font-medium">
-              {service.name} {t('service_detail.photos')}
-            </h2>
-            <div className="w-10" /> {/* Empty div for balance */}
+                <Images className="w-4 h-4 mr-2" />
+                Xem tất cả {service.images.length} ảnh
+              </Button>
+            )}
           </div>
 
-          {/* Gallery Grid */}
-          <div className="container mx-auto p-4">
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {service.images.map((image: string, index: number) => (
+          {/* Thumbnail Grid */}
+          {thumbnailImages.length > 0 && (
+            <div className="hidden lg:grid grid-rows-2 gap-3">
+              {thumbnailImages.slice(0, 2).map((image, index) => (
                 <div
                   key={index}
-                  className="relative cursor-pointer aspect-[9/16] rounded-lg overflow-hidden"
-                  onClick={() => openFocusedImage(index)}
+                  className="relative group cursor-pointer overflow-hidden rounded-xl bg-gray-100 border border-gray-200"
+                  onClick={() => openLightbox(index + 1)}
                 >
                   <Image
                     src={image}
-                    alt={`${service.name} - View ${index + 1}`}
+                    alt={`${service.name} - Ảnh ${index + 2}`}
                     fill
-                    className="object-cover hover:opacity-95 transition-opacity"
-                    loading="lazy"
+                    className="object-cover transition-transform duration-300 group-hover:scale-110"
+                    sizes="25vw"
                     quality={75}
                   />
+                  <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 </div>
               ))}
-            </div>
-          </div>
-        </div>
-      )}
 
-      {/* Focused Image Modal */}
-      {showFocusedImage && (
-        <div className="fixed inset-0 bg-black z-50 flex flex-col">
-          {/* Header */}
-          <div className="flex justify-between items-center p-4 text-white">
-            <span className="text-sm">
-              {currentImageIndex + 1} / {service.images.length}
-            </span>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="rounded-full text-white hover:bg-gray-800"
-              onClick={() => setShowFocusedImage(false)}
-            >
-              <X className="h-5 w-5" />
-            </Button>
-          </div>
-
-          {/* Focused Image */}
-          <div className="flex-1 flex items-center justify-center relative">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={currentImageIndex}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className={`relative w-full h-full flex items-center justify-center ${
-                  isZoomed ? 'cursor-zoom-out' : 'cursor-zoom-in'
-                }`}
-                onClick={toggleZoom}
-              >
-                <div className={`relative ${isZoomed ? 'w-full h-full' : 'w-4/5 h-4/5'}`}>
-                  <Image
-                    src={service.images[currentImageIndex]}
-                    alt={`${service.name} - View ${currentImageIndex + 1}`}
-                    fill
-                    className={`object-contain transition-transform duration-300 ${
-                      isZoomed ? 'scale-125' : 'scale-100'
-                    }`}
-                    quality={90}
-                    priority
-                  />
+              {/* More photos indicator */}
+              {service.images.length > 3 && (
+                <div
+                  className="relative group cursor-pointer overflow-hidden rounded-xl bg-gray-900/90 flex items-center justify-center border border-gray-200"
+                  onClick={() => openLightbox(3)}
+                >
+                  {thumbnailImages[2] && (
+                    <Image
+                      src={thumbnailImages[2]}
+                      alt={`${service.name} - Ảnh thêm`}
+                      fill
+                      className="object-cover opacity-40"
+                      sizes="25vw"
+                      quality={75}
+                    />
+                  )}
+                  <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                    <div className="text-center text-white">
+                      <Images className="w-7 h-7 mx-auto mb-2" />
+                      <span className="text-lg font-bold">+{service.images.length - 3}</span>
+                    </div>
+                  </div>
                 </div>
-              </motion.div>
-            </AnimatePresence>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Lightbox Modal */}
+      <AnimatePresence>
+        {showLightbox && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black"
+          >
+            {/* Header */}
+            <div className="absolute top-0 left-0 right-0 z-10 flex justify-between items-center p-6 bg-gradient-to-b from-black/80 to-transparent">
+              <div className="text-white">
+                <span className="text-lg font-semibold">
+                  {currentImageIndex + 1} / {service.images.length}
+                </span>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-white hover:bg-white/20 rounded-full w-12 h-12"
+                onClick={closeLightbox}
+              >
+                <X className="w-6 h-6" />
+              </Button>
+            </div>
+
+            {/* Main Image */}
+            <div className="absolute inset-0 flex items-center justify-center p-6">
+              <div
+                className={cn(
+                  'relative w-full h-full flex items-center justify-center cursor-pointer transition-transform duration-300',
+                  isZoomed && 'cursor-zoom-out'
+                )}
+                onClick={() => setIsZoomed(!isZoomed)}
+              >
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={currentImageIndex}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{
+                      opacity: 1,
+                      scale: isZoomed ? 1.5 : 1,
+                      transition: { duration: 0.3 },
+                    }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    className="relative max-w-full max-h-full"
+                  >
+                    <Image
+                      src={service.images[currentImageIndex]}
+                      alt={`${service.name} - Ảnh ${currentImageIndex + 1}`}
+                      width={1200}
+                      height={800}
+                      className="object-contain max-w-full max-h-full"
+                      quality={95}
+                      priority
+                    />
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+            </div>
 
             {/* Navigation Controls */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute left-4 rounded-full bg-black/50 text-white hover:bg-black/70"
-              onClick={e => {
-                e.stopPropagation();
-                handlePrevImage();
-              }}
-            >
-              <ChevronLeft className="h-6 w-6" />
-            </Button>
+            {service.images.length > 1 && (
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute left-6 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 rounded-full w-14 h-14 border border-white/20"
+                  onClick={handlePrevImage}
+                >
+                  <ChevronLeft className="w-7 h-7" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-6 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 rounded-full w-14 h-14 border border-white/20"
+                  onClick={handleNextImage}
+                >
+                  <ChevronRight className="w-7 h-7" />
+                </Button>
+              </>
+            )}
 
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute right-4 rounded-full bg-black/50 text-white hover:bg-black/70"
-              onClick={e => {
-                e.stopPropagation();
-                handleNextImage();
-              }}
-            >
-              <ChevronRight className="h-6 w-6" />
-            </Button>
+            {/* Bottom Controls */}
+            <div className="absolute bottom-0 left-0 right-0 z-10 p-6 bg-gradient-to-t from-black/80 to-transparent">
+              <div className="flex justify-center items-center space-x-6">
+                <Button
+                  variant="ghost"
+                  size="default"
+                  className="text-white hover:bg-white/20 border border-white/20 font-medium"
+                  onClick={() => setIsZoomed(!isZoomed)}
+                >
+                  {isZoomed ? (
+                    <ZoomOut className="w-5 h-5 mr-2" />
+                  ) : (
+                    <ZoomIn className="w-5 h-5 mr-2" />
+                  )}
+                  {isZoomed ? 'Thu nhỏ' : 'Phóng to'}
+                </Button>
+              </div>
+            </div>
 
-            {/* Zoom Control */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute bottom-4 right-4 rounded-full bg-black/50 text-white hover:bg-black/70"
-              onClick={e => {
-                e.stopPropagation();
-                toggleZoom();
-              }}
-            >
-              {isZoomed ? <ZoomOut className="h-5 w-5" /> : <ZoomIn className="h-5 w-5" />}
-            </Button>
-          </div>
-        </div>
-      )}
+            {/* Thumbnail Strip */}
+            {service.images.length > 1 && (
+              <div className="absolute bottom-20 left-0 right-0 z-10">
+                <div className="flex justify-center">
+                  <div className="flex space-x-3 p-3 bg-black/50 rounded-xl backdrop-blur-sm max-w-lg overflow-x-auto border border-white/20">
+                    {service.images.map((image, index) => (
+                      <button
+                        key={index}
+                        className={cn(
+                          'relative w-14 h-14 flex-shrink-0 rounded-lg overflow-hidden border-2 transition-all',
+                          currentImageIndex === index
+                            ? 'border-white scale-110'
+                            : 'border-transparent opacity-60 hover:opacity-100'
+                        )}
+                        onClick={() => setCurrentImageIndex(index)}
+                      >
+                        <Image
+                          src={image}
+                          alt={`Thumbnail ${index + 1}`}
+                          fill
+                          className="object-cover"
+                          sizes="56px"
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

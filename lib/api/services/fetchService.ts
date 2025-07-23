@@ -1,8 +1,5 @@
 import apiService, { RequestParams } from '../core';
-
-export interface Category {
-  name: string;
-}
+import { Category } from './fetchCategory';
 
 export interface Service {
   id: number;
@@ -30,6 +27,17 @@ export interface ServiceDetailResponse {
   data: Service;
 }
 
+export interface SortBy {
+  createdAt: string;
+  price: number;
+  discount: string;
+}
+
+export interface OrderBy {
+  asc: string;
+  desc: string;
+}
+
 // Search parameters
 export interface ServiceSearchParams {
   page?: number;
@@ -39,6 +47,8 @@ export interface ServiceSearchParams {
   minPrice?: number;
   maxPrice?: number;
   providerId?: number;
+  sortBy?: SortBy;
+  orderBy?: OrderBy;
 }
 
 // Convert ServiceSearchParams to RequestParams
@@ -62,15 +72,28 @@ const convertServiceFilters = (filters?: ServiceSearchParams): RequestParams => 
 export const serviceService = {
   // Get all services with filters
   getServices: async (filters?: ServiceSearchParams): Promise<ServiceListResponse> => {
-    const params = convertServiceFilters(filters);
-    const response = await apiService.get<ServiceListResponse>('/services', params);
-    return response.data;
+    try {
+      const params = convertServiceFilters(filters);
+      const response = await apiService.get<ServiceListResponse>(
+        '/services/get-list-service',
+        params
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Get Services Error:', error);
+      throw error;
+    }
   },
 
   // Get a single service by ID
   getService: async (id: string | number): Promise<ServiceDetailResponse> => {
-    const response = await apiService.get<ServiceDetailResponse>(`/services/detail/${id}`);
-    return response.data;
+    try {
+      const response = await apiService.get<ServiceDetailResponse>(`/services/detail/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error('Get Service Detail Error:', error);
+      throw error;
+    }
   },
 };
 

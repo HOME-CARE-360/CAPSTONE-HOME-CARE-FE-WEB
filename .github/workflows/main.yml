@@ -117,12 +117,10 @@ jobs:
             git pull origin develop || git clone -b develop https://github.com/${{ github.repository }}.git .
             
             # Create .env.development for staging
-            cat > .env.development << 'ENVEOF'
-            NODE_ENV=staging
-            PORT=3001
-            NEXT_PUBLIC_API_URL_BACKEND=${{ secrets.NEXT_PUBLIC_API_URL_BACKEND }}
-            BUILD_TARGET=runner
-            ENVEOF
+            echo "NODE_ENV=staging" > .env.development
+            echo "PORT=3001" >> .env.development
+            echo "NEXT_PUBLIC_API_URL_BACKEND=${{ secrets.NEXT_PUBLIC_API_URL_BACKEND }}" >> .env.development
+            echo "BUILD_TARGET=runner" >> .env.development
             
             # Deploy with Docker Compose
             docker compose --env-file .env.development down || true
@@ -175,12 +173,10 @@ jobs:
             git pull origin main || git clone https://github.com/${{ github.repository }}.git .
             
             # Create .env.production for production
-            cat > .env.production << 'ENVEOF'
-            NODE_ENV=production
-            PORT=3000
-            NEXT_PUBLIC_API_URL_BACKEND=${{ secrets.NEXT_PUBLIC_API_URL_BACKEND }}
-            BUILD_TARGET=runner
-            ENVEOF
+            echo "NODE_ENV=production" > .env.production
+            echo "PORT=3000" >> .env.production
+            echo "NEXT_PUBLIC_API_URL_BACKEND=${{ secrets.NEXT_PUBLIC_API_URL_BACKEND }}" >> .env.production
+            echo "BUILD_TARGET=runner" >> .env.production
             
             # Deploy with Docker Compose
             docker compose --env-file .env.production down || true

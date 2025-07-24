@@ -22,7 +22,7 @@ interface ServiceSheetProps {
 }
 
 export function ServiceSheet({ serviceId, trigger, open, onOpenChange }: ServiceSheetProps) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
   const isEditing = !!serviceId;
 
   const { data: serviceData, isLoading: isServiceLoading } = useServiceManagerDetail(
@@ -33,16 +33,9 @@ export function ServiceSheet({ serviceId, trigger, open, onOpenChange }: Service
   const isLoading = isCategoryLoading || isServiceLoading;
   const allCategories = categoryData?.categories || [];
 
-  // Handle controlled open state
-  const handleOpenChange = (newOpen: boolean) => {
-    if (onOpenChange) {
-      onOpenChange(newOpen);
-    } else {
-      setIsOpen(newOpen);
-    }
-  };
-
-  const actualOpen = open !== undefined ? open : isOpen;
+  // Use controlled state if provided, otherwise use internal state
+  const isOpen = open !== undefined ? open : internalOpen;
+  const setIsOpen = onOpenChange || setInternalOpen;
 
   const LoadingSkeleton = () => (
     <div className="space-y-6 p-4">
@@ -78,7 +71,7 @@ export function ServiceSheet({ serviceId, trigger, open, onOpenChange }: Service
   );
 
   return (
-    <Sheet open={actualOpen} onOpenChange={handleOpenChange}>
+    <Sheet open={isOpen} onOpenChange={setIsOpen}>
       {trigger && <SheetTrigger asChild>{trigger}</SheetTrigger>}
       <SheetContent className="w-full sm:max-w-4xl overflow-y-auto">
         <SheetHeader>
@@ -98,7 +91,7 @@ export function ServiceSheet({ serviceId, trigger, open, onOpenChange }: Service
               initialData={serviceData?.data}
               categories={allCategories}
               isEditMode={isEditing}
-              onSuccess={() => handleOpenChange(false)}
+              onSuccess={() => setIsOpen(false)}
             />
           )}
         </div>

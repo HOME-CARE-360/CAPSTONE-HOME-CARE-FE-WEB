@@ -1,5 +1,9 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { CreateBookingRequest, serviceBooking } from '@/lib/api/services/fetchBooking';
+import {
+  CreateBookingRequest,
+  serviceBooking,
+  StaffBookingResponse,
+} from '@/lib/api/services/fetchBooking';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 
@@ -32,4 +36,13 @@ export const useCreateBooking = () => {
   });
 
   return { data, isPending, error, mutate, mutateAsync };
+};
+
+export const useStaffBooking = () => {
+  const { data, isLoading, error } = useQuery<StaffBookingResponse>({
+    queryKey: ['staff-bookings'],
+    queryFn: () => serviceBooking.getStaffListBooking(),
+  });
+
+  return { data, isLoading, error };
 };

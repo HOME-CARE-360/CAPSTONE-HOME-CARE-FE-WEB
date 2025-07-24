@@ -41,7 +41,7 @@ export default function ServiceDetailsSection({ service }: ServiceDetailsSection
         {/* Service Header */}
         <div className="space-y-6">
           <div className="flex flex-wrap items-center gap-3 mb-6">
-            {(service.categories || []).map((category, index) => (
+            {(service.category || []).map((category, index) => (
               <Badge
                 key={index}
                 variant="secondary"
@@ -142,7 +142,7 @@ export default function ServiceDetailsSection({ service }: ServiceDetailsSection
         </Card>
 
         {/* Categories */}
-        {service.categories && service.categories.length > 0 && (
+        {service.category && service.category.length > 0 && (
           <Card className="border border-gray-200 shadow-sm bg-white">
             <CardHeader className="pb-6">
               <CardTitle className="flex items-center gap-3 text-2xl font-semibold text-gray-900">
@@ -154,7 +154,7 @@ export default function ServiceDetailsSection({ service }: ServiceDetailsSection
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {service.categories.map((category, index) => (
+                {service.category.map((category, index) => (
                   <div
                     key={index}
                     className="flex items-center gap-4 p-5 bg-gray-50 rounded-xl border border-gray-200 hover:bg-gray-100 transition-colors"

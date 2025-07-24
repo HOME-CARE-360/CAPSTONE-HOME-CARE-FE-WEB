@@ -1,7 +1,6 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 'use client';
 
-import * as React from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import {
   ColumnFiltersState,
   SortingState,
@@ -40,6 +39,8 @@ interface ServiceTableProps {
   totalItems?: number;
   categories?: Category[];
   searchFilters?: ServiceManagerSearchParams;
+  onEdit?: (service: ServiceManager) => void;
+  onDelete?: (service: ServiceManager) => void;
 }
 
 export function ServiceTable({
@@ -53,13 +54,15 @@ export function ServiceTable({
   totalItems,
   categories,
   searchFilters,
+  onEdit,
+  onDelete,
 }: ServiceTableProps) {
-  const [rowSelection, setRowSelection] = React.useState({});
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
-  const [sorting, setSorting] = React.useState<SortingState>([]);
+  const [rowSelection, setRowSelection] = useState({});
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [sorting, setSorting] = useState<SortingState>([]);
 
-  const columns = useServiceTableColumns();
+  const columns = useServiceTableColumns({ onEdit, onDelete });
 
   // const pagination = {
   //   pageIndex: page ? page - 1 : page,
@@ -88,7 +91,7 @@ export function ServiceTable({
   });
 
   // Debounce filter changes
-  const debouncedFilterChange = React.useCallback(
+  const debouncedFilterChange = useCallback(
     (filters: ServiceManagerSearchParams) => {
       if (onFilterChange) {
         onFilterChange(filters);
@@ -107,7 +110,7 @@ export function ServiceTable({
   };
 
   // Handle filter changes with debounce
-  React.useEffect(() => {
+  useEffect(() => {
     const timeoutId = setTimeout(() => {
       const filters: ServiceManagerSearchParams = {
         page: page || 1,

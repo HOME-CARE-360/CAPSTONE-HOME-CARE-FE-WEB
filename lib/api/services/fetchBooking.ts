@@ -18,6 +18,51 @@ export interface CreateBookingRequest {
   paymentMethod: 'BANK_TRANSFER' | 'CREDIT_CARD';
 }
 
+export enum StatusBooking {
+  PENDING = 'PENDING',
+  CONFIRMED = 'CONFIRMED',
+  IN_PROGRESS = 'IN_PROGRESS',
+  COMPLETED = 'COMPLETED',
+  CANCELLED = 'CANCELLED',
+}
+
+export interface Booking {
+  id: number;
+  status: StatusBooking;
+  createdAt: string;
+  serviceRequestId: number;
+  customer: {
+    name: string;
+    phone: string;
+    address: string;
+  };
+  serviceRequest: {
+    id: number;
+    preferredDate: string;
+    note: string;
+    location: string;
+    phoneNumber: string;
+    status: string;
+    categoryId: number;
+    categoryName: string;
+  };
+}
+
+export interface StaffBookingResponse {
+  success: boolean;
+  code: string;
+  message: string;
+  data: {
+    bookings: Booking[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+  statusCode: number;
+  timestamp: string;
+}
+
 export const serviceBooking = {
   createBooking: async (data: CreateBookingRequest) => {
     try {
@@ -35,6 +80,16 @@ export const serviceBooking = {
       return response.data;
     } catch (error) {
       console.error('Get All Bookings Error:', error);
+      throw error;
+    }
+  },
+
+  getStaffListBooking: async (): Promise<StaffBookingResponse> => {
+    try {
+      const response = await apiService.get(`/staffs/get-list-booking`);
+      return response.data as StaffBookingResponse;
+    } catch (error) {
+      console.error('Get List Booking Error:', error);
       throw error;
     }
   },

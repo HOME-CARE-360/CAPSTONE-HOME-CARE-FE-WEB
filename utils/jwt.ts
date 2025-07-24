@@ -48,6 +48,12 @@ export const isAdmin = (token: DecodedToken | null): boolean => {
   return result;
 };
 
+export const isStaff = (token: DecodedToken | null): boolean => {
+  if (!token) return false;
+  const result = hasRole(token, Roles.STAFF);
+  return result;
+};
+
 export const isManager = (token: DecodedToken | null): boolean => {
   if (!token) return false;
   const result = hasRole(token, Roles.MANAGER);

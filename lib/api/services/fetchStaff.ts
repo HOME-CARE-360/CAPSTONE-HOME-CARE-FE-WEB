@@ -81,6 +81,15 @@ export const staffService = {
   getAllStaff: async (filters?: StaffSearchParams): Promise<GetAllStaffResponse<Staff[]>> => {
     const params = convertStaffFilters(filters);
     const response = await apiService.get<GetAllStaffResponse<Staff[]>>(
+      '/manage-staffs/list-staff',
+      params
+    );
+    return response.data;
+  },
+
+  getStaffAvailable: async (filters?: StaffSearchParams): Promise<GetAllStaffResponse<Staff[]>> => {
+    const params = convertStaffFilters(filters);
+    const response = await apiService.get<GetAllStaffResponse<Staff[]>>(
       '/manage-staffs/get-available-staff',
       params
     );

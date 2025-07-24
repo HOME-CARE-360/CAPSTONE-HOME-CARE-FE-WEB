@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { decodeJwt, isServiceProvider, isCustomer, isManager, isAdmin } from './utils/jwt';
+import { decodeJwt, isServiceProvider, isCustomer, isManager, isAdmin, isStaff } from './utils/jwt';
 
 // Define routes that require authentication
 const protectedRoutes = [
@@ -23,6 +23,8 @@ const providerRoutes = ['/provider', '/provider/dashboard'];
 const customerProtectedRoutes = ['/user/profile'];
 
 const managerProtectedRoutes = ['/manager', '/manager/manage-category'];
+
+const staffProtectedRoutes = ['/staff', '/staff/dashboard', '/staff/bookings'];
 
 const adminProtectedRoutes = ['/admin', '/admin/manage-user'];
 
@@ -62,6 +64,10 @@ export default function middleware(request: NextRequest) {
     route => pathname === route || pathname.startsWith(`${route}/`)
   );
 
+  const isStaffRoute = staffProtectedRoutes.some(
+    route => pathname === route || pathname.startsWith(`${route}/`)
+  );
+
   // If the route requires authentication and user is not logged in
   if (isProtectedRoute && !token) {
     const redirectUrl = new URL('/login', request.url);
@@ -94,6 +100,10 @@ export default function middleware(request: NextRequest) {
           return NextResponse.redirect(new URL('/', request.url));
         }
 
+        if (isStaffRoute && !isStaff(decodedToken)) {
+          return NextResponse.redirect(new URL('/', request.url));
+        }
+
         if (isAdminRoute && !isAdmin(decodedToken)) {
           return NextResponse.redirect(new URL('/', request.url));
         }
@@ -102,6 +112,9 @@ export default function middleware(request: NextRequest) {
         if (pathname === '/') {
           if (isServiceProvider(decodedToken)) {
             return NextResponse.redirect(new URL('/provider/dashboard', request.url));
+          }
+          if (isStaff(decodedToken)) {
+            return NextResponse.redirect(new URL('/staff/dashboard', request.url));
           }
           // No redirect for customers at root - they stay on the homepage
         }

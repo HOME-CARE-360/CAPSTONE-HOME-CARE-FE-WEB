@@ -15,9 +15,23 @@ export interface ServiceManager {
   price: number;
   discount: number;
   duration: number;
-  categories: Category;
+  category: Category;
+  attachedItems: AttachedItem[];
+  status: StatusService;
 }
 
+export enum StatusService {
+  PENDING = 'PENDING',
+  ACCEPTED = 'ACCEPTED',
+  REJECTED = 'REJECTED',
+}
+
+export interface AttachedItem {
+  id: number;
+  name: string;
+  price: number;
+  quantity: number;
+}
 export interface ServiceItem {
   id: number;
   name: string;

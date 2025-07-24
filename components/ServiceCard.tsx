@@ -125,8 +125,8 @@ export function ServiceCard({ service, priority = false, onHover, size = 'md' }:
 
           {/* Top Badges */}
           <div className="absolute top-4 left-4 flex gap-2">
-            {Array.isArray(service.categories) &&
-              service.categories.slice(0, 2).map(category => (
+            {Array.isArray(service.category) &&
+              service.category.slice(0, 2).map(category => (
                 <Badge
                   key={category.name}
                   variant="outline"
@@ -234,10 +234,10 @@ export function ServiceCard({ service, priority = false, onHover, size = 'md' }:
               className={cn('text-sm text-muted-foreground', size === 'sm' && 'text-xs')}
               aria-label="Service category"
             >
-              {Array.isArray(service.categories) &&
-              service.categories.length > 0 &&
-              typeof service.categories[0]?.name === 'string'
-                ? service.categories[0].name
+              {Array.isArray(service.category) &&
+              service.category.length > 0 &&
+              typeof service.category[0]?.name === 'string'
+                ? service.category[0].name
                 : 'Dịch vụ'}
             </div>
           </div>

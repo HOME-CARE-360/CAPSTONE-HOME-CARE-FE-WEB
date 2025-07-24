@@ -15,6 +15,13 @@ export function useGetAllStaffs(filters?: StaffSearchParams) {
   });
 }
 
+export function useGetStaffAvailable(filters?: StaffSearchParams) {
+  return useQuery({
+    queryKey: ['staffs', 'list', filters ? JSON.stringify(filters) : 'all'],
+    queryFn: () => staffService.getAllStaff(filters),
+  });
+}
+
 export function useCreateStaff() {
   const queryClient = useQueryClient();
   return useMutation<CreateStaffReponse, Error, CreateStaffRequest>({

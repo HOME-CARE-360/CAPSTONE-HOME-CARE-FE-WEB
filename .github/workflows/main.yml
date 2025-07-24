@@ -181,7 +181,7 @@ jobs:
             # Deploy with Docker Compose
             docker compose --env-file .env.production down || true
             docker image prune -f
-            docker compose --env-file .env.production up -d --build
+            docker compose --env-file .env.production up -d --build 
             
             # Wait for container to start
             sleep 30

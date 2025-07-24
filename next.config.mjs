@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Enable standalone output for Docker
+  output: 'standalone',
   eslint: {
     // Don't run ESLint during builds
     // ignoreDuringBuilds: true,
@@ -48,6 +50,11 @@ const nextConfig = {
       },
       {
         hostname: 'github.com',
+        protocol: 'https',
+        pathname: '/**',
+      },
+      {
+        hostname: 'avatars.githubusercontent.com',
         protocol: 'https',
         pathname: '/**',
       },

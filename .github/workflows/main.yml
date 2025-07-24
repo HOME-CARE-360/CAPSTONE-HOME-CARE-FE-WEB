@@ -125,17 +125,17 @@ jobs:
             ENVEOF
             
             # Deploy with Docker Compose
-            docker-compose --env-file .env.development down || true
+            docker compose --env-file .env.development down || true
             docker image prune -f
-            docker-compose --env-file .env.development up -d --build
+            docker compose --env-file .env.development up -d --build
             
             # Wait for container to start
             sleep 30
             
             # Check if container is running
-            if ! docker-compose --env-file .env.development ps | grep -q "Up"; then
+            if ! docker compose --env-file .env.development ps | grep -q "Up"; then
               echo "Staging deployment failed"
-              docker-compose --env-file .env.development logs
+              docker compose --env-file .env.development logs
               exit 1
             fi
             
@@ -183,17 +183,17 @@ jobs:
             ENVEOF
             
             # Deploy with Docker Compose
-            docker-compose --env-file .env.production down || true
+            docker compose --env-file .env.production down || true
             docker image prune -f
-            docker-compose --env-file .env.production up -d --build
+            docker compose --env-file .env.production up -d --build
             
             # Wait for container to start
             sleep 30
             
             # Check if container is running
-            if ! docker-compose --env-file .env.production ps | grep -q "Up"; then
+            if ! docker compose --env-file .env.production ps | grep -q "Up"; then
               echo "Production deployment failed"
-              docker-compose --env-file .env.production logs
+              docker compose --env-file .env.production logs
               exit 1
             fi
             

@@ -10,8 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar24 } from '@/components/custom-date-picker';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -73,6 +72,9 @@ export default function NewBookingPage() {
     paymentMethod: 'BANK_TRANSFER',
   });
 
+  const [selectedTime, setSelectedTime] = useState<string>('09:00');
+  const [timeError, setTimeError] = useState<string>('');
+
   const [errors, setErrors] = useState<Partial<CreateBookingRequest>>({});
 
   // Filter providers based on selected category
@@ -94,19 +96,40 @@ export default function NewBookingPage() {
     }
   }, [formData.categoryId, formData.providerId]);
 
-  // Update preferredDate when date is selected
+  // Update preferredDate when date or time is selected
   useEffect(() => {
-    if (selectedDate) {
+    if (selectedDate && selectedTime) {
       try {
+        // Combine date and time into ISO string
+        const [hours, minutes] = selectedTime.split(':');
+        const dateTime = new Date(selectedDate);
+        dateTime.setHours(parseInt(hours, 10));
+        dateTime.setMinutes(parseInt(minutes, 10));
+        dateTime.setSeconds(0);
+        dateTime.setMilliseconds(0);
+
+        const isoString = dateTime.toISOString();
+        console.log('Setting preferredDate to:', isoString); // Debug log
+
         setFormData(prev => ({
           ...prev,
-          preferredDate: format(selectedDate, 'yyyy-MM-dd'),
+          preferredDate: isoString,
         }));
       } catch (error) {
         console.error('Date formatting error:', error);
+        setFormData(prev => ({
+          ...prev,
+          preferredDate: '',
+        }));
       }
+    } else {
+      // Clear preferredDate if date or time is missing
+      setFormData(prev => ({
+        ...prev,
+        preferredDate: '',
+      }));
     }
-  }, [selectedDate]);
+  }, [selectedDate, selectedTime]);
 
   useEffect(() => {
     if (profifeData?.data?.user?.phone) {
@@ -128,17 +151,103 @@ export default function NewBookingPage() {
     }
   }, [serviceData]);
 
+  const validateTime = (timeStr: string): boolean => {
+    if (!timeStr) {
+      setTimeError('Vui lòng chọn giờ');
+      return false;
+    }
+
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    const timeInMinutes = hours * 60 + minutes;
+    const minTimeInMinutes = 7 * 60; // 7:00 AM
+    const maxTimeInMinutes = 19 * 60; // 7:00 PM
+
+    // Check business hours first
+    if (timeInMinutes < minTimeInMinutes) {
+      setTimeError('Giờ phải từ 7:00 sáng trở về sau');
+      return false;
+    }
+
+    if (timeInMinutes > maxTimeInMinutes) {
+      setTimeError('Giờ phải trước 19:00 tối');
+      return false;
+    }
+
+    // Check if selected date is today and time is in the past
+    if (selectedDate) {
+      const currentDate = new Date();
+      const isToday = selectedDate.toDateString() === currentDate.toDateString();
+
+      if (isToday) {
+        const currentTimeInMinutes = currentDate.getHours() * 60 + currentDate.getMinutes();
+
+        if (timeInMinutes <= currentTimeInMinutes) {
+          const nextAvailableHour = Math.max(currentDate.getHours() + 1, 7);
+          if (nextAvailableHour > 19) {
+            setTimeError('Không thể đặt lịch hôm nay. Vui lòng chọn ngày mai');
+          } else {
+            setTimeError(
+              `Không thể đặt lịch trong quá khứ. Vui lòng chọn từ ${nextAvailableHour}:00 trở đi`
+            );
+          }
+          return false;
+        }
+      }
+    }
+
+    setTimeError('');
+    return true;
+  };
+
+  const handleTimeChange = (newTime: string) => {
+    setSelectedTime(newTime);
+    validateTime(newTime);
+  };
+
+  // Re-validate time when date changes (for today vs future date scenarios)
+  useEffect(() => {
+    if (selectedTime) {
+      validateTime(selectedTime);
+    }
+  }, [selectedDate, validateTime]);
+
   const validateForm = (): boolean => {
     const newErrors: Partial<CreateBookingRequest> = {};
 
     if (!formData.categoryId) newErrors.categoryId = 0;
     if (!formData.providerId) newErrors.providerId = 0;
-    if (!formData.preferredDate) newErrors.preferredDate = '';
+
+    // Validate preferredDate as ISO string
+    if (!formData.preferredDate) {
+      newErrors.preferredDate = '';
+    } else {
+      try {
+        const testDate = new Date(formData.preferredDate);
+        if (isNaN(testDate.getTime())) {
+          newErrors.preferredDate = '';
+        }
+      } catch (error) {
+        newErrors.preferredDate = '';
+      }
+    }
+
     if (!formData.location.trim()) newErrors.location = '';
     if (!formData.phoneNumber.trim()) newErrors.phoneNumber = '';
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+
+    // Validate time separately
+    const isTimeValid = validateTime(selectedTime);
+
+    console.log('Form validation:', {
+      errors: newErrors,
+      timeValid: isTimeValid,
+      preferredDate: formData.preferredDate,
+      selectedDate,
+      selectedTime,
+    }); // Debug log
+
+    return Object.keys(newErrors).length === 0 && isTimeValid;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -155,6 +264,7 @@ export default function NewBookingPage() {
     setIsSubmitting(true);
 
     try {
+      console.log('Submitting booking with data:', formData); // Debug log
       await createBooking(formData);
 
       // Reset form on success
@@ -168,6 +278,9 @@ export default function NewBookingPage() {
         paymentMethod: 'BANK_TRANSFER',
       });
       setSelectedDate(undefined);
+      setSelectedTime('09:00');
+      setTimeError('');
+      setErrors({});
       setShowConfirmation(false);
     } catch (error) {
       // Error is handled by the hook with toast
@@ -311,64 +424,56 @@ export default function NewBookingPage() {
                 </Card>
 
                 {/* Date & Location */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center space-x-2">
-                      <CalendarIcon className="h-5 w-5" />
-                      <span>Thời gian và địa điểm</span>
+                <Card className="border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200">
+                  <CardHeader className="bg-gray-50 border-b border-gray-100">
+                    <CardTitle className="flex items-center space-x-3 text-lg">
+                      <div className="p-2 bg-blue-100 rounded-lg">
+                        <CalendarIcon className="h-5 w-5 text-blue-600" />
+                      </div>
+                      <span className="text-gray-900">Thời gian và địa điểm</span>
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid md:grid-cols-1 gap-4">
-                      {/* Date Selection */}
-                      <div className="space-y-2">
-                        <Label>Chọn ngày</Label>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              className={`w-full justify-start text-left font-normal ${
-                                !selectedDate && 'text-muted-foreground'
-                              } ${errors.preferredDate ? 'border-red-500' : ''}`}
-                            >
-                              <CalendarIcon className="mr-2 h-4 w-4" />
-                              {selectedDate
-                                ? format(selectedDate, 'dd/MM/yyyy', { locale: vi })
-                                : 'Chọn ngày'}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={selectedDate}
-                              onSelect={setSelectedDate}
-                              disabled={date => date < new Date() || date < new Date('1900-01-01')}
-                              initialFocus
-                              locale={vi}
-                            />
-                          </PopoverContent>
-                        </Popover>
-                        {errors.preferredDate && (
-                          <p className="text-sm text-red-500">Vui lòng chọn ngày</p>
-                        )}
-                      </div>
+                  <CardContent className="space-y-6 p-6">
+                    {/* Date & Time Selection */}
+                    <div className="space-y-4">
+                      <Calendar24
+                        value={selectedDate}
+                        onChange={setSelectedDate}
+                        onTimeChange={handleTimeChange}
+                        timeValue={selectedTime}
+                        error={!!errors.preferredDate}
+                        timeError={timeError}
+                        placeholder="Chọn ngày thực hiện dịch vụ"
+                        className="w-full"
+                      />
+                      {errors.preferredDate && (
+                        <p className="text-sm text-red-500 flex items-center space-x-2 bg-red-50 p-3 rounded-lg border border-red-200">
+                          <span>⚠️</span>
+                          <span>Vui lòng chọn ngày thực hiện</span>
+                        </p>
+                      )}
+                    </div>
 
-                      {/* Location */}
-                      <div className="space-y-2">
-                        <Label htmlFor="location">Địa chỉ thực hiện</Label>
-                        <Input
-                          id="location"
-                          value={formData.location}
-                          onChange={e =>
-                            setFormData(prev => ({ ...prev, location: e.target.value }))
-                          }
-                          placeholder="Nhập địa chỉ chi tiết"
-                          className={errors.location ? 'border-red-500' : ''}
-                        />
-                        {errors.location && (
-                          <p className="text-sm text-red-500">Vui lòng nhập địa chỉ</p>
-                        )}
-                      </div>
+                    {/* Location */}
+                    <div className="space-y-3">
+                      <Label htmlFor="location" className="text-sm font-medium text-gray-700">
+                        Địa chỉ thực hiện dịch vụ
+                      </Label>
+                      <Input
+                        id="location"
+                        value={formData.location}
+                        onChange={e => setFormData(prev => ({ ...prev, location: e.target.value }))}
+                        placeholder="Nhập địa chỉ chi tiết (số nhà, tên đường, quận/huyện...)"
+                        className={`h-12 border-gray-300 hover:border-gray-400 focus:border-blue-500 transition-colors duration-200 ${
+                          errors.location ? 'border-red-500 focus:border-red-500' : ''
+                        }`}
+                      />
+                      {errors.location && (
+                        <p className="text-sm text-red-500 flex items-center space-x-2 bg-red-50 p-3 rounded-lg border border-red-200">
+                          <span>⚠️</span>
+                          <span>Vui lòng nhập địa chỉ thực hiện</span>
+                        </p>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -479,15 +584,31 @@ export default function NewBookingPage() {
                       </div>
                     )}
 
-                    {/* Date Information */}
+                    {/* Date & Time Information */}
                     {formData.preferredDate && (
                       <div className="space-y-2">
-                        <h4 className="font-medium">Ngày thực hiện:</h4>
-                        <p className="text-sm text-gray-600">
-                          {selectedDate
-                            ? format(selectedDate, 'EEEE, dd/MM/yyyy', { locale: vi })
-                            : formData.preferredDate}
-                        </p>
+                        <h4 className="font-medium text-gray-900">Thời gian thực hiện:</h4>
+                        <div className="bg-gray-50 p-3 rounded-lg border">
+                          {(() => {
+                            try {
+                              const date = new Date(formData.preferredDate);
+                              return (
+                                <>
+                                  <p className="text-sm font-medium text-gray-900">
+                                    {format(date, 'EEEE, dd MMMM yyyy', { locale: vi })}
+                                  </p>
+                                  <p className="text-sm text-gray-600 mt-1">
+                                    Lúc {format(date, 'HH:mm', { locale: vi })}
+                                  </p>
+                                </>
+                              );
+                            } catch (error) {
+                              return (
+                                <p className="text-sm text-red-500">Lỗi định dạng thời gian</p>
+                              );
+                            }
+                          })()}
+                        </div>
                       </div>
                     )}
 
@@ -530,8 +651,19 @@ export default function NewBookingPage() {
                       </div>
                     )}
 
-                    <Button type="submit" className="w-full" size="lg">
-                      Đặt lịch ngay
+                    <Button
+                      type="submit"
+                      className="w-full"
+                      size="lg"
+                      disabled={
+                        !!timeError || !formData.preferredDate || !selectedDate || !selectedTime
+                      }
+                    >
+                      {timeError
+                        ? 'Vui lòng chọn giờ hợp lệ'
+                        : !formData.preferredDate
+                          ? 'Vui lòng chọn ngày và giờ'
+                          : 'Đặt lịch ngay'}
                     </Button>
 
                     <p className="text-xs text-gray-500 text-center">
@@ -581,9 +713,31 @@ export default function NewBookingPage() {
                 )} */}
                 <p>
                   <strong>Ngày:</strong>{' '}
-                  {selectedDate
-                    ? format(selectedDate, 'dd/MM/yyyy', { locale: vi })
-                    : formData.preferredDate}
+                  {formData.preferredDate
+                    ? (() => {
+                        try {
+                          return format(new Date(formData.preferredDate), 'EEEE, dd/MM/yyyy', {
+                            locale: vi,
+                          });
+                        } catch (error) {
+                          return 'Lỗi định dạng ngày';
+                        }
+                      })()
+                    : selectedDate
+                      ? format(selectedDate, 'EEEE, dd/MM/yyyy', { locale: vi })
+                      : 'Chưa chọn'}
+                </p>
+                <p>
+                  <strong>Giờ:</strong>{' '}
+                  {formData.preferredDate
+                    ? (() => {
+                        try {
+                          return format(new Date(formData.preferredDate), 'HH:mm', { locale: vi });
+                        } catch (error) {
+                          return 'Lỗi định dạng giờ';
+                        }
+                      })()
+                    : selectedTime || 'Chưa chọn'}
                 </p>
                 <p>
                   <strong>Địa chỉ:</strong> {formData.location}

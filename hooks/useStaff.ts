@@ -4,6 +4,9 @@ import type {
   CreateStaffReponse,
   CreateStaffRequest,
   StaffSearchParams,
+  StaffCheckInResponse,
+  CreateInspectionReportRequest,
+  CreateInspectionReportResponse,
 } from '@/lib/api/services/fetchStaff';
 import { toast } from 'sonner';
 import { ValidationError } from '@/lib/api/services/fetchAuth';
@@ -45,5 +48,87 @@ export function useCreateStaff() {
       }
       toast.error(errorMessage);
     },
+  });
+}
+
+export function useStaffCheckIn() {
+  const queryClient = useQueryClient();
+  return useMutation<StaffCheckInResponse, Error, number>({
+    mutationFn: async (bookingId: number) => {
+      const response = await staffService.staffCheckIn(bookingId);
+      return response;
+    },
+    onSuccess: () => {
+      toast.success('Check-in thành công');
+      queryClient.invalidateQueries({ queryKey: ['staff-bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['bookings'] });
+    },
+    onError: (error: unknown) => {
+      let errorMessage = 'Có lỗi xảy ra khi check-in';
+
+      if (typeof error === 'object' && error !== null) {
+        if ('message' in error) {
+          const errorObj = error as { message: string | ValidationError[] | { message: string } };
+
+          if (typeof errorObj.message === 'object' && 'message' in errorObj.message) {
+            // Handle structured error response
+            const structuredMessage = errorObj.message as { message: string };
+            if (structuredMessage.message === 'Error.DateMismatchPreferredDate') {
+              errorMessage = 'Không thể check-in vào ngày khác với ngày hẹn';
+            } else {
+              errorMessage = structuredMessage.message;
+            }
+          } else if (Array.isArray(errorObj.message)) {
+            errorMessage = errorObj.message[0]?.message || errorMessage;
+          } else if (typeof errorObj.message === 'string') {
+            errorMessage = errorObj.message;
+          }
+        }
+
+        if ('error' in error && typeof error.error === 'string') {
+          errorMessage = error.error;
+        }
+      }
+
+      toast.error(errorMessage);
+    },
+  });
+}
+
+export function useCreateInspectionReport() {
+  const queryClient = useQueryClient();
+  return useMutation<CreateInspectionReportResponse, Error, CreateInspectionReportRequest>({
+    mutationFn: async (data: CreateInspectionReportRequest) => {
+      const response = await staffService.createInspectionReport(data);
+      return response;
+    },
+    onSuccess: () => {
+      toast.success('Tạo báo cáo khảo sát thành công');
+      queryClient.invalidateQueries({ queryKey: ['staff-bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['inspection-reports'] });
+    },
+    onError: (error: unknown) => {
+      let errorMessage = 'Có lỗi xảy ra khi tạo báo cáo khảo sát';
+
+      if (typeof error === 'object' && error !== null && 'message' in error) {
+        const errorObj = error as { message: string | ValidationError[] };
+        if (Array.isArray(errorObj.message)) {
+          errorMessage = errorObj.message[0]?.message || errorMessage;
+        } else if (typeof errorObj.message === 'string') {
+          errorMessage = errorObj.message;
+        }
+      }
+
+      toast.error(errorMessage);
+    },
+  });
+}
+
+export function useGetProposal(bookingId: number) {
+  return useQuery({
+    queryKey: ['staff-proposals', bookingId],
+    queryFn: () => staffService.getProposal(bookingId),
+    enabled: !!bookingId,
   });
 }

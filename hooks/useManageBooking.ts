@@ -5,8 +5,11 @@ import {
   ManageBookingResponse,
   Booking,
   AssignStaffToBookingRequest,
+  CreateProposedBookingRequest,
+  CreateProposedBookingResponse,
 } from '@/lib/api/services/fetchManageBooking';
 import { useState, useMemo } from 'react';
+import { toast } from 'sonner';
 
 // Main hook for fetching bookings with filters and pagination
 export const useManageBookings = (params?: GetBookingsParams) => {
@@ -130,6 +133,37 @@ export const useAssignStaffToBooking = () => {
     onSuccess: () => {
       // Invalidate and refetch booking data
       queryClient.invalidateQueries({ queryKey: ['manage-bookings'] });
+    },
+  });
+
+  return { mutate, isPending, error };
+};
+
+export const useCreateProposedBooking = () => {
+  const queryClient = useQueryClient();
+
+  const { mutate, isPending, error } = useMutation<
+    CreateProposedBookingResponse,
+    Error,
+    CreateProposedBookingRequest
+  >({
+    mutationFn: (data: CreateProposedBookingRequest) => serviceManageBooking.createProposed(data),
+    onSuccess: () => {
+      toast.success('Tạo đề xuất dịch vụ thành công');
+      // Invalidate and refetch booking data
+      queryClient.invalidateQueries({ queryKey: ['manage-bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['staff-bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['bookings'] });
+    },
+    onError: (error: unknown) => {
+      let errorMessage = 'Có lỗi xảy ra khi tạo đề xuất dịch vụ';
+
+      if (typeof error === 'object' && error !== null && 'message' in error) {
+        const errorObj = error as { message: string };
+        errorMessage = errorObj.message || errorMessage;
+      }
+
+      toast.error(errorMessage);
     },
   });
 

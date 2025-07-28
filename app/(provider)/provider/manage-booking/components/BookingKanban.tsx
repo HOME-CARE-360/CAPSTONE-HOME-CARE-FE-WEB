@@ -1,14 +1,14 @@
 'use client';
 
 import { BookingCard } from './BookingCard';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Alert } from '@/components/ui/alert';
-import { AlertCircle, Clock, CheckCircle, Settings, Archive } from 'lucide-react';
+import { AlertCircle, Clock, CheckCircle, Archive } from 'lucide-react';
 import { AlertTitle } from '@/components/ui/alert';
 import { AlertDescription } from '@/components/ui/alert';
 import { Booking } from '@/lib/api/services/fetchManageBooking';
 import { useManageBookings, useBookingFilters } from '@/hooks/useManageBooking';
-import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -26,12 +26,6 @@ const ACTIVE_COLUMNS = [
     title: 'Đã xác nhận',
     description: 'Đặt lịch đã được xác nhận',
     icon: CheckCircle,
-  },
-  {
-    id: 'IN_PROGRESS',
-    title: 'Đang thực hiện',
-    description: 'Dịch vụ đang được thực hiện',
-    icon: Settings,
   },
 ];
 
@@ -51,19 +45,47 @@ const COMPLETED_COLUMNS = [
 ];
 
 const BookingCardSkeleton = () => (
-  <div className="bg-white rounded-lg border p-4 space-y-3">
-    <div className="flex items-center gap-3">
-      <Skeleton className="h-10 w-10 rounded-full" />
-      <div className="flex-1">
-        <Skeleton className="h-4 w-24 mb-1" />
-        <Skeleton className="h-3 w-16" />
+  <div className="bg-white rounded-lg border border-gray-100 p-4 space-y-3">
+    {/* Header Section */}
+    <div className="flex items-start justify-between mb-3">
+      <div className="flex items-center gap-3">
+        <Skeleton className="h-10 w-10 rounded-full border-2" />
+        <div className="flex-1">
+          <Skeleton className="h-4 w-24 mb-1" />
+          <Skeleton className="h-3 w-16" />
+        </div>
       </div>
+      <Skeleton className="h-8 w-8 rounded" />
     </div>
-    <Skeleton className="h-6 w-20" />
+
+    {/* Status Badge */}
+    <div className="flex items-center gap-2 mb-3">
+      <Skeleton className="h-6 w-20 rounded-full" />
+    </div>
+
+    {/* Service Information */}
+    <div className="flex items-center gap-2 mb-3">
+      <Skeleton className="h-6 w-6 rounded" />
+      <Skeleton className="h-4 w-32" />
+    </div>
+
+    {/* Contact Information */}
     <div className="space-y-2">
-      <Skeleton className="h-3 w-full" />
-      <Skeleton className="h-3 w-3/4" />
-      <Skeleton className="h-3 w-1/2" />
+      <div className="flex items-center gap-2">
+        <Skeleton className="h-4 w-4" />
+        <div className="flex flex-col space-y-1">
+          <Skeleton className="h-3 w-20" />
+          <Skeleton className="h-3 w-16" />
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <Skeleton className="h-4 w-4" />
+        <Skeleton className="h-3 w-24" />
+      </div>
+      <div className="flex items-center gap-2">
+        <Skeleton className="h-4 w-4" />
+        <Skeleton className="h-3 w-36" />
+      </div>
     </div>
   </div>
 );
@@ -77,17 +99,7 @@ export function BookingKanban({ onRefresh }: BookingKanbanProps) {
   const { data: bookings, isLoading, error } = useManageBookings(filters.params);
   const [activeTab, setActiveTab] = useState('active');
 
-  // Store local state for optimistic updates
-  const [localBookings, setLocalBookings] = useState<Booking[]>([]);
-
-  // Update local state when API data changes
-  useEffect(() => {
-    if (bookings?.data) {
-      setLocalBookings(bookings.data);
-    }
-  }, [bookings]);
-
-  const bookingsArray = localBookings;
+  const bookingsArray = bookings?.data || [];
 
   const groupedBookings = {
     PENDING: bookingsArray.filter(booking => booking.status === 'PENDING'),
@@ -97,27 +109,8 @@ export function BookingKanban({ onRefresh }: BookingKanbanProps) {
     CANCELLED: bookingsArray.filter(booking => booking.status === 'CANCELLED'),
   };
 
-  // Handle drag and drop event to update booking status
-  const handleDragEnd = (result: DropResult) => {
-    const { destination, source, draggableId } = result;
-
-    if (!destination) return;
-    if (destination.droppableId === source.droppableId && destination.index === source.index) {
-      return;
-    }
-
-    // Optimistically update the local state
-    setLocalBookings(prevBookings =>
-      prevBookings.map(booking =>
-        booking.id.toString() === draggableId
-          ? { ...booking, status: destination.droppableId as Booking['status'] }
-          : booking
-      )
-    );
-  };
-
   const renderKanbanColumns = (columns: typeof ACTIVE_COLUMNS) => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {columns.map(column => {
         const columnBookings = groupedBookings[column.id as Booking['status']];
         return (
@@ -140,51 +133,28 @@ export function BookingKanban({ onRefresh }: BookingKanbanProps) {
                 </Badge>
               </div>
             </CardHeader>
-            <Droppable droppableId={column.id}>
-              {provided => (
-                <CardContent
-                  {...provided.droppableProps}
-                  ref={provided.innerRef}
-                  className="p-4 space-y-3 min-h-[500px]"
-                >
-                  {columnBookings.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-center">
-                      <div className="w-12 h-12 rounded-lg bg-white border flex items-center justify-center mb-3">
-                        <column.icon className="h-6 w-6 text-gray-400" />
-                      </div>
-                      <p className="text-sm font-medium text-gray-500">Chưa có đặt lịch</p>
-                      <p className="text-xs text-gray-400 mt-1">Kéo thả để thay đổi trạng thái</p>
-                    </div>
-                  ) : (
-                    columnBookings.map((booking, index) => (
-                      <Draggable
-                        key={booking.id.toString()}
-                        draggableId={booking.id.toString()}
-                        index={index}
-                      >
-                        {(provided, snapshot) => (
-                          <div
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            {...provided.dragHandleProps}
-                            style={provided.draggableProps.style}
-                          >
-                            <BookingCard
-                              booking={booking}
-                              status={column.id as Booking['status']}
-                              isDragging={snapshot.isDragging}
-                              isLoading={false}
-                              onStaffAssigned={onRefresh}
-                            />
-                          </div>
-                        )}
-                      </Draggable>
-                    ))
-                  )}
-                  {provided.placeholder}
-                </CardContent>
+            <CardContent className="p-4 space-y-3 min-h-[500px]">
+              {columnBookings.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <div className="w-12 h-12 rounded-lg bg-white border flex items-center justify-center mb-3">
+                    <column.icon className="h-6 w-6 text-gray-400" />
+                  </div>
+                  <p className="text-sm font-medium text-gray-500">Chưa có đặt lịch</p>
+                  <p className="text-xs text-gray-400 mt-1">Danh sách đặt lịch theo trạng thái</p>
+                </div>
+              ) : (
+                columnBookings.map(booking => (
+                  <BookingCard
+                    key={booking.id.toString()}
+                    booking={booking}
+                    status={column.id as Booking['status']}
+                    isDragging={false}
+                    isLoading={false}
+                    onStaffAssigned={onRefresh}
+                  />
+                ))
               )}
-            </Droppable>
+            </CardContent>
           </Card>
         );
       })}
@@ -261,15 +231,11 @@ export function BookingKanban({ onRefresh }: BookingKanbanProps) {
         </TabsList>
 
         <TabsContent value="active" className="mt-6">
-          <DragDropContext onDragEnd={handleDragEnd}>
-            {renderKanbanColumns(ACTIVE_COLUMNS)}
-          </DragDropContext>
+          {renderKanbanColumns(ACTIVE_COLUMNS)}
         </TabsContent>
 
         <TabsContent value="completed" className="mt-6">
-          <DragDropContext onDragEnd={handleDragEnd}>
-            {renderKanbanColumns(COMPLETED_COLUMNS)}
-          </DragDropContext>
+          {renderKanbanColumns(COMPLETED_COLUMNS)}
         </TabsContent>
       </Tabs>
     </div>

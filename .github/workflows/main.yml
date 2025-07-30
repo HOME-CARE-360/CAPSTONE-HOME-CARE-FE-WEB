@@ -13,68 +13,49 @@ env:
 jobs:
   test:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'npm'
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run linting
-        run: npm run lint
-
-      - name: Run type check
-        run: npx tsc --noEmit
-
-      - name: Run format check
-        run: npm run format:check
-
-      - name: Run tests (if available)
-        run: npm test --if-present
+      - run: npm ci
+      - run: npm run lint
+      - run: npx tsc --noEmit
+      - run: npm run format:check
+      - run: npm test --if-present
 
   build:
     needs: test
     runs-on: ubuntu-latest
     if: github.event_name == 'push'
-
     permissions:
       contents: read
       packages: write
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v3
 
-      - name: Log in to Container Registry
-        uses: docker/login-action@v3
+      - uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata
-        id: meta
+      - id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=ref,event=branch
-            type=ref,event=pr
             type=sha,prefix={{branch}}-
             type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+      - uses: docker/build-push-action@v5
         with:
           context: .
           push: true
@@ -84,137 +65,85 @@ jobs:
             NODE_ENV=production
             NEXT_PUBLIC_API_URL_BACKEND=${{ secrets.NEXT_PUBLIC_API_URL_BACKEND }}
 
-  deploy-staging:
+  deploy:
     needs: build
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
-    environment: staging
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Setup SSH
         uses: webfactory/ssh-agent@v0.8.0
         with:
           ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
 
-      - name: Add host to known_hosts
+      - name: Add VPS to known_hosts
         run: |
           mkdir -p ~/.ssh
           ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Deploy to staging
+      - name: Deploy via SSH
         run: |
           ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
-            # Create projects directory if it doesn't exist
-            mkdir -p /home/${{ secrets.VPS_USER }}/projects/capstone
-            
-            # Navigate to staging project directory
-            cd /home/${{ secrets.VPS_USER }}/projects/capstone/homecare-360-fe-staging || mkdir -p /home/${{ secrets.VPS_USER }}/projects/capstone/homecare-360-fe-staging && cd /home/${{ secrets.VPS_USER }}/projects/capstone/homecare-360-fe-staging
-            
-            # Pull latest changes
-            git pull origin develop || git clone -b develop https://github.com/${{ github.repository }}.git .
-            
-            # Create .env.development for staging
-            echo "NODE_ENV=staging" > .env.development
-            echo "PORT=3001" >> .env.development
-            echo "NEXT_PUBLIC_API_URL_BACKEND=${{ secrets.NEXT_PUBLIC_API_URL_BACKEND }}" >> .env.development
-            echo "BUILD_TARGET=runner" >> .env.development
-            
-            # Deploy with Docker Compose
-            docker compose --env-file .env.development down || true
+            set -e
+            PROJECT_NAME=homecare-360-fe
+            BRANCH=${{ github.ref == 'refs/heads/main' && 'main' || 'develop' }}
+            ENV_FILE=.env.${BRANCH}
+            PORT=${{ github.ref == 'refs/heads/main' && '3000' || '3001' }}
+
+            WORKDIR=/home/${{ secrets.VPS_USER }}/projects/capstone/$PROJECT_NAME-${BRANCH}
+
+            mkdir -p $WORKDIR && cd $WORKDIR
+
+            if [ ! -d ".git" ]; then
+              git clone -b $BRANCH https://github.com/${{ github.repository }}.git .
+            else
+              git reset --hard && git clean -fd && git pull origin $BRANCH
+            fi
+
+            cat <<EOT > $ENV_FILE
+NODE_ENV=${BRANCH}
+PORT=$PORT
+NEXT_PUBLIC_API_URL_BACKEND=${{ secrets.NEXT_PUBLIC_API_URL_BACKEND }}
+BUILD_TARGET=runner
+EOT
+
+            docker compose --env-file $ENV_FILE down || true
             docker image prune -f
-            docker compose --env-file .env.development up -d --build
-            
-            # Wait for container to start
-            sleep 30
-            
-            # Check if container is running
-            if ! docker compose --env-file .env.development ps | grep -q "Up"; then
-              echo "Staging deployment failed"
-              docker compose --env-file .env.development logs
+            docker compose --env-file $ENV_FILE up -d --build
+
+            sleep 10
+
+            if ! docker compose --env-file $ENV_FILE ps | grep -q "Up"; then
+              docker compose --env-file $ENV_FILE logs
+              echo "🚫 Deployment failed on $BRANCH"
               exit 1
             fi
-            
-            echo "Staging deployment completed!"
+
+            echo "✅ $BRANCH deployment completed!"
           EOF
 
-  deploy-production:
-    needs: build
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    environment: production
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup SSH
-        uses: webfactory/ssh-agent@v0.8.0
-        with:
-          ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
-
-      - name: Add host to known_hosts
+      - name: Health Check
         run: |
-          mkdir -p ~/.ssh
-          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
-
-      - name: Deploy to production
-        run: |
-          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
-            # Create projects directory if it doesn't exist
-            mkdir -p /home/${{ secrets.VPS_USER }}/projects/capstone
-            
-            # Navigate to production project directory
-            cd /home/${{ secrets.VPS_USER }}/projects/capstone/homecare-360-fe || mkdir -p /home/${{ secrets.VPS_USER }}/projects/capstone/homecare-360-fe && cd /home/${{ secrets.VPS_USER }}/projects/capstone/homecare-360-fe
-            
-            # Pull latest changes
-            git pull origin main || git clone https://github.com/${{ github.repository }}.git .
-            
-            # Create .env.production for production
-            echo "NODE_ENV=production" > .env.production
-            echo "PORT=3000" >> .env.production
-            echo "NEXT_PUBLIC_API_URL_BACKEND=${{ secrets.NEXT_PUBLIC_API_URL_BACKEND }}" >> .env.production
-            echo "BUILD_TARGET=runner" >> .env.production
-            
-            # Deploy with Docker Compose
-            docker compose --env-file .env.production down || true
-            docker image prune -f
-            docker compose --env-file .env.production up -d --build 
-            
-            # Wait for container to start
-            sleep 30
-            
-            # Check if container is running
-            if ! docker compose --env-file .env.production ps | grep -q "Up"; then
-              echo "Production deployment failed"
-              docker compose --env-file .env.production logs
-              exit 1
-            fi
-            
-            echo "Production deployment completed!"
-          EOF
-
-      - name: Health check
-        run: |
-          sleep 60
-          curl -f http://${{ secrets.VPS_HOST }}:3000/api/health || {
-            echo "Health check failed"
+          sleep 30
+          PORT=${{ github.ref == 'refs/heads/main' && '3000' || '3001' }}
+          curl -f http://${{ secrets.VPS_HOST }}:$PORT/api/health || {
+            echo "❌ Health check failed"
             exit 1
           }
 
   notify:
-    needs: [deploy-staging, deploy-production]
+    needs: [deploy]
     runs-on: ubuntu-latest
-    if: always() && (needs.deploy-staging.result != 'skipped' || needs.deploy-production.result != 'skipped')
+    if: always()
 
     steps:
-      - name: Notify deployment status
-        run: |
-          if [ "${{ needs.deploy-staging.result }}" == "success" ] || [ "${{ needs.deploy-production.result }}" == "success" ]; then
-            echo "✅ Deployment successful!"
+      - run: |
+          if [ "${{ needs.deploy.result }}" == "success" ]; then
+            echo "✅ Deployment succeeded!"
           else
             echo "❌ Deployment failed!"
             exit 1
-          fi
+          }

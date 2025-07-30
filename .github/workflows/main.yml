@@ -104,11 +104,11 @@ jobs:
             fi
 
             cat <<EOT > $ENV_FILE
-NODE_ENV=${BRANCH}
-PORT=$PORT
-NEXT_PUBLIC_API_URL_BACKEND=${{ secrets.NEXT_PUBLIC_API_URL_BACKEND }}
-BUILD_TARGET=runner
-EOT
+              NODE_ENV=${BRANCH}
+              PORT=$PORT
+              NEXT_PUBLIC_API_URL_BACKEND=${{ secrets.NEXT_PUBLIC_API_URL_BACKEND }}
+              BUILD_TARGET=runner
+            EOT
 
             docker compose --env-file $ENV_FILE down || true
             docker image prune -f

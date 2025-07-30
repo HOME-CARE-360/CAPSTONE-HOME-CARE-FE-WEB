@@ -103,12 +103,12 @@ jobs:
               git reset --hard && git clean -fd && git pull origin $BRANCH
             fi
 
-            cat <<EOT > $ENV_FILE
+            cat <<EOF > $ENV_FILE
               NODE_ENV=${BRANCH}
               PORT=$PORT
               NEXT_PUBLIC_API_URL_BACKEND=${{ secrets.NEXT_PUBLIC_API_URL_BACKEND }}
               BUILD_TARGET=runner
-            EOT
+            EOF
 
             docker compose --env-file $ENV_FILE down || true
             docker image prune -f

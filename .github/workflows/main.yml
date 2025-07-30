@@ -1,220 +1,115 @@
-name: CI/CD Pipeline
+name: CI/CD Next.js with Docker to VPS
 
 on:
   push:
-    branches: [main, develop]
-  pull_request:
-    branches: [main]
+    branches:
+      - main
+      - develop
 
 env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: ghcr.io/<YOUR_GITHUB_USERNAME>/<YOUR_REPO_NAME> # sửa lại tên repo thực tế
 
 jobs:
-  test:
+  build-and-push:
+    name: Build & Push Docker Image
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run linting
-        run: npm run lint
-
-      - name: Run type check
-        run: npx tsc --noEmit
-
-      - name: Run format check
-        run: npm run format:check
-
-      - name: Run tests (if available)
-        run: npm test --if-present
-
-  build:
-    needs: test
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push'
-
-    permissions:
-      contents: read
-      packages: write
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to Container Registry
+      - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY }}
+          registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata
+      - name: Extract metadata for Docker
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.IMAGE_NAME }}
           tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=sha,prefix={{branch}}-
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=${{ github.ref_name }}  # main hoặc develop
+            type=sha
 
-      - name: Build and push Docker image
+      - name: Build & Push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            NODE_ENV=production
-            NEXT_PUBLIC_API_URL_BACKEND=${{ secrets.NEXT_PUBLIC_API_URL_BACKEND }}
 
-  deploy-staging:
-    needs: build
+  deploy:
+    name: Deploy to VPS
+    needs: build-and-push
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
-    environment: staging
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup SSH
-        uses: webfactory/ssh-agent@v0.8.0
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@v1.0.0
         with:
-          ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            set -e
 
-      - name: Add host to known_hosts
-        run: |
-          mkdir -p ~/.ssh
-          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+            # Set ENV
+            BRANCH=${{ github.ref_name }}
+            APP_DIR="~/projects/capstone/homecare-360-fe"
+            GIT_REPO="git@github.com:<YOUR_USERNAME>/<YOUR_REPO_NAME>.git"
+            ENV_FILE=".env.${BRANCH}"
 
-      - name: Deploy to staging
-        run: |
-          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
-            # Create projects directory if it doesn't exist
-            mkdir -p /home/${{ secrets.VPS_USER }}/projects/capstone
-            
-            # Navigate to staging project directory
-            cd /home/${{ secrets.VPS_USER }}/projects/capstone/homecare-360-fe-staging || mkdir -p /home/${{ secrets.VPS_USER }}/projects/capstone/homecare-360-fe-staging && cd /home/${{ secrets.VPS_USER }}/projects/capstone/homecare-360-fe-staging
-            
-            # Pull latest changes
-            git pull origin develop || git clone -b develop https://github.com/${{ github.repository }}.git .
-            
-            # Create .env.development for staging
-            echo "NODE_ENV=staging" > .env.development
-            echo "PORT=3001" >> .env.development
-            echo "NEXT_PUBLIC_API_URL_BACKEND=${{ secrets.NEXT_PUBLIC_API_URL_BACKEND }}" >> .env.development
-            echo "BUILD_TARGET=runner" >> .env.development
-            
-            # Deploy with Docker Compose
-            docker compose --env-file .env.development down || true
-            docker image prune -f
-            docker compose --env-file .env.development up -d --build
-            
-            # Wait for container to start
-            sleep 30
-            
-            # Check if container is running
-            if ! docker compose --env-file .env.development ps | grep -q "Up"; then
-              echo "Staging deployment failed"
-              docker compose --env-file .env.development logs
-              exit 1
+            echo "➡️ Deploying branch $BRANCH..."
+
+            # Clone if not exists
+            mkdir -p "$APP_DIR"
+            cd "$APP_DIR"
+
+            if [ ! -d ".git" ]; then
+              echo "🚀 Cloning repo..."
+              git clone "$GIT_REPO" . || true
             fi
-            
-            echo "Staging deployment completed!"
-          EOF
 
-  deploy-production:
-    needs: build
+            echo "🔄 Pulling latest code..."
+            git fetch origin
+            git checkout "$BRANCH"
+            git reset --hard origin/"$BRANCH"
+
+            echo "📦 Pulling image from GHCR..."
+            docker compose -f docker-compose.yml --env-file $ENV_FILE pull
+
+            echo "🧹 Stopping previous containers..."
+            docker compose -f docker-compose.yml --env-file $ENV_FILE down
+
+            echo "🚀 Starting containers..."
+            docker compose -f docker-compose.yml --env-file $ENV_FILE up -d
+
+            echo "✅ Deploy completed for $BRANCH"
+
+  health-check:
+    name: Health Check
+    needs: deploy
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    environment: production
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup SSH
-        uses: webfactory/ssh-agent@v0.8.0
-        with:
-          ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
-
-      - name: Add host to known_hosts
-        run: |
-          mkdir -p ~/.ssh
-          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
-
-      - name: Deploy to production
-        run: |
-          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
-            # Create projects directory if it doesn't exist
-            mkdir -p /home/${{ secrets.VPS_USER }}/projects/capstone
-            
-            # Navigate to production project directory
-            cd /home/${{ secrets.VPS_USER }}/projects/capstone/homecare-360-fe || mkdir -p /home/${{ secrets.VPS_USER }}/projects/capstone/homecare-360-fe && cd /home/${{ secrets.VPS_USER }}/projects/capstone/homecare-360-fe
-            
-            # Pull latest changes
-            git pull origin main || git clone https://github.com/${{ github.repository }}.git .
-            
-            # Create .env.production for production
-            echo "NODE_ENV=production" > .env.production
-            echo "PORT=3000" >> .env.production
-            echo "NEXT_PUBLIC_API_URL_BACKEND=${{ secrets.NEXT_PUBLIC_API_URL_BACKEND }}" >> .env.production
-            echo "BUILD_TARGET=runner" >> .env.production
-            
-            # Deploy with Docker Compose
-            docker compose --env-file .env.production down || true
-            docker image prune -f
-            docker compose --env-file .env.production up -d --build 
-            
-            # Wait for container to start
-            sleep 30
-            
-            # Check if container is running
-            if ! docker compose --env-file .env.production ps | grep -q "Up"; then
-              echo "Production deployment failed"
-              docker compose --env-file .env.production logs
-              exit 1
-            fi
-            
-            echo "Production deployment completed!"
-          EOF
+      - name: Wait for app to start
+        run: sleep 10
 
       - name: Health check
         run: |
-          sleep 60
-          curl -f http://${{ secrets.VPS_HOST }}:3000/api/health || {
-            echo "Health check failed"
-            exit 1
-          }
+          URL=""
 
-  notify:
-    needs: [deploy-staging, deploy-production]
-    runs-on: ubuntu-latest
-    if: always() && (needs.deploy-staging.result != 'skipped' || needs.deploy-production.result != 'skipped')
-
-    steps:
-      - name: Notify deployment status
-        run: |
-          if [ "${{ needs.deploy-staging.result }}" == "success" ] || [ "${{ needs.deploy-production.result }}" == "success" ]; then
-            echo "✅ Deployment successful!"
-          else
-            echo "❌ Deployment failed!"
-            exit 1
+          if [[ "${{ github.ref_name }}" == "main" ]]; then
+            URL="https://your-production-domain.com"
+          elif [[ "${{ github.ref_name }}" == "develop" ]]; then
+            URL="https://your-staging-domain.com"
           fi
+
+          echo "🌐 Checking $URL"
+          curl -fsS --retry 3 "$URL" > /dev/null

@@ -23,6 +23,8 @@ export const useStaffTableColumns = ({
         <div className="flex items-center gap-2">
           {row.original.user.avatar && (
             <Image
+              width={500}
+              height={500}
               src={row.original.user.avatar}
               alt={row.original.user.name}
               className="h-8 w-8 rounded-full object-cover"

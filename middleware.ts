@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { decodeJwt, isServiceProvider, isCustomer, isManager, isAdmin } from './utils/jwt';
+import { decodeJwt, isServiceProvider, isCustomer, isManager, isAdmin, isStaff } from './utils/jwt';
 
 // Define routes that require authentication
 const protectedRoutes = [
@@ -24,6 +24,8 @@ const customerProtectedRoutes = ['/user/profile'];
 
 const managerProtectedRoutes = ['/manager', '/manager/manage-category'];
 
+const staffProtectedRoutes = ['/staff', '/staff/dashboard', '/staff/bookings'];
+
 const adminProtectedRoutes = ['/admin', '/admin/manage-user'];
 
 export default function middleware(request: NextRequest) {
@@ -33,8 +35,6 @@ export default function middleware(request: NextRequest) {
   // Note: Since middleware runs on the server, we need to access the client-stored
   // token via cookies. This requires changes to how we store tokens.
   const token = request.cookies.get('auth-token')?.value;
-
-  console.log('Token in middleware', token);
 
   // Check if the route requires authentication
   const isProtectedRoute = protectedRoutes.some(
@@ -61,6 +61,10 @@ export default function middleware(request: NextRequest) {
 
   // Check if the route is a protected customer route
   const isCustomerProtectedRoute = customerProtectedRoutes.some(
+    route => pathname === route || pathname.startsWith(`${route}/`)
+  );
+
+  const isStaffRoute = staffProtectedRoutes.some(
     route => pathname === route || pathname.startsWith(`${route}/`)
   );
 
@@ -96,6 +100,10 @@ export default function middleware(request: NextRequest) {
           return NextResponse.redirect(new URL('/', request.url));
         }
 
+        if (isStaffRoute && !isStaff(decodedToken)) {
+          return NextResponse.redirect(new URL('/', request.url));
+        }
+
         if (isAdminRoute && !isAdmin(decodedToken)) {
           return NextResponse.redirect(new URL('/', request.url));
         }
@@ -104,6 +112,9 @@ export default function middleware(request: NextRequest) {
         if (pathname === '/') {
           if (isServiceProvider(decodedToken)) {
             return NextResponse.redirect(new URL('/provider/dashboard', request.url));
+          }
+          if (isStaff(decodedToken)) {
+            return NextResponse.redirect(new URL('/staff/dashboard', request.url));
           }
           // No redirect for customers at root - they stay on the homepage
         }

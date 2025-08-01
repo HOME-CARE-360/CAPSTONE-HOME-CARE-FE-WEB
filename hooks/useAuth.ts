@@ -8,9 +8,11 @@ import fetchAuth, {
   RegisterRequest,
   LoginResponse,
   RegisterProviderRequest,
-  OTPVerifyResponse,
   ValidationError,
   RegisterProviderResponse,
+  RegisterResponse,
+  OTPVerifyRequest,
+  OTPVerifyResponse,
 } from '@/lib/api/services/fetchAuth';
 import { toast } from 'sonner';
 
@@ -18,7 +20,7 @@ import { toast } from 'sonner';
 export function useRequestOTP() {
   const queryClient = useQueryClient();
   const [error, setError] = useState<ValidationError | null>(null);
-  const { mutate: requestOTP, isPending: isLoading } = useMutation({
+  const { mutate: requestOTPMutation, isPending: isLoading } = useMutation({
     mutationFn: fetchAuth.verifyEmailWithOTP,
     onSettled: (data: OTPVerifyResponse | undefined) => {
       queryClient.invalidateQueries({ queryKey: ['auth', 'otpVerify'] });
@@ -34,9 +36,31 @@ export function useRequestOTP() {
       } else if (typeof error?.message === 'string') {
         errorMessage = error.message;
       }
-      toast.error(errorMessage);
+
+      // Don't show toast for EmailAlreadyExists error - let the form handle it
+      if (error?.code !== 'EmailAlreadyExists') {
+        toast.error(errorMessage);
+      }
     },
   });
+
+  // Wrap the mutation to make it properly awaitable and handle EmailAlreadyExists error
+  const requestOTP = (data: OTPVerifyRequest) => {
+    setError(null);
+    return new Promise<void>((resolve, reject) => {
+      requestOTPMutation(data, {
+        onSuccess: () => resolve(),
+        onError: (err: ValidationError) => {
+          // For EmailAlreadyExists, we want to reject with a specific error
+          if (err?.code === 'EmailAlreadyExists') {
+            reject(new Error('EmailAlreadyExists'));
+          } else {
+            reject(err);
+          }
+        },
+      });
+    });
+  };
 
   return {
     requestOTP,
@@ -57,6 +81,12 @@ export function useRegister() {
     error: registerError,
   } = useMutation({
     mutationFn: fetchAuth.register,
+    onSuccess: (data: RegisterResponse) => {
+      if (data?.message) {
+        toast.success(data.message as string);
+      }
+      router.push('/login');
+    },
     onError: (error: ValidationError) => {
       let errorMessage = 'An unexpected error occurred';
       if (typeof error === 'object' && error !== null && 'message' in error) {

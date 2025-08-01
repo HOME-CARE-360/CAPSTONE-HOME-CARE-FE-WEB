@@ -36,6 +36,27 @@ export interface AssignStaffToBookingRequest {
   serviceRequestId: number;
 }
 
+export interface CreateProposedBookingRequest {
+  bookingId: number;
+  notes: string;
+  services: ProposedService[];
+  [key: string]: unknown;
+}
+
+export interface ProposedService {
+  serviceId: number;
+  quantity: number;
+}
+
+export interface CreateProposedBookingResponse {
+  success: boolean;
+  code: string;
+  message: string;
+  data: unknown;
+  statusCode: number;
+  timestamp: string;
+}
+
 export interface ManageBookingResponse {
   data: Booking[];
   totalItems: number;
@@ -68,6 +89,16 @@ export const serviceManageBooking = {
 
   assignStaff: async (data: AssignStaffToBookingRequest) => {
     const response = await apiService.post(`/manage-bookings/assign-staff-to-booking`, data);
+    return response.data;
+  },
+
+  createProposed: async (
+    data: CreateProposedBookingRequest
+  ): Promise<CreateProposedBookingResponse> => {
+    const response = await apiService.post<CreateProposedBookingResponse>(
+      `/manage-bookings/create-proposed`,
+      data
+    );
     return response.data;
   },
 };

@@ -6,8 +6,8 @@ import { Alert } from '@/components/ui/alert';
 import { AlertCircle, Clock, CheckCircle, Archive } from 'lucide-react';
 import { AlertTitle } from '@/components/ui/alert';
 import { AlertDescription } from '@/components/ui/alert';
-import { Booking } from '@/lib/api/services/fetchManageBooking';
-import { useManageBookings, useBookingFilters } from '@/hooks/useManageBooking';
+import { Booking, StatusBooking } from '@/lib/api/services/fetchBooking';
+import { useStaffBooking } from '@/hooks/useBooking';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -16,13 +16,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const ACTIVE_COLUMNS = [
   {
-    id: 'PENDING',
+    id: StatusBooking.PENDING,
     title: 'Chờ xử lý',
     description: 'Đặt lịch mới cần được xem xét',
     icon: Clock,
   },
   {
-    id: 'CONFIRMED',
+    id: StatusBooking.CONFIRMED,
     title: 'Đã xác nhận',
     description: 'Đặt lịch đã được xác nhận',
     icon: CheckCircle,
@@ -31,13 +31,13 @@ const ACTIVE_COLUMNS = [
 
 const COMPLETED_COLUMNS = [
   {
-    id: 'COMPLETED',
+    id: StatusBooking.COMPLETED,
     title: 'Hoàn thành',
     description: 'Dịch vụ đã hoàn thành',
     icon: CheckCircle,
   },
   {
-    id: 'CANCELLED',
+    id: StatusBooking.CANCELLED,
     title: 'Đã hủy',
     description: 'Đặt lịch đã bị hủy',
     icon: Archive,
@@ -58,9 +58,13 @@ const BookingCardSkeleton = () => (
       <Skeleton className="h-8 w-8 rounded" />
     </div>
 
-    {/* Status Badge */}
-    <div className="flex items-center gap-2 mb-3">
+    {/* Status Badge with Action Buttons */}
+    <div className="flex items-center justify-between gap-2 mb-3">
       <Skeleton className="h-6 w-20 rounded-full" />
+      <div className="flex gap-1">
+        <Skeleton className="h-7 w-16 rounded" />
+        <Skeleton className="h-7 w-14 rounded" />
+      </div>
     </div>
 
     {/* Service Information */}
@@ -95,24 +99,30 @@ interface BookingKanbanProps {
 }
 
 export function BookingKanban({ onRefresh }: BookingKanbanProps) {
-  const filters = useBookingFilters();
-  const { data: bookings, isLoading, error } = useManageBookings(filters.params);
+  const { data: staffBookingsData, isLoading, error } = useStaffBooking();
   const [activeTab, setActiveTab] = useState('active');
 
-  const bookingsArray = bookings?.data || [];
+  const bookingsArray = staffBookingsData?.data?.bookings || [];
 
-  const groupedBookings = {
-    PENDING: bookingsArray.filter(booking => booking.status === 'PENDING'),
-    CONFIRMED: bookingsArray.filter(booking => booking.status === 'CONFIRMED'),
-    IN_PROGRESS: bookingsArray.filter(booking => booking.status === 'IN_PROGRESS'),
-    COMPLETED: bookingsArray.filter(booking => booking.status === 'COMPLETED'),
-    CANCELLED: bookingsArray.filter(booking => booking.status === 'CANCELLED'),
+  const groupedBookings: Record<StatusBooking, Booking[]> = {
+    [StatusBooking.PENDING]: bookingsArray.filter(
+      booking => booking.status === StatusBooking.PENDING
+    ),
+    [StatusBooking.CONFIRMED]: bookingsArray.filter(
+      booking => booking.status === StatusBooking.CONFIRMED
+    ),
+    [StatusBooking.COMPLETED]: bookingsArray.filter(
+      booking => booking.status === StatusBooking.COMPLETED
+    ),
+    [StatusBooking.CANCELLED]: bookingsArray.filter(
+      booking => booking.status === StatusBooking.CANCELLED
+    ),
   };
 
   const renderKanbanColumns = (columns: typeof ACTIVE_COLUMNS) => (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {columns.map(column => {
-        const columnBookings = groupedBookings[column.id as Booking['status']];
+        const columnBookings = groupedBookings[column.id as StatusBooking];
         return (
           <Card key={column.id} className="border-0 shadow-sm bg-gray-50/50">
             <CardHeader className="pb-4">
@@ -140,14 +150,14 @@ export function BookingKanban({ onRefresh }: BookingKanbanProps) {
                     <column.icon className="h-6 w-6 text-gray-400" />
                   </div>
                   <p className="text-sm font-medium text-gray-500">Chưa có đặt lịch</p>
-                  <p className="text-xs text-gray-400 mt-1">Danh sách đặt lịch theo trạng thái</p>
+                  <p className="text-xs text-gray-400 mt-1">Danh sách công việc theo trạng thái</p>
                 </div>
               ) : (
-                columnBookings.map(booking => (
+                columnBookings.map((booking: Booking) => (
                   <BookingCard
                     key={booking.id.toString()}
                     booking={booking}
-                    status={column.id as Booking['status']}
+                    status={booking.status}
                     isDragging={false}
                     isLoading={false}
                     onStaffAssigned={onRefresh}
@@ -200,17 +210,18 @@ export function BookingKanban({ onRefresh }: BookingKanbanProps) {
       <Alert variant="destructive">
         <AlertCircle className="h-4 w-4" />
         <AlertTitle>Lỗi</AlertTitle>
-        <AlertDescription>{error?.message || 'Không thể tải dữ liệu đặt lịch'}</AlertDescription>
+        <AlertDescription>
+          {(error as Error)?.message || 'Không thể tải dữ liệu đặt lịch'}
+        </AlertDescription>
       </Alert>
     );
   }
 
   const activeBookingsCount =
-    groupedBookings.PENDING.length +
-    groupedBookings.CONFIRMED.length +
-    groupedBookings.IN_PROGRESS.length;
+    groupedBookings[StatusBooking.PENDING].length + groupedBookings[StatusBooking.CONFIRMED].length;
   const completedBookingsCount =
-    groupedBookings.COMPLETED.length + groupedBookings.CANCELLED.length;
+    groupedBookings[StatusBooking.COMPLETED].length +
+    groupedBookings[StatusBooking.CANCELLED].length;
 
   return (
     <div className="space-y-6">

@@ -83,7 +83,7 @@ export function ServiceForm({ initialData, categories, isEditMode, onSuccess }: 
         basePrice: initialData.basePrice,
         virtualPrice: initialData.virtualPrice,
         durationMinutes: Number(initialData.durationMinutes),
-        categoryId: initialData.categories?.id || 0,
+        categoryId: initialData.category.id || 0,
         images: initialData.images,
       });
       setImages(initialData.images);

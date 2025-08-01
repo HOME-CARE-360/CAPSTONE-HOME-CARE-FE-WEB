@@ -6,7 +6,7 @@ import { useChat } from 'ai/react';
 
 import { ArrowUpIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { AutoResizeTextarea } from '@/components/autoresize-textarea';
 
 export function ChatForm({ className, ...props }: React.ComponentProps<'form'>) {
@@ -29,15 +29,9 @@ export function ChatForm({ className, ...props }: React.ComponentProps<'form'>) 
 
   const header = (
     <header className="m-auto flex max-w-96 flex-col gap-5 text-center">
-      <h1 className="text-2xl font-semibold leading-none tracking-tight">Chatbot</h1>
+      <h1 className="text-2xl font-semibold leading-none tracking-tight">HomeCare 360</h1>
       <p className="text-muted-foreground text-sm">
-        This is an AI chatbot app template built with{' '}
-        <span className="text-foreground">Next.js</span>, the{' '}
-        <span className="text-foreground">Vercel AI SDK</span>, and{' '}
-        <span className="text-foreground">Vercel KV</span>.
-      </p>
-      <p className="text-muted-foreground text-sm">
-        Connect an API Key from your provider and send a message to get started.
+        AI Chatbot hỗ trợ bạn trong việc tìm kiếm dịch vụ phù hợp với nhu cầu của bạn
       </p>
     </header>
   );
@@ -78,18 +72,20 @@ export function ChatForm({ className, ...props }: React.ComponentProps<'form'>) 
           placeholder="Enter a message"
           className="placeholder:text-muted-foreground flex-1 bg-transparent focus:outline-none"
         />
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="absolute bottom-1 right-1 size-6 rounded-full"
-            >
-              <ArrowUpIcon size={16} />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent sideOffset={12}>Submit</TooltipContent>
-        </Tooltip>
+        <TooltipProvider delayDuration={0}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="absolute bottom-1 right-1 size-6 rounded-full"
+              >
+                <ArrowUpIcon size={16} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent sideOffset={12}>Submit</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </form>
     </main>
   );

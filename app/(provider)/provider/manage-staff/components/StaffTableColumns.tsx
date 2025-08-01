@@ -2,7 +2,6 @@ import { ColumnDef } from '@tanstack/react-table';
 import { Staff } from '@/lib/api/services/fetchStaff';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { format } from 'date-fns';
 import { Edit, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 
@@ -24,6 +23,8 @@ export const useStaffTableColumns = ({
         <div className="flex items-center gap-2">
           {row.original.user.avatar && (
             <Image
+              width={500}
+              height={500}
               src={row.original.user.avatar}
               alt={row.original.user.name}
               className="h-8 w-8 rounded-full object-cover"
@@ -48,11 +49,17 @@ export const useStaffTableColumns = ({
       header: 'Vai trò',
       cell: ({ row }) => (
         <div className="flex flex-wrap gap-1">
-          {row.original.staffCategories.map((category, index) => (
-            <Badge key={index} variant="secondary">
-              {category.category.name}
+          {row.original.staffCategories && row.original.staffCategories.length > 0 ? (
+            row.original.staffCategories.map((category, index) => (
+              <Badge key={index} variant="secondary">
+                {category.category.name}
+              </Badge>
+            ))
+          ) : (
+            <Badge variant="outline" className="text-muted-foreground">
+              Chưa phân vai trò
             </Badge>
-          ))}
+          )}
         </div>
       ),
     },
@@ -65,11 +72,27 @@ export const useStaffTableColumns = ({
         </Badge>
       ),
     },
-    {
-      accessorKey: 'createdAt',
-      header: 'Ngày khởi tạo',
-      cell: ({ row }) => format(new Date(row.original.createdAt), 'MMM dd, yyyy'),
-    },
+    // {
+    //   accessorKey: 'createdAt',
+    //   header: 'Ngày khởi tạo',
+    //   cell: ({ row }) => {
+    //     try {
+    //       const createdAt = row.original.createdAt;
+    //       if (!createdAt) {
+    //         return <span className="text-muted-foreground">Không có dữ liệu</span>;
+    //       }
+
+    //       const date = new Date(createdAt);
+    //       if (isNaN(date.getTime())) {
+    //         return <span className="text-muted-foreground">Ngày không hợp lệ</span>;
+    //       }
+
+    //       return format(date, 'MMM dd, yyyy');
+    //     } catch (error) {
+    //       return <span className="text-muted-foreground">Lỗi định dạng ngày</span>;
+    //     }
+    //   },
+    // },
     {
       id: 'actions',
       header: 'Thao tác',

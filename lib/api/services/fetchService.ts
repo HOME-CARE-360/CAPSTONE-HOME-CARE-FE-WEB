@@ -10,7 +10,7 @@ export interface Service {
   durationMinutes: number;
   providerId: number;
   description: string;
-  categories: Category[];
+  category: Category[];
   provider: string;
 }
 

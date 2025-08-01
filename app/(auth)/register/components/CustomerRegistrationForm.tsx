@@ -67,9 +67,22 @@ export function CustomerRegistrationForm() {
       setEmailVerified(true);
     } catch (error) {
       console.error('Failed to send OTP:', error);
-      // Don't show OTP input if there's an error
-      setShowOTP(false);
-      setEmailVerified(false);
+
+      // Handle EmailAlreadyExists error specifically
+      if (error instanceof Error && error.message === 'EmailAlreadyExists') {
+        form.setError('email', {
+          type: 'manual',
+          message: 'Email này đã được đăng ký. Vui lòng sử dụng email khác hoặc đăng nhập.',
+        });
+        // Reset verification states to allow trying with a different email
+        setShowOTP(false);
+        setEmailVerified(false);
+        otpForm.reset(); // Clear OTP form
+      } else {
+        // Don't show OTP input if there's an error
+        setShowOTP(false);
+        setEmailVerified(false);
+      }
     }
   };
 
@@ -107,6 +120,22 @@ export function CustomerRegistrationForm() {
     }
   };
 
+  const otpValue = otpForm.watch('otp');
+  const formValues = form.watch();
+
+  // Check if all required fields are filled and valid
+  const isFormValid =
+    formValues.email &&
+    formValues.name &&
+    formValues.phone &&
+    formValues.password &&
+    formValues.confirmPassword &&
+    formValues.terms &&
+    Object.keys(form.formState.errors).length === 0;
+
+  // Check if OTP is exactly 6 digits
+  const isOtpValid = otpValue && otpValue.length === 6;
+
   return (
     <form onSubmit={form.handleSubmit(handleRegister)} className="space-y-4">
       <div className="space-y-2">
@@ -118,7 +147,20 @@ export function CustomerRegistrationForm() {
             type="email"
             placeholder="Nhập địa chỉ email"
             className="pl-10"
-            {...form.register('email')}
+            {...form.register('email', {
+              onChange: () => {
+                // Reset verification state when email changes
+                if (emailVerified) {
+                  setEmailVerified(false);
+                  setShowOTP(false);
+                  otpForm.reset();
+                }
+                // Clear email error when user starts typing
+                if (form.formState.errors.email) {
+                  form.clearErrors('email');
+                }
+              },
+            })}
             disabled={emailVerified}
           />
         </div>
@@ -302,7 +344,7 @@ export function CustomerRegistrationForm() {
       <Button
         type="submit"
         className="w-full"
-        disabled={!form.formState.isValid || !emailVerified || !otpForm.watch('otp') || verifying}
+        disabled={!isFormValid || !emailVerified || !isOtpValid || verifying}
       >
         {verifying ? (
           <>

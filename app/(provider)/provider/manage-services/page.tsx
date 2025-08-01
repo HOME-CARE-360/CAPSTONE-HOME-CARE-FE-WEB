@@ -13,6 +13,7 @@ import { useState } from 'react';
 import {
   ServiceItemSearchParams,
   ServiceManagerSearchParams,
+  ServiceManager,
 } from '@/lib/api/services/fetchServiceManager';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -32,6 +33,11 @@ export default function ManageServicesPage() {
     limit: 10,
     page: 1,
   });
+
+  // State for editing services
+  const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
+  const [selectedService, setSelectedService] = useState<ServiceManager | null>(null);
+
   const { data: serviceData, isFetching: isServiceFetching } = useServiceManager(searchParams);
   const {
     data: serviceItemData,
@@ -46,6 +52,16 @@ export default function ManageServicesPage() {
 
   const handleFilterChangeItem = (params: Partial<ServiceItemSearchParams>) => {
     setSearchParamsItem(prev => ({ ...prev, ...params }));
+  };
+
+  const handleEditService = (service: ServiceManager) => {
+    setSelectedService(service);
+    setIsEditSheetOpen(true);
+  };
+
+  const handleCloseEditSheet = () => {
+    setIsEditSheetOpen(false);
+    setSelectedService(null);
   };
 
   return (
@@ -100,6 +116,7 @@ export default function ManageServicesPage() {
               totalItems={serviceData?.totalItems}
               onFilterChange={handleFilterChange}
               searchFilters={searchParams}
+              onEdit={handleEditService}
             />
           </TabsContent>
 
@@ -134,6 +151,17 @@ export default function ManageServicesPage() {
             />
           </TabsContent>
         </Tabs>
+
+        {/* Edit Service Sheet */}
+        <ServiceSheet
+          serviceId={selectedService?.id}
+          open={isEditSheetOpen}
+          onOpenChange={open => {
+            if (!open) {
+              handleCloseEditSheet();
+            }
+          }}
+        />
       </div>
     </>
   );

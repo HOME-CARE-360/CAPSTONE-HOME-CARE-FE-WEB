@@ -22,9 +22,15 @@ const ACTIVE_COLUMNS = [
     icon: Clock,
   },
   {
-    id: 'CONFIRMED',
-    title: 'Đã xác nhận',
-    description: 'Đặt lịch đã được xác nhận',
+    id: 'IN_PROGRESS',
+    title: 'Đang xử lý',
+    description: 'Đặt lịch đang được xử lý',
+    icon: CheckCircle,
+  },
+  {
+    id: 'ESTIMATED',
+    title: 'Đã ước lượng',
+    description: 'Đặt lịch đã được ước lượng',
     icon: CheckCircle,
   },
 ];
@@ -105,12 +111,13 @@ export function BookingKanban({ onRefresh }: BookingKanbanProps) {
     PENDING: bookingsArray.filter(booking => booking.status === 'PENDING'),
     CONFIRMED: bookingsArray.filter(booking => booking.status === 'CONFIRMED'),
     IN_PROGRESS: bookingsArray.filter(booking => booking.status === 'IN_PROGRESS'),
+    ESTIMATED: bookingsArray.filter(booking => booking.status === 'ESTIMATED'),
     COMPLETED: bookingsArray.filter(booking => booking.status === 'COMPLETED'),
     CANCELLED: bookingsArray.filter(booking => booking.status === 'CANCELLED'),
   };
 
   const renderKanbanColumns = (columns: typeof ACTIVE_COLUMNS) => (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       {columns.map(column => {
         const columnBookings = groupedBookings[column.id as Booking['status']];
         return (
@@ -208,7 +215,9 @@ export function BookingKanban({ onRefresh }: BookingKanbanProps) {
   const activeBookingsCount =
     groupedBookings.PENDING.length +
     groupedBookings.CONFIRMED.length +
-    groupedBookings.IN_PROGRESS.length;
+    groupedBookings.IN_PROGRESS.length +
+    groupedBookings.ESTIMATED.length;
+
   const completedBookingsCount =
     groupedBookings.COMPLETED.length + groupedBookings.CANCELLED.length;
 

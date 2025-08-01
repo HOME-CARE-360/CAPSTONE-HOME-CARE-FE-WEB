@@ -101,8 +101,10 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
     switch (status) {
       case 'PENDING':
         return { label: 'Chờ xử lý', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' };
-      case 'CONFIRMED':
-        return { label: 'Đã xác nhận', color: 'bg-blue-100 text-blue-700 border-blue-200' };
+      case 'IN_PROGRESS':
+        return { label: 'Đang xử lý', color: 'bg-blue-100 text-blue-700 border-blue-200' };
+      case 'ESTIMATED':
+        return { label: 'Đã ước lượng', color: 'bg-purple-100 text-purple-700 border-purple-200' };
       case 'COMPLETED':
         return { label: 'Hoàn thành', color: 'bg-green-100 text-green-700 border-green-200' };
       case 'CANCELLED':

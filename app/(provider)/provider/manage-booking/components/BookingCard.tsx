@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Booking } from '@/lib/api/services/fetchManageBooking';
+import { useDetailBooking } from '@/hooks/useBooking';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -72,6 +73,9 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
   const [notes, setNotes] = useState('');
   const [selectedServices, setSelectedServices] = useState<ServiceSelection[]>([]);
 
+  // Get detailed booking data
+  const { data: detailBooking } = useDetailBooking(booking.id);
+
   // Fetch staff for this booking's category
   const { data: staffData, isLoading: isLoadingStaff } = useGetStaffAvailable({
     categories: [booking.categoryId],
@@ -105,8 +109,6 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
         return { label: 'Đang xử lý', color: 'bg-blue-100 text-blue-700 border-blue-200' };
       case 'ESTIMATED':
         return { label: 'Đã ước lượng', color: 'bg-purple-100 text-purple-700 border-purple-200' };
-      case 'COMPLETED':
-        return { label: 'Hoàn thành', color: 'bg-green-100 text-green-700 border-green-200' };
       case 'CANCELLED':
         return { label: 'Đã hủy', color: 'bg-red-100 text-red-700 border-red-200' };
       default:
@@ -117,6 +119,16 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
   const statusConfig = getStatusConfig(booking.status);
   const availableStaff = staffData?.data || [];
   const availableServices = servicesData?.data || [];
+
+  // Check if inspection report exists and if staff is already assigned
+  const hasInspectionReport = detailBooking?.booking?.inspectionReport !== undefined;
+  const hasStaffAssigned = detailBooking?.booking?.staff !== undefined;
+
+  // Determine if we should show proposal tab
+  const shouldShowProposalTab = !hasInspectionReport;
+
+  // Determine if we should show staff assignment section
+  const shouldShowStaffAssignment = !hasStaffAssigned;
 
   // Proposed services functions
   const addService = (service: ServiceManager) => {
@@ -250,9 +262,13 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
 
               <div className="mt-6">
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
+                  <TabsList
+                    className={`grid w-full ${shouldShowProposalTab ? 'grid-cols-2' : 'grid-cols-1'}`}
+                  >
                     <TabsTrigger value="details">Chi tiết & Phân công</TabsTrigger>
-                    <TabsTrigger value="proposal">Đề xuất dịch vụ</TabsTrigger>
+                    {shouldShowProposalTab && (
+                      <TabsTrigger value="proposal">Đề xuất dịch vụ</TabsTrigger>
+                    )}
                   </TabsList>
 
                   <TabsContent value="details" className="mt-6 space-y-6">
@@ -345,295 +361,393 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
 
                     {/* Actions */}
                     <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-sm font-medium">Hành động</h3>
-                      </div>
-
                       {/* Quick Actions */}
-                      <div className="space-y-3">
-                        <h4 className="text-sm font-medium text-gray-700">Hành động nhanh</h4>
-                        <Button
-                          variant="outline"
-                          className="w-full"
-                          onClick={() => setActiveTab('proposal')}
-                        >
-                          <FileText className="h-4 w-4 mr-2" />
-                          Đề xuất dịch vụ bổ sung
-                        </Button>
-                      </div>
+                      {shouldShowProposalTab && (
+                        <div className="space-y-3">
+                          <h4 className="text-sm font-medium text-gray-700">Hành động nhanh</h4>
+                          <Button
+                            variant="outline"
+                            className="w-full"
+                            onClick={() => setActiveTab('proposal')}
+                          >
+                            <FileText className="h-4 w-4 mr-2" />
+                            Đề xuất dịch vụ bổ sung
+                          </Button>
+                        </div>
+                      )}
 
-                      <Separator />
+                      {shouldShowProposalTab && <Separator />}
 
                       {/* Staff Assignment */}
-                      <div className="space-y-3">
-                        <h4 className="text-sm font-medium text-gray-700">Phân công nhân viên</h4>
-
-                        {/* Staff Selection */}
+                      {shouldShowStaffAssignment && (
                         <div className="space-y-3">
-                          {isLoadingStaff ? (
-                            <div className="space-y-2">
-                              <Skeleton className="h-4 w-24" />
-                              <Skeleton className="h-10 w-full" />
-                            </div>
-                          ) : availableStaff.length === 0 ? (
-                            <div className="text-sm text-gray-500 text-center py-4 bg-gray-50 rounded-lg">
-                              Không có nhân viên phù hợp với dịch vụ này
-                            </div>
-                          ) : (
-                            <>
-                              <Select value={selectedStaffId} onValueChange={setSelectedStaffId}>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Chọn nhân viên" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {availableStaff.map(staff => (
-                                    <SelectItem key={staff.id} value={staff.id.toString()}>
-                                      <div className="flex items-center gap-2">
-                                        <Avatar className="h-6 w-6">
-                                          <AvatarImage src={staff.user.avatar} />
-                                          <AvatarFallback className="text-xs">
-                                            {staff.user.name
-                                              .split(' ')
-                                              .map(n => n.charAt(0))
-                                              .join('')
-                                              .substring(0, 2)
-                                              .toUpperCase()}
-                                          </AvatarFallback>
-                                        </Avatar>
-                                        <div className="flex flex-col">
-                                          <span className="font-medium">{staff.user.name}</span>
-                                          <span className="text-xs text-gray-500">
-                                            {staff.user.email}
-                                          </span>
+                          <h4 className="text-sm font-medium text-gray-700">Phân công nhân viên</h4>
+
+                          {/* Staff Selection */}
+                          <div className="space-y-3">
+                            {isLoadingStaff ? (
+                              <div className="space-y-2">
+                                <Skeleton className="h-4 w-24" />
+                                <Skeleton className="h-10 w-full" />
+                              </div>
+                            ) : availableStaff.length === 0 ? (
+                              <div className="text-sm text-gray-500 text-center py-4 bg-gray-50 rounded-lg">
+                                Không có nhân viên phù hợp với dịch vụ này
+                              </div>
+                            ) : (
+                              <>
+                                <Select value={selectedStaffId} onValueChange={setSelectedStaffId}>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Chọn nhân viên" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {availableStaff.map(staff => (
+                                      <SelectItem key={staff.id} value={staff.id.toString()}>
+                                        <div className="flex items-center gap-2">
+                                          <Avatar className="h-6 w-6">
+                                            <AvatarImage src={staff.user.avatar} />
+                                            <AvatarFallback className="text-xs">
+                                              {staff.user.name
+                                                .split(' ')
+                                                .map(n => n.charAt(0))
+                                                .join('')
+                                                .substring(0, 2)
+                                                .toUpperCase()}
+                                            </AvatarFallback>
+                                          </Avatar>
+                                          <div className="flex flex-col">
+                                            <span className="font-medium">{staff.user.name}</span>
+                                            <span className="text-xs text-gray-500">
+                                              {staff.user.email}
+                                            </span>
+                                          </div>
                                         </div>
-                                      </div>
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
 
-                              <Button
-                                onClick={handleAssignStaff}
-                                className="w-full"
-                                disabled={!selectedStaffId || isAssigning}
-                              >
-                                {isAssigning ? (
-                                  <>
-                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                    Đang phân công...
-                                  </>
-                                ) : (
-                                  <>
-                                    <UserPlus className="h-4 w-4 mr-2" />
-                                    Phân công nhân viên
-                                  </>
-                                )}
-                              </Button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="proposal" className="mt-6 space-y-6">
-                    {/* Proposal Form */}
-                    <form onSubmit={handleSubmitProposal} className="space-y-6">
-                      {/* Booking Information */}
-                      <div className="p-4 bg-gray-50 rounded-lg">
-                        <h3 className="text-sm font-medium text-gray-900 mb-2">
-                          Thông tin đặt lịch
-                        </h3>
-                        <div className="grid gap-2 text-sm">
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Khách hàng:</span>
-                            <span className="font-medium">{booking.customer.name}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Mã booking:</span>
-                            <span className="font-medium">BK-{booking.id}</span>
+                                <Button
+                                  onClick={handleAssignStaff}
+                                  className="w-full"
+                                  disabled={!selectedStaffId || isAssigning}
+                                >
+                                  {isAssigning ? (
+                                    <>
+                                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                      Đang phân công...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <UserPlus className="h-4 w-4 mr-2" />
+                                      Phân công nhân viên
+                                    </>
+                                  )}
+                                </Button>
+                              </>
+                            )}
                           </div>
                         </div>
-                      </div>
+                      )}
 
-                      <Separator />
-
-                      {/* Service Selection */}
-                      <div className="space-y-4">
-                        <h3 className="text-sm font-medium text-gray-900">Chọn dịch vụ</h3>
-
-                        {isLoadingServices ? (
-                          <div className="text-center py-4">
-                            <Loader2 className="h-6 w-6 animate-spin mx-auto" />
-                            <p className="text-sm text-gray-500 mt-2">
-                              Đang tải danh sách dịch vụ...
-                            </p>
-                          </div>
-                        ) : (
-                          <div className="grid gap-3 max-h-60 overflow-y-auto">
-                            {availableServices.map(service => {
-                              const isSelected = selectedServices.some(
-                                s => s.serviceId === service.id
-                              );
-                              return (
-                                <div
-                                  key={service.id}
-                                  className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                                    isSelected
-                                      ? 'border-blue-500 bg-blue-50'
-                                      : 'border-gray-200 hover:border-gray-300'
-                                  }`}
-                                  onClick={() => addService(service)}
-                                >
-                                  <div className="flex justify-between items-start">
-                                    <div className="flex-1">
-                                      <h4 className="font-medium text-gray-900">{service.name}</h4>
-                                      <p className="text-sm text-gray-600 line-clamp-2">
-                                        {service.description}
-                                      </p>
-                                      <div className="flex items-center gap-2 mt-2">
-                                        <Badge variant="secondary" className="text-xs">
-                                          {service.basePrice.toLocaleString('vi-VN')}đ
-                                        </Badge>
-                                        <span className="text-xs text-gray-500">
-                                          {service.durationMinutes} phút
-                                        </span>
-                                      </div>
-                                    </div>
-                                    {isSelected && (
-                                      <Badge variant="default" className="ml-2">
-                                        Đã chọn
-                                      </Badge>
-                                    )}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Selected Services */}
-                      {selectedServices.length > 0 && (
-                        <>
-                          <Separator />
-                          <div className="space-y-4">
-                            <h3 className="text-sm font-medium text-gray-900">Dịch vụ đã chọn</h3>
-                            <div className="space-y-3">
-                              {selectedServices.map(item => (
-                                <div
-                                  key={item.serviceId}
-                                  className="flex items-center justify-between p-3 border rounded-lg"
-                                >
-                                  <div className="flex-1">
-                                    <h4 className="font-medium text-gray-900">
-                                      {item.service?.name}
-                                    </h4>
-                                    <p className="text-sm text-gray-600">
-                                      {item.service?.basePrice.toLocaleString('vi-VN')}đ x{' '}
-                                      {item.quantity}
-                                    </p>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      size="sm"
-                                      className="h-8 w-8 p-0"
-                                      onClick={() =>
-                                        updateQuantity(item.serviceId, item.quantity - 1)
-                                      }
-                                    >
-                                      <Minus className="h-3 w-3" />
-                                    </Button>
-                                    <span className="w-8 text-center text-sm font-medium">
-                                      {item.quantity}
-                                    </span>
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      size="sm"
-                                      className="h-8 w-8 p-0"
-                                      onClick={() =>
-                                        updateQuantity(item.serviceId, item.quantity + 1)
-                                      }
-                                    >
-                                      <Plus className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
-                                      onClick={() => removeService(item.serviceId)}
-                                    >
-                                      <X className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-
-                            {/* Total */}
-                            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                              <div className="flex justify-between items-center">
-                                <span className="font-medium text-blue-900">Tổng cộng:</span>
-                                <span className="font-bold text-blue-900 text-lg">
-                                  {totalAmount.toLocaleString('vi-VN')}đ
-                                </span>
+                      {/* Show assigned staff information if staff exists */}
+                      {hasStaffAssigned && detailBooking?.booking?.staff && (
+                        <div className="space-y-3">
+                          <h4 className="text-sm font-medium text-gray-700">
+                            Nhân viên được phân công
+                          </h4>
+                          <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                            <div className="flex items-center gap-3">
+                              <Avatar className="h-8 w-8">
+                                <AvatarImage
+                                  src={detailBooking.booking.staff.user.avatar || undefined}
+                                />
+                                <AvatarFallback className="bg-green-100 text-green-700 text-xs">
+                                  {detailBooking.booking.staff.user.name
+                                    .split(' ')
+                                    .map(n => n.charAt(0))
+                                    .join('')
+                                    .substring(0, 2)
+                                    .toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <p className="font-medium text-green-900">
+                                  {detailBooking.booking.staff.user.name}
+                                </p>
+                                <p className="text-sm text-green-700">
+                                  {detailBooking.booking.staff.user.email}
+                                </p>
+                                <p className="text-sm text-green-700">
+                                  {detailBooking.booking.staff.user.phone}
+                                </p>
                               </div>
                             </div>
                           </div>
-                        </>
+                        </div>
                       )}
 
-                      {/* Notes */}
-                      <div className="space-y-2">
-                        <Label htmlFor="notes" className="text-sm font-medium text-gray-700">
-                          Ghi chú đề xuất (tùy chọn)
-                        </Label>
-                        <Textarea
-                          id="notes"
-                          value={notes}
-                          onChange={e => setNotes(e.target.value)}
-                          placeholder="Lý do đề xuất dịch vụ bổ sung, lợi ích cho khách hàng..."
-                          rows={3}
-                          className="resize-none"
-                        />
-                      </div>
+                      {/* Show inspection report if exists */}
+                      {hasInspectionReport && detailBooking?.booking?.inspectionReport && (
+                        <div className="space-y-3">
+                          <h4 className="text-sm font-medium text-gray-700">Báo cáo khảo sát</h4>
+                          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                            <div className="space-y-3">
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <p className="text-sm text-blue-700">Thời gian ước tính:</p>
+                                  <p className="font-medium text-blue-900">
+                                    {detailBooking.booking.inspectionReport.estimatedTime} phút
+                                  </p>
+                                </div>
+                                <div className="text-xs text-blue-600">
+                                  {format(
+                                    new Date(detailBooking.booking.inspectionReport.createdAt),
+                                    'dd/MM/yyyy HH:mm',
+                                    { locale: vi }
+                                  )}
+                                </div>
+                              </div>
 
-                      <Separator />
+                              <div>
+                                <p className="text-sm text-blue-700 mb-1">Ghi chú:</p>
+                                <p className="text-sm text-blue-900">
+                                  {detailBooking.booking.inspectionReport.note}
+                                </p>
+                              </div>
 
-                      {/* Submit Button */}
-                      <div className="flex gap-3">
-                        <Button
-                          type="submit"
-                          disabled={!isProposalFormValid || isCreatingProposal}
-                          className="flex-1"
-                        >
-                          {isCreatingProposal ? (
-                            <>
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                              Đang tạo đề xuất...
-                            </>
-                          ) : (
-                            <>
-                              <FileText className="h-4 w-4 mr-2" />
-                              Tạo đề xuất ({selectedServices.length} dịch vụ)
-                            </>
-                          )}
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => setActiveTab('details')}
-                          disabled={isCreatingProposal}
-                        >
-                          Hủy
-                        </Button>
-                      </div>
-                    </form>
+                              {detailBooking.booking.inspectionReport.images &&
+                                detailBooking.booking.inspectionReport.images.length > 0 && (
+                                  <div>
+                                    <p className="text-sm text-blue-700 mb-2">Hình ảnh khảo sát:</p>
+                                    <div className="grid grid-cols-2 gap-2">
+                                      {detailBooking.booking.inspectionReport.images.map(
+                                        (image, index) => (
+                                          <div
+                                            key={index}
+                                            className="relative aspect-square rounded-lg overflow-hidden bg-gray-100"
+                                          >
+                                            <Image
+                                              src={image}
+                                              alt={`Inspection ${index + 1}`}
+                                              fill
+                                              className="object-cover"
+                                            />
+                                          </div>
+                                        )
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </TabsContent>
+
+                  {shouldShowProposalTab && (
+                    <TabsContent value="proposal" className="mt-6 space-y-6">
+                      {/* Proposal Form */}
+                      <form onSubmit={handleSubmitProposal} className="space-y-6">
+                        {/* Booking Information */}
+                        <div className="p-4 bg-gray-50 rounded-lg">
+                          <h3 className="text-sm font-medium text-gray-900 mb-2">
+                            Thông tin đặt lịch
+                          </h3>
+                          <div className="grid gap-2 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Khách hàng:</span>
+                              <span className="font-medium">{booking.customer.name}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Mã booking:</span>
+                              <span className="font-medium">BK-{booking.id}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <Separator />
+
+                        {/* Service Selection */}
+                        <div className="space-y-4">
+                          <h3 className="text-sm font-medium text-gray-900">Chọn dịch vụ</h3>
+
+                          {isLoadingServices ? (
+                            <div className="text-center py-4">
+                              <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                              <p className="text-sm text-gray-500 mt-2">
+                                Đang tải danh sách dịch vụ...
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="grid gap-3 max-h-60 overflow-y-auto">
+                              {availableServices.map(service => {
+                                const isSelected = selectedServices.some(
+                                  s => s.serviceId === service.id
+                                );
+                                return (
+                                  <div
+                                    key={service.id}
+                                    className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                                      isSelected
+                                        ? 'border-blue-500 bg-blue-50'
+                                        : 'border-gray-200 hover:border-gray-300'
+                                    }`}
+                                    onClick={() => addService(service)}
+                                  >
+                                    <div className="flex justify-between items-start">
+                                      <div className="flex-1">
+                                        <h4 className="font-medium text-gray-900">
+                                          {service.name}
+                                        </h4>
+                                        <p className="text-sm text-gray-600 line-clamp-2">
+                                          {service.description}
+                                        </p>
+                                        <div className="flex items-center gap-2 mt-2">
+                                          <Badge variant="secondary" className="text-xs">
+                                            {service.basePrice.toLocaleString('vi-VN')}đ
+                                          </Badge>
+                                          <span className="text-xs text-gray-500">
+                                            {service.durationMinutes} phút
+                                          </span>
+                                        </div>
+                                      </div>
+                                      {isSelected && (
+                                        <Badge variant="default" className="ml-2">
+                                          Đã chọn
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Selected Services */}
+                        {selectedServices.length > 0 && (
+                          <>
+                            <Separator />
+                            <div className="space-y-4">
+                              <h3 className="text-sm font-medium text-gray-900">Dịch vụ đã chọn</h3>
+                              <div className="space-y-3">
+                                {selectedServices.map(item => (
+                                  <div
+                                    key={item.serviceId}
+                                    className="flex items-center justify-between p-3 border rounded-lg"
+                                  >
+                                    <div className="flex-1">
+                                      <h4 className="font-medium text-gray-900">
+                                        {item.service?.name}
+                                      </h4>
+                                      <p className="text-sm text-gray-600">
+                                        {item.service?.basePrice.toLocaleString('vi-VN')}đ x{' '}
+                                        {item.quantity}
+                                      </p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-8 w-8 p-0"
+                                        onClick={() =>
+                                          updateQuantity(item.serviceId, item.quantity - 1)
+                                        }
+                                      >
+                                        <Minus className="h-3 w-3" />
+                                      </Button>
+                                      <span className="w-8 text-center text-sm font-medium">
+                                        {item.quantity}
+                                      </span>
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-8 w-8 p-0"
+                                        onClick={() =>
+                                          updateQuantity(item.serviceId, item.quantity + 1)
+                                        }
+                                      >
+                                        <Plus className="h-3 w-3" />
+                                      </Button>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
+                                        onClick={() => removeService(item.serviceId)}
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+
+                              {/* Total */}
+                              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                <div className="flex justify-between items-center">
+                                  <span className="font-medium text-blue-900">Tổng cộng:</span>
+                                  <span className="font-bold text-blue-900 text-lg">
+                                    {totalAmount.toLocaleString('vi-VN')}đ
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </>
+                        )}
+
+                        {/* Notes */}
+                        <div className="space-y-2">
+                          <Label htmlFor="notes" className="text-sm font-medium text-gray-700">
+                            Ghi chú đề xuất (tùy chọn)
+                          </Label>
+                          <Textarea
+                            id="notes"
+                            value={notes}
+                            onChange={e => setNotes(e.target.value)}
+                            placeholder="Lý do đề xuất dịch vụ bổ sung, lợi ích cho khách hàng..."
+                            rows={3}
+                            className="resize-none"
+                          />
+                        </div>
+
+                        <Separator />
+
+                        {/* Submit Button */}
+                        <div className="flex gap-3">
+                          <Button
+                            type="submit"
+                            disabled={!isProposalFormValid || isCreatingProposal}
+                            className="flex-1"
+                          >
+                            {isCreatingProposal ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Đang tạo đề xuất...
+                              </>
+                            ) : (
+                              <>
+                                <FileText className="h-4 w-4 mr-2" />
+                                Tạo đề xuất ({selectedServices.length} dịch vụ)
+                              </>
+                            )}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setActiveTab('details')}
+                            disabled={isCreatingProposal}
+                          >
+                            Hủy
+                          </Button>
+                        </div>
+                      </form>
+                    </TabsContent>
+                  )}
                 </Tabs>
               </div>
             </SheetContent>

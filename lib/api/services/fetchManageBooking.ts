@@ -1,5 +1,5 @@
 import apiService from '@/lib/api/core';
-
+import { StatusServiceRequest } from './fetchBooking';
 export interface BookingCategory {
   logo: string | null;
   name: string;
@@ -20,7 +20,7 @@ export interface Booking {
   providerId: number;
   note: string | null;
   preferredDate: string;
-  status: 'PENDING' | 'CONFIRMED' | 'ESTIMATED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+  status: StatusServiceRequest;
   createdAt: string;
   updatedAt: string;
   location: string;

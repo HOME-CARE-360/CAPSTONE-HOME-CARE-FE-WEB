@@ -26,8 +26,8 @@ export default function ProviderInfo({ providerProfile }: ProviderInfoProps) {
           {/* <div className="w-16 h-16 bg-gray-900 rounded-full flex items-center justify-center text-white font-bold text-xl">
             {user.name}
           </div> */}
-          <Avatar className="w-20 h-20">
-            <AvatarImage src={provider?.logo || 'https://github.com/shadcn.png'} />
+          <Avatar className="w-20 h-20 border-2 border-gray-200">
+            <AvatarImage src={provider?.logo || ''} />
             <AvatarFallback>{getNameFallback(user.name || 'User')}</AvatarFallback>
           </Avatar>
           <div>

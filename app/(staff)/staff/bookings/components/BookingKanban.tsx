@@ -6,7 +6,7 @@ import { Alert } from '@/components/ui/alert';
 import { AlertCircle, Clock, CheckCircle, Archive } from 'lucide-react';
 import { AlertTitle } from '@/components/ui/alert';
 import { AlertDescription } from '@/components/ui/alert';
-import { Booking, StatusBooking } from '@/lib/api/services/fetchBooking';
+import { Booking, StatusServiceRequest } from '@/lib/api/services/fetchBooking';
 import { useStaffBooking } from '@/hooks/useBooking';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,28 +16,28 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const ACTIVE_COLUMNS = [
   {
-    id: StatusBooking.PENDING,
+    id: StatusServiceRequest.PENDING,
     title: 'Chờ xử lý',
     description: 'Đặt lịch mới cần được xem xét',
     icon: Clock,
   },
   {
-    id: StatusBooking.CONFIRMED,
-    title: 'Đã xác nhận',
-    description: 'Đặt lịch đã được xác nhận',
+    id: StatusServiceRequest.IN_PROGRESS,
+    title: 'Đang trong quá trình',
+    description: 'Dịch vụ đang trong quá trình',
     icon: CheckCircle,
   },
 ];
 
 const COMPLETED_COLUMNS = [
   {
-    id: StatusBooking.COMPLETED,
-    title: 'Hoàn thành',
-    description: 'Dịch vụ đã hoàn thành',
+    id: StatusServiceRequest.ESTIMATED,
+    title: 'Đang ước lượng',
+    description: 'Dịch vụ đang được ước lượng',
     icon: CheckCircle,
   },
   {
-    id: StatusBooking.CANCELLED,
+    id: StatusServiceRequest.CANCELLED,
     title: 'Đã hủy',
     description: 'Đặt lịch đã bị hủy',
     icon: Archive,
@@ -104,25 +104,25 @@ export function BookingKanban({ onRefresh }: BookingKanbanProps) {
 
   const bookingsArray = staffBookingsData?.data?.bookings || [];
 
-  const groupedBookings: Record<StatusBooking, Booking[]> = {
-    [StatusBooking.PENDING]: bookingsArray.filter(
-      booking => booking.status === StatusBooking.PENDING
+  const groupedBookings: Record<StatusServiceRequest, Booking[]> = {
+    [StatusServiceRequest.PENDING]: bookingsArray.filter(
+      booking => booking.serviceRequest.status === StatusServiceRequest.PENDING
     ),
-    [StatusBooking.CONFIRMED]: bookingsArray.filter(
-      booking => booking.status === StatusBooking.CONFIRMED
+    [StatusServiceRequest.IN_PROGRESS]: bookingsArray.filter(
+      booking => booking.serviceRequest.status === StatusServiceRequest.IN_PROGRESS
     ),
-    [StatusBooking.COMPLETED]: bookingsArray.filter(
-      booking => booking.status === StatusBooking.COMPLETED
+    [StatusServiceRequest.ESTIMATED]: bookingsArray.filter(
+      booking => booking.serviceRequest.status === StatusServiceRequest.ESTIMATED
     ),
-    [StatusBooking.CANCELLED]: bookingsArray.filter(
-      booking => booking.status === StatusBooking.CANCELLED
+    [StatusServiceRequest.CANCELLED]: bookingsArray.filter(
+      booking => booking.serviceRequest.status === StatusServiceRequest.CANCELLED
     ),
   };
 
   const renderKanbanColumns = (columns: typeof ACTIVE_COLUMNS) => (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {columns.map(column => {
-        const columnBookings = groupedBookings[column.id as StatusBooking];
+        const columnBookings = groupedBookings[column.id as StatusServiceRequest];
         return (
           <Card key={column.id} className="border-0 shadow-sm bg-gray-50/50">
             <CardHeader className="pb-4">
@@ -157,7 +157,7 @@ export function BookingKanban({ onRefresh }: BookingKanbanProps) {
                   <BookingCard
                     key={booking.id.toString()}
                     booking={booking}
-                    status={booking.status}
+                    status={booking.serviceRequest.status}
                     isDragging={false}
                     isLoading={false}
                     onStaffAssigned={onRefresh}
@@ -174,7 +174,7 @@ export function BookingKanban({ onRefresh }: BookingKanbanProps) {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
           {ACTIVE_COLUMNS.map(column => (
             <Card key={column.id} className="border-0 shadow-sm bg-gray-50/50">
               <CardHeader className="pb-4">
@@ -218,10 +218,11 @@ export function BookingKanban({ onRefresh }: BookingKanbanProps) {
   }
 
   const activeBookingsCount =
-    groupedBookings[StatusBooking.PENDING].length + groupedBookings[StatusBooking.CONFIRMED].length;
+    groupedBookings[StatusServiceRequest.PENDING].length +
+    groupedBookings[StatusServiceRequest.IN_PROGRESS].length;
   const completedBookingsCount =
-    groupedBookings[StatusBooking.COMPLETED].length +
-    groupedBookings[StatusBooking.CANCELLED].length;
+    groupedBookings[StatusServiceRequest.ESTIMATED].length +
+    groupedBookings[StatusServiceRequest.CANCELLED].length;
 
   return (
     <div className="space-y-6">

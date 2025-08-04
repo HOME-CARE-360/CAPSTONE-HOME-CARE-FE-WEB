@@ -1,7 +1,6 @@
 'use client';
 
 import { BookingCard } from './BookingCard';
-import { useState } from 'react';
 import { Alert } from '@/components/ui/alert';
 import { AlertCircle, Clock, CheckCircle, Archive } from 'lucide-react';
 import { AlertTitle } from '@/components/ui/alert';
@@ -12,29 +11,19 @@ import { useStaffBooking } from '@/hooks/useBooking';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-const ACTIVE_COLUMNS = [
-  {
-    id: StatusServiceRequest.PENDING,
-    title: 'Chờ xử lý',
-    description: 'Đặt lịch mới cần được xem xét',
-    icon: Clock,
-  },
+const ALL_COLUMNS = [
   {
     id: StatusServiceRequest.IN_PROGRESS,
     title: 'Đang trong quá trình',
     description: 'Dịch vụ đang trong quá trình',
     icon: CheckCircle,
   },
-];
-
-const COMPLETED_COLUMNS = [
   {
     id: StatusServiceRequest.ESTIMATED,
     title: 'Đang ước lượng',
     description: 'Dịch vụ đang được ước lượng',
-    icon: CheckCircle,
+    icon: Clock,
   },
   {
     id: StatusServiceRequest.CANCELLED,
@@ -100,7 +89,6 @@ interface BookingKanbanProps {
 
 export function BookingKanban({ onRefresh }: BookingKanbanProps) {
   const { data: staffBookingsData, isLoading, error } = useStaffBooking();
-  const [activeTab, setActiveTab] = useState('active');
 
   const bookingsArray = staffBookingsData?.data?.bookings || [];
 
@@ -119,9 +107,9 @@ export function BookingKanban({ onRefresh }: BookingKanbanProps) {
     ),
   };
 
-  const renderKanbanColumns = (columns: typeof ACTIVE_COLUMNS) => (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {columns.map(column => {
+  const renderKanbanColumns = () => (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {ALL_COLUMNS.map(column => {
         const columnBookings = groupedBookings[column.id as StatusServiceRequest];
         return (
           <Card key={column.id} className="border-0 shadow-sm bg-gray-50/50">
@@ -174,8 +162,8 @@ export function BookingKanban({ onRefresh }: BookingKanbanProps) {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
-          {ACTIVE_COLUMNS.map(column => (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {ALL_COLUMNS.map(column => (
             <Card key={column.id} className="border-0 shadow-sm bg-gray-50/50">
               <CardHeader className="pb-4">
                 <div className="flex items-center justify-between">
@@ -217,39 +205,5 @@ export function BookingKanban({ onRefresh }: BookingKanbanProps) {
     );
   }
 
-  const activeBookingsCount =
-    groupedBookings[StatusServiceRequest.PENDING].length +
-    groupedBookings[StatusServiceRequest.IN_PROGRESS].length;
-  const completedBookingsCount =
-    groupedBookings[StatusServiceRequest.ESTIMATED].length +
-    groupedBookings[StatusServiceRequest.CANCELLED].length;
-
-  return (
-    <div className="space-y-6">
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 max-w-md">
-          <TabsTrigger value="active" className="flex items-center gap-2">
-            Đang xử lý
-            <Badge variant="secondary" className="text-xs">
-              {activeBookingsCount}
-            </Badge>
-          </TabsTrigger>
-          <TabsTrigger value="completed" className="flex items-center gap-2">
-            Đã xong
-            <Badge variant="outline" className="text-xs">
-              {completedBookingsCount}
-            </Badge>
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="active" className="mt-6">
-          {renderKanbanColumns(ACTIVE_COLUMNS)}
-        </TabsContent>
-
-        <TabsContent value="completed" className="mt-6">
-          {renderKanbanColumns(COMPLETED_COLUMNS)}
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
+  return <div className="space-y-6">{renderKanbanColumns()}</div>;
 }

@@ -15,6 +15,8 @@ import {
   X,
   CheckCircle,
   Package,
+  AlertTriangle,
+  Play,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Booking, StatusServiceRequest } from '@/lib/api/services/fetchBooking';
@@ -39,6 +41,7 @@ import { Separator } from '@/components/ui/separator';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface BookingCardProps {
   booking: Booking;
@@ -87,22 +90,56 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
   const getStatusConfig = (status: StatusServiceRequest) => {
     switch (status) {
       case StatusServiceRequest.PENDING:
-        return { label: 'Chờ xử lý', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' };
+        return {
+          label: 'Chờ xử lý',
+          color: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+          icon: AlertTriangle,
+          priority: 'high',
+        };
       case StatusServiceRequest.IN_PROGRESS:
         return {
           label: 'Đang trong quá trình',
           color: 'bg-blue-100 text-blue-700 border-blue-200',
+          icon: Play,
+          priority: 'medium',
         };
       case StatusServiceRequest.ESTIMATED:
-        return { label: 'Đang ước lượng', color: 'bg-green-100 text-green-700 border-green-200' };
+        return {
+          label: 'Đã ước lượng',
+          color: 'bg-green-100 text-green-700 border-green-200',
+          icon: CheckCircle,
+          priority: 'low',
+        };
       case StatusServiceRequest.CANCELLED:
-        return { label: 'Đã hủy', color: 'bg-red-100 text-red-700 border-red-200' };
+        return {
+          label: 'Đã hủy',
+          color: 'bg-red-100 text-red-700 border-red-200',
+          icon: X,
+          priority: 'low',
+        };
       default:
-        return { label: 'Không xác định', color: 'bg-gray-100 text-gray-700 border-gray-200' };
+        return {
+          label: 'Không xác định',
+          color: 'bg-gray-100 text-gray-700 border-gray-200',
+          icon: Clock,
+          priority: 'low',
+        };
     }
   };
 
   const statusConfig = getStatusConfig(booking.serviceRequest.status);
+  const isInProgress = booking.serviceRequest.status === StatusServiceRequest.IN_PROGRESS;
+  const isEstimated = booking.serviceRequest.status === StatusServiceRequest.ESTIMATED;
+
+  // Check if staff has already checked in for this booking
+  // This would typically come from the booking data or a separate API call
+  const hasCheckedIn = booking.serviceRequest.status === StatusServiceRequest.IN_PROGRESS;
+  const needsCheckIn = isInProgress && !hasCheckedIn;
+
+  // Workflow validation
+  const canCheckIn = isInProgress && hasCheckedIn;
+  const canCreateReport = isInProgress && hasCheckedIn;
+  const canViewProposals = isInProgress || isEstimated;
 
   const handleCheckIn = () => {
     checkIn(booking.id, {
@@ -112,9 +149,6 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
       },
     });
   };
-
-  const canCheckIn = booking.serviceRequest.status === StatusServiceRequest.PENDING;
-  const canCreateReport = booking.serviceRequest.status === StatusServiceRequest.IN_PROGRESS;
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -223,9 +257,15 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
         'group relative bg-white rounded-lg overflow-hidden',
         'border border-gray-100 shadow-sm hover:shadow-md transition-all duration-200',
         isDragging && 'rotate-2 scale-105 shadow-lg',
-        isLoading && 'opacity-50 pointer-events-none'
+        isLoading && 'opacity-50 pointer-events-none',
+        needsCheckIn && 'border-l-4 border-l-blue-400 bg-blue-50/30'
       )}
     >
+      {/* Priority indicator for bookings that need check-in */}
+      {needsCheckIn && (
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 to-blue-600" />
+      )}
+
       <div className="p-4">
         {/* Header Section */}
         <div className="flex items-start justify-between mb-3">
@@ -253,21 +293,136 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                 <SheetTitle className="text-xl font-bold flex items-center gap-2">
                   <Calendar className="h-5 w-5" />
                   Chi tiết yêu cầu dịch vụ
+                  {needsCheckIn && (
+                    <Badge variant="destructive" className="ml-2">
+                      Cần check-in
+                    </Badge>
+                  )}
                 </SheetTitle>
                 <SheetDescription>Thông tin chi tiết về yêu cầu dịch vụ</SheetDescription>
               </SheetHeader>
 
               <div className="mt-6">
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                  <TabsList className="grid w-full grid-cols-3">
+                  <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="details">Chi tiết</TabsTrigger>
-                    <TabsTrigger value="proposals">Đề xuất dịch vụ</TabsTrigger>
-                    <TabsTrigger value="report" disabled={!canCreateReport}>
-                      Báo cáo
+                    <TabsTrigger value="proposals" disabled={!canViewProposals}>
+                      Đề xuất dịch vụ
                     </TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="details" className="mt-6 space-y-6">
+                    {/* Priority Alert for Bookings that need check-in */}
+                    {needsCheckIn && (
+                      <Alert className="border-blue-200 bg-blue-50">
+                        <AlertTriangle className="h-4 w-4 text-blue-600" />
+                        <AlertDescription className="text-blue-800">
+                          <strong>Bước tiếp theo:</strong> Bạn cần check-in để bắt đầu xử lý yêu cầu
+                          này.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+
+                    {/* Workflow Progress */}
+                    <div className="space-y-4">
+                      <h3 className="text-sm font-medium text-gray-900">Tiến trình xử lý</h3>
+                      <div className="space-y-3">
+                        <div
+                          className={cn(
+                            'flex items-center gap-3 p-3 rounded-lg border',
+                            needsCheckIn
+                              ? 'bg-blue-50 border-blue-200'
+                              : 'bg-gray-50 border-gray-200'
+                          )}
+                        >
+                          <div
+                            className={cn(
+                              'w-8 h-8 rounded-full flex items-center justify-center',
+                              needsCheckIn ? 'bg-blue-500 text-white' : 'bg-green-500 text-white'
+                            )}
+                          >
+                            {needsCheckIn ? '1' : <CheckCircle className="h-4 w-4" />}
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-medium text-gray-900">Check-in</p>
+                            <p className="text-sm text-gray-500">
+                              {needsCheckIn ? 'Cần thực hiện để bắt đầu' : 'Đã hoàn thành'}
+                            </p>
+                          </div>
+                          {needsCheckIn && (
+                            <Button
+                              onClick={handleCheckIn}
+                              disabled={isCheckingIn}
+                              size="sm"
+                              className="bg-blue-600 hover:bg-blue-700"
+                            >
+                              {isCheckingIn ? (
+                                <>
+                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                  Đang check-in...
+                                </>
+                              ) : (
+                                <>
+                                  <UserCheck className="h-4 w-4 mr-2" />
+                                  Check-in ngay
+                                </>
+                              )}
+                            </Button>
+                          )}
+                        </div>
+
+                        <div
+                          className={cn(
+                            'flex items-center gap-3 p-3 rounded-lg border',
+                            canCreateReport
+                              ? 'bg-green-50 border-green-200'
+                              : 'bg-gray-50 border-gray-200'
+                          )}
+                        >
+                          <div
+                            className={cn(
+                              'w-8 h-8 rounded-full flex items-center justify-center',
+                              canCreateReport
+                                ? 'bg-green-500 text-white'
+                                : isEstimated
+                                  ? 'bg-green-500 text-white'
+                                  : 'bg-gray-300 text-gray-500'
+                            )}
+                          >
+                            {canCreateReport ? (
+                              '2'
+                            ) : isEstimated ? (
+                              <CheckCircle className="h-4 w-4" />
+                            ) : (
+                              '2'
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-medium text-gray-900">Tạo báo cáo khảo sát</p>
+                            <p className="text-sm text-gray-500">
+                              {canCreateReport
+                                ? 'Có thể thực hiện'
+                                : isEstimated
+                                  ? 'Đã hoàn thành'
+                                  : 'Chờ check-in'}
+                            </p>
+                          </div>
+                          {canCreateReport && (
+                            <Button
+                              onClick={() => setActiveTab('report')}
+                              size="sm"
+                              className="bg-green-600 hover:bg-green-700"
+                            >
+                              <FileText className="h-4 w-4 mr-2" />
+                              Tạo báo cáo
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <Separator />
+
                     {/* Booking Information */}
                     <div className="space-y-4">
                       <h3 className="text-sm font-medium text-gray-900">Thông tin yêu cầu</h3>
@@ -384,7 +539,13 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                       <h3 className="text-sm font-medium text-gray-900">Trạng thái</h3>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <Badge className={cn('font-normal border', statusConfig.color)}>
+                          <Badge
+                            className={cn(
+                              'font-normal border flex items-center gap-1',
+                              statusConfig.color
+                            )}
+                          >
+                            <statusConfig.icon className="h-3 w-3" />
                             {statusConfig.label}
                           </Badge>
                           <span className="text-sm text-gray-500">
@@ -393,40 +554,6 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                               locale: vi,
                             })}
                           </span>
-                        </div>
-
-                        <div className="flex gap-2">
-                          {canCheckIn && (
-                            <Button
-                              onClick={handleCheckIn}
-                              disabled={isCheckingIn}
-                              size="sm"
-                              className="bg-green-600 hover:bg-green-700"
-                            >
-                              {isCheckingIn ? (
-                                <>
-                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                  Đang check-in...
-                                </>
-                              ) : (
-                                <>
-                                  <UserCheck className="h-4 w-4 mr-2" />
-                                  Check-in ngay
-                                </>
-                              )}
-                            </Button>
-                          )}
-
-                          {canCreateReport && (
-                            <Button
-                              onClick={() => setActiveTab('report')}
-                              size="sm"
-                              className="bg-blue-600 hover:bg-blue-700"
-                            >
-                              <FileText className="h-4 w-4 mr-2" />
-                              Tạo báo cáo khảo sát
-                            </Button>
-                          )}
                         </div>
                       </div>
                     </div>
@@ -531,6 +658,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                     </div>
                   </TabsContent>
 
+                  {/* Hidden Report Tab - Accessible via button */}
                   <TabsContent value="report" className="mt-6 space-y-6">
                     {/* Inspection Report Form */}
                     <form onSubmit={handleCreateReport} className="space-y-6">
@@ -742,19 +870,15 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
           </Sheet>
         </div>
 
-        {/* Status Badge */}
-        <div className="flex items-center justify-between gap-2 mb-3">
-          <Badge className={cn('font-normal border text-xs', statusConfig.color)}>
-            {statusConfig.label}
-          </Badge>
-
-          <div className="flex gap-1">
+        {/* Status Badge with Priority Indicator */}
+        <div className="flex flex-col gap-2 mb-3">
+          <div className="flex gap-2">
             {canCheckIn && (
               <Button
                 onClick={handleCheckIn}
                 disabled={isCheckingIn}
                 size="sm"
-                className="h-7 px-2 text-xs bg-green-600 hover:bg-green-700"
+                className="h-7 px-2 text-xs bg-blue-600 hover:bg-blue-700"
               >
                 {isCheckingIn ? (
                   <>
@@ -777,7 +901,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                   setActiveTab('report');
                 }}
                 size="sm"
-                className="h-7 px-2 text-xs bg-blue-600 hover:bg-blue-700"
+                className="h-7 px-2 text-xs bg-green-600 hover:bg-green-700"
               >
                 <FileText className="h-3 w-3 mr-1" />
                 Báo cáo

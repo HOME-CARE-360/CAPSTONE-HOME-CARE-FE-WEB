@@ -124,8 +124,12 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
   const hasInspectionReport = detailBooking?.booking?.inspectionReport !== undefined;
   const hasStaffAssigned = detailBooking?.booking?.staff !== undefined;
 
+  // Check if booking is in progress
+  const isInProgress = booking.status === 'IN_PROGRESS';
+
   // Determine if we should show proposal tab
-  const shouldShowProposalTab = !hasInspectionReport;
+  // Show when: no inspection report OR booking is in progress
+  const shouldShowProposalTab = !hasInspectionReport || isInProgress;
 
   // Determine if we should show staff assignment section
   const shouldShowStaffAssignment = !hasStaffAssigned;
@@ -341,7 +345,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
 
                     {/* Service Information */}
                     <div className="space-y-4">
-                      <h3 className="text-sm font-medium">Dịch vụ</h3>
+                      <h3 className="text-sm font-medium">Loại dịch vụ</h3>
                       <div className="flex items-center gap-3">
                         <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
                           {booking.category.logo ? (
@@ -371,7 +375,9 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                             onClick={() => setActiveTab('proposal')}
                           >
                             <FileText className="h-4 w-4 mr-2" />
-                            Đề xuất dịch vụ bổ sung
+                            {isInProgress
+                              ? 'Thêm dịch vụ trong quá trình thực hiện'
+                              : 'Đề xuất dịch vụ bổ sung'}
                           </Button>
                         </div>
                       )}
@@ -551,9 +557,16 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                       {/* Proposal Form */}
                       <form onSubmit={handleSubmitProposal} className="space-y-6">
                         {/* Booking Information */}
-                        <div className="p-4 bg-gray-50 rounded-lg">
+                        <div
+                          className={`p-4 rounded-lg ${isInProgress ? 'bg-blue-50 border border-blue-200' : 'bg-gray-50'}`}
+                        >
                           <h3 className="text-sm font-medium text-gray-900 mb-2">
                             Thông tin đặt lịch
+                            {isInProgress && (
+                              <Badge className="ml-2 bg-blue-100 text-blue-700 border-blue-200">
+                                Đang xử lý
+                              </Badge>
+                            )}
                           </h3>
                           <div className="grid gap-2 text-sm">
                             <div className="flex justify-between">
@@ -564,6 +577,14 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                               <span className="text-gray-600">Mã booking:</span>
                               <span className="font-medium">BK-{booking.id}</span>
                             </div>
+                            {isInProgress && (
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Trạng thái:</span>
+                                <span className="font-medium text-blue-700">
+                                  Có thể đề xuất dịch vụ bổ sung
+                                </span>
+                              </div>
+                            )}
                           </div>
                         </div>
 
@@ -571,7 +592,17 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
 
                         {/* Service Selection */}
                         <div className="space-y-4">
-                          <h3 className="text-sm font-medium text-gray-900">Chọn dịch vụ</h3>
+                          <h3 className="text-sm font-medium text-gray-900">
+                            {isInProgress ? 'Chọn dịch vụ bổ sung' : 'Chọn dịch vụ'}
+                          </h3>
+                          {isInProgress && (
+                            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                              <p className="text-sm text-amber-800">
+                                <strong>Lưu ý:</strong> Đây là các dịch vụ bổ sung có thể thêm vào
+                                trong quá trình thực hiện công việc.
+                              </p>
+                            </div>
+                          )}
 
                           {isLoadingServices ? (
                             <div className="text-center py-4">

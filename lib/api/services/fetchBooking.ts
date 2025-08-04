@@ -25,6 +25,13 @@ export enum StatusBooking {
   CANCELLED = 'CANCELLED',
 }
 
+export enum StatusServiceRequest {
+  PENDING = 'PENDING',
+  IN_PROGRESS = 'IN_PROGRESS',
+  ESTIMATED = 'ESTIMATED',
+  CANCELLED = 'CANCELLED',
+}
+
 export interface Booking {
   id: number;
   status: StatusBooking;
@@ -41,9 +48,101 @@ export interface Booking {
     note: string;
     location: string;
     phoneNumber: string;
-    status: string;
+    status: StatusServiceRequest;
     categoryId: number;
     categoryName: string;
+  };
+}
+
+export interface DetailBookingResponse {
+  id: number;
+  customerId: number;
+  providerId: number;
+  note: string | null;
+  preferredDate: string;
+  status: StatusServiceRequest;
+  createdAt: string;
+  updatedAt: string;
+  location: string;
+  phoneNumber: string;
+  categoryId: number;
+  category: {
+    logo: string | null;
+    name: string;
+  };
+  booking: {
+    id: number;
+    status: StatusBooking;
+    transaction: {
+      id: number;
+      amount: number;
+      status: string;
+      method: string;
+      paidAt: string | null;
+      createdById: number;
+      updatedById: number | null;
+      deletedById: number | null;
+      deletedAt: string | null;
+      createdAt: string;
+      orderCode: string;
+    };
+    staff?: {
+      id: number;
+      user: {
+        avatar: string | null;
+        email: string;
+        name: string;
+        phone: string;
+      };
+    };
+    inspectionReport?: {
+      id: number;
+      estimatedTime: number;
+      note: string;
+      images: string[];
+      createdAt: string;
+    };
+    Proposal?: {
+      id: number;
+      notes: string;
+      createdAt: string;
+      status: string;
+      ProposalItem: Array<{
+        id: number;
+        proposalId: number;
+        serviceId: number;
+        quantity: number;
+        createdAt: string;
+        Service: {
+          basePrice: number;
+          description: string;
+          name: string;
+          images: string[];
+          durationMinutes: number;
+          category: {
+            id: number;
+            name: string;
+            logo: string | null;
+            parentCategoryId: number;
+            createdById: number | null;
+            updatedById: number | null;
+            deletedById: number | null;
+            deletedAt: string | null;
+            createdAt: string;
+            updatedAt: string;
+          };
+          attachedItems: unknown[];
+        };
+      }>;
+    };
+  };
+  customer: {
+    address: string | null;
+    gender: string | null;
+    avatar: string | null;
+    name: string;
+    phone: string;
+    email: string;
   };
 }
 
@@ -79,6 +178,16 @@ export const serviceBooking = {
       return response.data;
     } catch (error) {
       console.error('Get All Bookings Error:', error);
+      throw error;
+    }
+  },
+
+  getDetailBooking: async (id: number) => {
+    try {
+      const response = await apiService.get(`/manage-bookings/service-request-detail/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error('Get Detail Booking Error:', error);
       throw error;
     }
   },

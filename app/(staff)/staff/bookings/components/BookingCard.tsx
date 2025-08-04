@@ -17,7 +17,7 @@ import {
   Package,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Booking, StatusBooking } from '@/lib/api/services/fetchBooking';
+import { Booking, StatusServiceRequest } from '@/lib/api/services/fetchBooking';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useStaffCheckIn, useGetProposal, useCreateInspectionReport } from '@/hooks/useStaff';
@@ -42,7 +42,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface BookingCardProps {
   booking: Booking;
-  status?: StatusBooking;
+  status?: StatusServiceRequest;
   isDragging?: boolean;
   isLoading?: boolean;
   onStaffAssigned?: () => void;
@@ -84,22 +84,25 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
     .substring(0, 2)
     .toUpperCase();
 
-  const getStatusConfig = (status: StatusBooking) => {
+  const getStatusConfig = (status: StatusServiceRequest) => {
     switch (status) {
-      case StatusBooking.PENDING:
+      case StatusServiceRequest.PENDING:
         return { label: 'Chờ xử lý', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' };
-      case StatusBooking.CONFIRMED:
-        return { label: 'Đã xác nhận', color: 'bg-blue-100 text-blue-700 border-blue-200' };
-      case StatusBooking.COMPLETED:
-        return { label: 'Hoàn thành', color: 'bg-green-100 text-green-700 border-green-200' };
-      case StatusBooking.CANCELLED:
+      case StatusServiceRequest.IN_PROGRESS:
+        return {
+          label: 'Đang trong quá trình',
+          color: 'bg-blue-100 text-blue-700 border-blue-200',
+        };
+      case StatusServiceRequest.ESTIMATED:
+        return { label: 'Đang ước lượng', color: 'bg-green-100 text-green-700 border-green-200' };
+      case StatusServiceRequest.CANCELLED:
         return { label: 'Đã hủy', color: 'bg-red-100 text-red-700 border-red-200' };
       default:
         return { label: 'Không xác định', color: 'bg-gray-100 text-gray-700 border-gray-200' };
     }
   };
 
-  const statusConfig = getStatusConfig(booking.status);
+  const statusConfig = getStatusConfig(booking.serviceRequest.status);
 
   const handleCheckIn = () => {
     checkIn(booking.id, {
@@ -110,8 +113,8 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
     });
   };
 
-  const canCheckIn = booking.status === StatusBooking.PENDING;
-  const canCreateReport = booking.status === StatusBooking.PENDING;
+  const canCheckIn = booking.serviceRequest.status === StatusServiceRequest.PENDING;
+  const canCreateReport = booking.serviceRequest.status === StatusServiceRequest.IN_PROGRESS;
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;

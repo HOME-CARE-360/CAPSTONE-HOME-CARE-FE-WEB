@@ -30,9 +30,7 @@ export const useBookingStats = (bookings?: Booking[]) => {
       return {
         total: 0,
         pending: 0,
-        confirmed: 0,
         inProgress: 0,
-        completed: 0,
         cancelled: 0,
         todayBookings: 0,
         thisWeekBookings: 0,
@@ -47,9 +45,8 @@ export const useBookingStats = (bookings?: Booking[]) => {
     return {
       total: bookings.length,
       pending: bookings.filter(b => b.status === 'PENDING').length,
-      confirmed: bookings.filter(b => b.status === 'CONFIRMED').length,
       inProgress: bookings.filter(b => b.status === 'IN_PROGRESS').length,
-      completed: bookings.filter(b => b.status === 'COMPLETED').length,
+      estimated: bookings.filter(b => b.status === 'ESTIMATED').length,
       cancelled: bookings.filter(b => b.status === 'CANCELLED').length,
       todayBookings: bookings.filter(b => {
         const bookingDate = new Date(b.createdAt);

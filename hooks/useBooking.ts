@@ -3,6 +3,7 @@ import {
   CreateBookingRequest,
   serviceBooking,
   StaffBookingResponse,
+  DetailBookingResponse,
 } from '@/lib/api/services/fetchBooking';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
@@ -14,6 +15,23 @@ export const useAllBookings = () => {
   });
 
   return { data, isLoading, error };
+};
+
+export const useDetailBooking = (id: number) => {
+  const { data, isLoading, error } = useQuery<DetailBookingResponse, Error>({
+    queryKey: ['booking-detail', id],
+    queryFn: async () => {
+      const response = await serviceBooking.getDetailBooking(id);
+      // Type assertion to ensure runtime type safety
+      if (typeof response !== 'object' || response === null) {
+        throw new Error('Invalid booking detail response');
+      }
+      return response as DetailBookingResponse;
+    },
+    enabled: !!id,
+  });
+
+  return { data, isLoading, error, id };
 };
 
 export const useCreateBooking = () => {

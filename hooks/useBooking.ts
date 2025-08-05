@@ -17,7 +17,7 @@ export const useAllBookings = () => {
   return { data, isLoading, error };
 };
 
-export const useDetailBooking = (id: number) => {
+export const useDetailBooking = (id: number, options?: { enabled?: boolean }) => {
   const { data, isLoading, error } = useQuery<DetailBookingResponse, Error>({
     queryKey: ['booking-detail', id],
     queryFn: async () => {
@@ -28,7 +28,7 @@ export const useDetailBooking = (id: number) => {
       }
       return response as DetailBookingResponse;
     },
-    enabled: !!id,
+    enabled: options?.enabled !== undefined ? options.enabled : !!id,
   });
 
   return { data, isLoading, error, id };

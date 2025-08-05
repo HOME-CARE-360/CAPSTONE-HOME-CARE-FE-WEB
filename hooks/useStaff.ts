@@ -18,10 +18,11 @@ export function useGetAllStaffs(filters?: StaffSearchParams) {
   });
 }
 
-export function useGetStaffAvailable(filters?: StaffSearchParams) {
+export function useGetStaffAvailable(filters?: StaffSearchParams, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['staffs', 'list', filters ? JSON.stringify(filters) : 'all'],
     queryFn: () => staffService.getAllStaff(filters),
+    enabled: options?.enabled !== undefined ? options.enabled : true,
   });
 }
 

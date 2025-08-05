@@ -16,10 +16,14 @@ import {
 import { toast } from 'sonner';
 
 // Service Management Hooks
-export function useServiceManager(params: ServiceManagerSearchParams) {
+export function useServiceManager(
+  params: ServiceManagerSearchParams,
+  options?: { enabled?: boolean }
+) {
   return useQuery({
     queryKey: ['service-manager', 'list', params],
     queryFn: () => serviceManagerService.getListServices(params),
+    enabled: options?.enabled !== undefined ? options.enabled : true,
   });
 }
 

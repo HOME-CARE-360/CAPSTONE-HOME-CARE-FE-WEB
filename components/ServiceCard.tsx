@@ -6,7 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Clock, Heart, Share2, ChevronLeft, ChevronRight, User } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useAddOrRemoveFavorite, useGetFavorite } from '@/hooks/useUser';
+import { FavoriteResponse } from '@/lib/api/services/fetchUser';
 
 interface ServiceCardProps {
   service: Service;
@@ -20,14 +22,33 @@ export function ServiceCard({ service, priority = false, onHover, size = 'md' }:
   const [isHovered, setIsHovered] = useState(false);
   const [preloadedImages, setPreloadedImages] = useState<number[]>([0]);
   const [isImageLoading, setIsImageLoading] = useState(true);
-  const [isFavorite, setIsFavorite] = useState(false);
+
+  // Fetch all favorite services
+  const { data: favoriteData } = useGetFavorite();
+  // Normalize to array of service IDs
+  const favoriteIds = useMemo(() => {
+    if (!favoriteData?.data) return [];
+    if (Array.isArray(favoriteData.data)) {
+      return favoriteData.data.map((fav: FavoriteResponse['data']) => fav.service.id);
+    }
+    return [favoriteData.data.service.id];
+  }, [favoriteData]);
+
+  // Local state for optimistic UI
+  const [isFavorite, setIsFavorite] = useState(favoriteIds.includes(service.id));
+
+  // Keep local state in sync with server
+  useEffect(() => {
+    setIsFavorite(favoriteIds.includes(service.id));
+  }, [favoriteIds, service.id]);
+
+  const { mutate: toggleFavorite, isPending: isToggling } = useAddOrRemoveFavorite();
 
   const isDiscounted = service.virtualPrice > service.basePrice;
   const discountPercent = isDiscounted
     ? Math.round(((service.virtualPrice - service.basePrice) / service.virtualPrice) * 100)
     : 0;
 
-  // Handle hover state changes
   const handleMouseEnter = () => {
     setIsHovered(true);
     onHover?.(service.id.toString());
@@ -47,12 +68,8 @@ export function ServiceCard({ service, priority = false, onHover, size = 'md' }:
         setPreloadedImages(prev => [...prev, index]);
       }
     };
-
-    // Preload next image
     const nextIndex = (currentImageIndex + 1) % service.images.length;
     preloadImage(nextIndex);
-
-    // Preload previous image
     const prevIndex = currentImageIndex === 0 ? service.images.length - 1 : currentImageIndex - 1;
     preloadImage(prevIndex);
   }, [currentImageIndex, service.images, preloadedImages]);
@@ -71,7 +88,10 @@ export function ServiceCard({ service, priority = false, onHover, size = 'md' }:
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.preventDefault();
+    e.stopPropagation();
+    // Optimistic update
     setIsFavorite(!isFavorite);
+    toggleFavorite(service.id);
   };
 
   const handleShareClick = (e: React.MouseEvent) => {
@@ -86,14 +106,10 @@ export function ServiceCard({ service, priority = false, onHover, size = 'md' }:
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
-        {/* Image Section with Badge */}
         <div className="relative aspect-square size-full mb-2 group">
-          {/* Skeleton Loading */}
           {isImageLoading && (
             <div className="absolute inset-0 bg-gray-200 animate-pulse rounded-xl" />
           )}
-
-          {/* Main Image */}
           <Image
             src={service.images[currentImageIndex] || '/placeholder-service.jpg'}
             alt={service.name}
@@ -106,8 +122,6 @@ export function ServiceCard({ service, priority = false, onHover, size = 'md' }:
             )}
             onLoad={() => setIsImageLoading(false)}
           />
-
-          {/* Preload Hidden Images */}
           {service.images.map(
             (url, index) =>
               index !== currentImageIndex && (
@@ -122,11 +136,9 @@ export function ServiceCard({ service, priority = false, onHover, size = 'md' }:
                 />
               )
           )}
-
-          {/* Top Badges */}
           <div className="absolute top-4 left-4 flex gap-2">
-            {Array.isArray(service.category) &&
-              service.category.slice(0, 2).map(category => (
+            {Array.isArray(service.Category) &&
+              service.Category.slice(0, 2).map(category => (
                 <Badge
                   key={category.name}
                   variant="outline"
@@ -150,8 +162,6 @@ export function ServiceCard({ service, priority = false, onHover, size = 'md' }:
               </Badge>
             )}
           </div>
-
-          {/* Navigation Buttons */}
           {isHovered && service.images.length > 1 && (
             <>
               <Button
@@ -172,8 +182,6 @@ export function ServiceCard({ service, priority = false, onHover, size = 'md' }:
               </Button>
             </>
           )}
-
-          {/* Image Counter */}
           {service.images.length > 1 && (
             <div
               className={cn(
@@ -185,9 +193,7 @@ export function ServiceCard({ service, priority = false, onHover, size = 'md' }:
             </div>
           )}
         </div>
-
         <div className="px-1">
-          {/* Price and Actions Section */}
           <div className="flex justify-between items-center">
             <div>
               <p className={cn('text-xl font-semibold', size === 'sm' && 'text-base')}>
@@ -205,6 +211,8 @@ export function ServiceCard({ service, priority = false, onHover, size = 'md' }:
                 size="icon"
                 className={cn('hover:text-red-600 transition-colors', isFavorite && 'text-red-600')}
                 onClick={handleFavoriteClick}
+                disabled={isToggling}
+                aria-label={isFavorite ? 'Xóa khỏi yêu thích' : 'Thêm vào yêu thích'}
               >
                 <Heart className={cn('size-5', isFavorite && 'fill-current')} />
               </Button>
@@ -218,8 +226,6 @@ export function ServiceCard({ service, priority = false, onHover, size = 'md' }:
               </Button>
             </div>
           </div>
-
-          {/* Service Details Section */}
           <div
             className={cn(
               'flex justify-between items-center mb-2 text-foreground text-sm',
@@ -234,22 +240,18 @@ export function ServiceCard({ service, priority = false, onHover, size = 'md' }:
               className={cn('text-sm text-muted-foreground', size === 'sm' && 'text-xs')}
               aria-label="Service category"
             >
-              {Array.isArray(service.category) &&
-              service.category.length > 0 &&
-              typeof service.category[0]?.name === 'string'
-                ? service.category[0].name
+              {Array.isArray(service.Category) &&
+              service.Category.length > 0 &&
+              typeof service.Category[0]?.name === 'string'
+                ? service.Category[0].name
                 : 'Dịch vụ'}
             </div>
           </div>
-
-          {/* Service Name */}
           <div className="mb-2">
             <h3 className={cn('text-base font-medium line-clamp-2', size === 'sm' && 'text-sm')}>
               {service.name}
             </h3>
           </div>
-
-          {/* Location Section */}
           <div className="mb-2">
             <div
               className={cn(
@@ -258,7 +260,13 @@ export function ServiceCard({ service, priority = false, onHover, size = 'md' }:
               )}
             >
               <User className={cn('size-4 mr-1', size === 'sm' && 'size-3')} />
-              <span>{service.provider}</span>
+              <span>
+                {typeof service.provider === 'object' &&
+                service.provider !== null &&
+                'name' in service.provider
+                  ? (service.provider as { name: string }).name
+                  : String(service.provider)}
+              </span>
             </div>
           </div>
         </div>

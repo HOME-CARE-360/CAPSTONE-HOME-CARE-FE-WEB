@@ -42,6 +42,7 @@ export function Calendar24({
   const MAX_TIME = '19:00';
 
   // Calculate minimum time based on current time if date is today
+  // Enforce minimum 1-hour advance booking
   const getMinTime = (): string => {
     if (!date) return MIN_TIME;
 
@@ -51,15 +52,30 @@ export function Calendar24({
 
     if (isToday) {
       const currentHour = currentDate.getHours();
+      const currentMinute = currentDate.getMinutes();
 
-      // Add 1 hour buffer for booking
-      const minHour = Math.max(currentHour + 1, 7);
+      // Calculate minimum booking time (current time + 1 hour)
+      let minHour = currentHour + 1;
+      let minMinute = currentMinute;
 
-      if (minHour > 19) {
+      // Handle minute overflow
+      if (minMinute >= 60) {
+        minHour += 1;
+        minMinute = 0;
+      }
+
+      // Ensure minimum booking time is within business hours
+      if (minHour < 7) {
+        minHour = 7;
+        minMinute = 0;
+      }
+
+      // If minimum time is after business hours, return invalid time
+      if (minHour >= 19) {
         return '20:00'; // This will trigger validation error
       }
 
-      return `${minHour.toString().padStart(2, '0')}:00`;
+      return `${minHour.toString().padStart(2, '0')}:${minMinute.toString().padStart(2, '0')}`;
     }
 
     return MIN_TIME;
@@ -75,8 +91,20 @@ export function Calendar24({
 
     if (isToday) {
       const currentHour = currentDate.getHours();
-      const nextAvailableHour = Math.max(currentHour + 1, 7);
-      return nextAvailableHour <= 19;
+      const currentMinute = currentDate.getMinutes();
+
+      // Calculate minimum booking time (current time + 1 hour)
+      let minHour = currentHour + 1;
+      let minMinute = currentMinute;
+
+      // Handle minute overflow
+      if (minMinute >= 60) {
+        minHour += 1;
+        minMinute = 0;
+      }
+
+      // Check if minimum booking time is within business hours
+      return minHour < 19;
     }
 
     return true;
@@ -117,7 +145,7 @@ export function Calendar24({
       return false;
     }
 
-    // Check if selected date is today and time is in the past
+    // Check if selected date is today and time is in the past or too soon
     if (date) {
       const selectedDate = new Date(date);
       const currentDate = new Date();
@@ -128,13 +156,20 @@ export function Calendar24({
       if (isToday) {
         const currentTimeInMinutes = currentDate.getHours() * 60 + currentDate.getMinutes();
 
-        if (timeInMinutes <= currentTimeInMinutes) {
+        // Calculate minimum booking time (current time + 1 hour)
+        const minBookingTimeInMinutes = currentTimeInMinutes + 60;
+
+        if (timeInMinutes < minBookingTimeInMinutes) {
           const nextAvailableHour = Math.max(currentDate.getHours() + 1, 7);
-          if (nextAvailableHour > 19) {
+          const nextAvailableMinute = currentDate.getMinutes();
+
+          if (nextAvailableHour >= 19) {
             setInternalTimeError('Không thể đặt lịch hôm nay. Vui lòng chọn ngày mai');
           } else {
+            const formattedNextHour = nextAvailableHour.toString().padStart(2, '0');
+            const formattedNextMinute = nextAvailableMinute.toString().padStart(2, '0');
             setInternalTimeError(
-              `Không thể đặt lịch trong quá khứ. Vui lòng chọn từ ${nextAvailableHour}:00 trở đi`
+              `Vui lòng đặt lịch ít nhất 1 tiếng trước. Giờ sớm nhất: ${formattedNextHour}:${formattedNextMinute}`
             );
           }
           return false;
@@ -266,7 +301,6 @@ export function Calendar24({
           </div>
           {currentTimeError && (
             <p className="text-sm text-red-500 flex items-center space-x-2 bg-red-50 p-2 rounded-lg border border-red-200">
-              <span>⚠️</span>
               <span>{currentTimeError}</span>
             </p>
           )}

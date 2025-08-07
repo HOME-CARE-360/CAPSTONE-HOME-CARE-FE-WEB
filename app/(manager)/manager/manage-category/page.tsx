@@ -5,9 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { SiteHeader } from '@/app/(manager)/components/SiteHeader';
 import { CategoryTable } from './components/CategoryTable';
-import { useCategories, useCreateCategory } from '@/hooks/useCategory';
+import { useCategories, useCreateCategory, useUpdateCategoryById } from '@/hooks/useCategory';
 import CategorySheet from './components/CategorySheet';
 import { CategoryCreateType } from '@/schemaValidations/category.schema';
+import { Category } from '@/lib/api/services/fetchCategory';
 
 export default function ManageCategory() {
   const [searchParams, setSearchParams] = useState({
@@ -17,9 +18,11 @@ export default function ManageCategory() {
   });
 
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<Category | undefined>(undefined);
 
   const { data: categoryData, isFetching } = useCategories();
   const { mutate: createCategory } = useCreateCategory();
+  const { mutate: updateCategory } = useUpdateCategoryById();
 
   const handleFilterChange = (params: Partial<typeof searchParams>) => {
     setSearchParams(prev => ({ ...prev, ...params }));
@@ -28,6 +31,24 @@ export default function ManageCategory() {
   const handleCreateCategory = (data: CategoryCreateType) => {
     createCategory(data);
     setIsSheetOpen(false);
+  };
+
+  const handleUpdateCategory = (data: CategoryCreateType) => {
+    if (editingCategory) {
+      updateCategory({ id: editingCategory.id, data });
+      setIsSheetOpen(false);
+      setEditingCategory(undefined);
+    }
+  };
+
+  const handleEditCategory = (category: Category) => {
+    setEditingCategory(category);
+    setIsSheetOpen(true);
+  };
+
+  const handleCloseSheet = () => {
+    setIsSheetOpen(false);
+    setEditingCategory(undefined);
   };
 
   return (
@@ -49,18 +70,17 @@ export default function ManageCategory() {
         <CategoryTable
           data={categoryData?.categories || []}
           isLoading={isFetching}
-          page={searchParams.page}
-          limit={searchParams.limit}
           onFilterChange={handleFilterChange}
-          searchFilters={searchParams}
+          onEdit={handleEditCategory}
         />
 
         {/* Category Sheet */}
         <CategorySheet
           isOpen={isSheetOpen}
-          onClose={() => setIsSheetOpen(false)}
-          onSubmit={handleCreateCategory}
-          mode="create"
+          onClose={handleCloseSheet}
+          onSubmit={editingCategory ? handleUpdateCategory : handleCreateCategory}
+          initialData={editingCategory}
+          mode={editingCategory ? 'edit' : 'create'}
         />
       </div>
     </>

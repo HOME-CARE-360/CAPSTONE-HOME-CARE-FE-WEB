@@ -132,12 +132,12 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
   const isEstimated = booking.serviceRequest.status === StatusServiceRequest.ESTIMATED;
 
   // Check if staff has already checked in for this booking
-  // This would typically come from the booking data or a separate API call
+  // For IN_PROGRESS status, we assume they have checked in
   const hasCheckedIn = booking.serviceRequest.status === StatusServiceRequest.IN_PROGRESS;
   const needsCheckIn = isInProgress && !hasCheckedIn;
 
   // Workflow validation
-  const canCheckIn = isInProgress && hasCheckedIn;
+  const canCheckIn = !hasCheckedIn && !isEstimated;
   const canCreateReport = isInProgress && hasCheckedIn;
   const canViewProposals = isInProgress || isEstimated;
 

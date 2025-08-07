@@ -1,4 +1,5 @@
 import apiService, { RequestParams } from '@/lib/api/core';
+import { StatusBooking } from '@/lib/api/services/fetchBooking';
 
 export interface GetAllStaffResponse<T> {
   data: T;
@@ -65,9 +66,9 @@ export interface WorkLog {
   id: number;
   staffId: number;
   bookingId: number;
-  checkIn: string;
-  checkOut: string | null;
-  note: string | null;
+  checkIn?: string | null;
+  checkOut?: string | null;
+  note?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -150,7 +151,75 @@ export interface ProposalService {
   };
 }
 
-// Thêm interface cho query parameters
+export interface GetReviewResponse {
+  success: boolean;
+  code: string;
+  message: string;
+  data: {
+    reviews: [];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+  statusCode: number;
+  timestamp: string;
+}
+
+export interface WorkLogResponse {
+  id: number;
+  checkIn?: string | null;
+  checkOut?: string | null;
+  note?: string | null;
+  createdAt: string;
+  booking: {
+    id: number;
+    status: StatusBooking;
+    createdAt: string;
+  };
+}
+
+export interface GetWorkLogResponse {
+  success: boolean;
+  code: string;
+  message: string;
+  data: {
+    workLogs: WorkLogResponse[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+  statusCode: number;
+  timestamp: string;
+}
+
+export interface MonthlyStats {
+  month: string;
+  year: number;
+  totalCompletedBookings: number;
+  totalWorkLogs: number;
+  totalHoursWorked: number;
+  averageHoursPerLog: number;
+  workDays: number;
+  firstCheckIn?: string | null;
+  lastCheckOut?: string | null;
+}
+
+export interface GetMonthlyStatsResponse {
+  success: boolean;
+  code: string;
+  message: string;
+  data: MonthlyStats;
+  statusCode: number;
+  timestamp: string;
+}
+
+export interface GetMonthlyStatsRequest {
+  month: string;
+  year: number;
+}
+
 export interface StaffSearchParams {
   orderBy?: 'asc' | 'desc';
   categories?: number[];
@@ -221,6 +290,23 @@ export const staffService = {
   getProposal: async (bookingId: number): Promise<GetProposalResponse> => {
     const response = await apiService.get<GetProposalResponse>(
       `/staffs/staff-get-proposal/${bookingId}`
+    );
+    return response.data;
+  },
+
+  getReview: async (): Promise<GetReviewResponse> => {
+    const response = await apiService.get<GetReviewResponse>('/staffs/staff-get-review-summary');
+    return response.data;
+  },
+
+  getWorkLog: async (): Promise<GetWorkLogResponse> => {
+    const response = await apiService.get<GetWorkLogResponse>('/staffs/get-recent-work-logs');
+    return response.data;
+  },
+
+  getMonthlyStats: async (month: string, year: number): Promise<GetMonthlyStatsResponse> => {
+    const response = await apiService.get<GetMonthlyStatsResponse>(
+      `/staffs/staff-get-monthly-stats?month=${month}&year=${year}`
     );
     return response.data;
   },

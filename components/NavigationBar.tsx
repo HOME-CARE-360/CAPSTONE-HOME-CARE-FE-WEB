@@ -47,14 +47,14 @@ const serviceTypes = [
 const myServices = [
   {
     title: 'Dịch vụ của tôi',
-    href: '/my-services',
+    href: '/settings/favorites',
     description: 'Xem dịch vụ của tôi',
     icon: HomeIcon,
     color: 'text-red-500',
   },
   {
     title: 'Booking của tôi',
-    href: '/my-services',
+    href: '/settings/bookings',
     description: 'Xem booking của tôi',
     icon: CalendarIcon,
     color: 'text-blue-500',

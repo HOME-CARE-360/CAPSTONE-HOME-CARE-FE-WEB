@@ -116,7 +116,12 @@ export default function middleware(request: NextRequest) {
           if (isStaff(decodedToken)) {
             return NextResponse.redirect(new URL('/staff/dashboard', request.url));
           }
-          // No redirect for customers at root - they stay on the homepage
+          if (isManager(decodedToken)) {
+            return NextResponse.redirect(new URL('/manager/manage-category', request.url));
+          }
+          if (isAdmin(decodedToken)) {
+            return NextResponse.redirect(new URL('/admin/dashboard', request.url));
+          }
         }
       }
     } catch (error) {

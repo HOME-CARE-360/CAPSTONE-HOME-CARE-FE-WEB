@@ -5,6 +5,7 @@ import { useServices } from '@/hooks/useService';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ServiceCard } from '@/components/ServiceCard';
 import { ServicesPagination } from './ServicesPagination';
+import ServicesFilter from './ServicesFilter';
 import { ServiceSearchParams } from '@/lib/api/services/fetchService';
 import { AlertTriangle, Search } from 'lucide-react';
 
@@ -13,12 +14,10 @@ export default function ServicesListings() {
   const [page, setPage] = useState(1);
   const [searchFilters, setSearchFilters] = useState<ServiceSearchParams>({});
   const [clientFilters, setClientFilters] = useState<{
-    priceRange?: string;
-    category?: string;
+    categories?: string;
   }>({});
-  const itemsPerPage = 8;
+  const itemsPerPage = 9;
 
-  // Handle search params changes and convert to API params
   useEffect(() => {
     const params = new URLSearchParams(searchParams);
     const filters: ServiceSearchParams = {
@@ -26,28 +25,27 @@ export default function ServicesListings() {
       limit: itemsPerPage,
     };
 
-    // Extract search term
-    if (params.has('searchTerm')) {
-      filters.searchTerm = params.get('searchTerm') || undefined;
+    if (params.has('name')) {
+      filters.name = params.get('name') || undefined;
     }
 
-    // Extract category
-    if (params.has('category')) {
-      filters.category = params.get('category') || undefined;
+    const categoryParams = params.getAll('categories');
+    if (categoryParams.length > 0) {
+      const categoryIds = categoryParams
+        .map(id => Number(id))
+        .filter((id): id is number => !isNaN(id));
+      filters.categories = categoryIds.length > 0 ? categoryIds : undefined;
     }
 
-    // Set client-side filters
     const newClientFilters = {
       priceRange: params.get('priceRange') || undefined,
-      category: params.get('category') || undefined,
+      categories: params.get('categories') || undefined,
     };
     setClientFilters(newClientFilters);
 
-    // Set filters
     setSearchFilters(filters);
   }, [searchParams, page]);
 
-  // Fetch services with filters
   const { data, isLoading, isError, error, isFetching } = useServices(searchFilters);
 
   // Loading state
@@ -62,56 +60,110 @@ export default function ServicesListings() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-6">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="overflow-hidden transition-all duration-300 flex flex-col">
-                {/* Image Skeleton - Square aspect ratio like ServiceCard */}
-                <div className="relative aspect-square size-full mb-2">
-                  <Skeleton className="w-full h-full rounded-2xl" />
-
-                  {/* Skeleton badges */}
-                  <div className="absolute top-4 left-4 flex gap-2">
-                    <Skeleton className="h-6 w-16 rounded-full" />
-                    <Skeleton className="h-6 w-12 rounded-full" />
-                  </div>
-
-                  {/* Skeleton image counter */}
-                  <div className="absolute bottom-2 right-2">
-                    <Skeleton className="h-5 w-8 rounded-full" />
+          <div className="flex flex-col lg:flex-row gap-8">
+            {/* Filter Sidebar Skeleton */}
+            <div className="lg:w-80 flex-shrink-0">
+              <div className="space-y-6">
+                <div>
+                  <Skeleton className="h-6 w-24 mb-4" />
+                  <div className="space-y-3">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <div key={i} className="flex items-center space-x-2">
+                        <Skeleton className="h-4 w-4" />
+                        <Skeleton className="h-4 w-32" />
+                      </div>
+                    ))}
                   </div>
                 </div>
-
-                <div className="px-1">
-                  {/* Price and Actions Skeleton */}
-                  <div className="flex justify-between items-center mb-2">
-                    <Skeleton className="h-6 w-24" />
-                    <div className="flex gap-2">
-                      <Skeleton className="h-8 w-8 rounded-full" />
-                      <Skeleton className="h-8 w-8 rounded-full" />
-                    </div>
-                  </div>
-
-                  {/* Service Details Skeleton */}
-                  <div className="flex justify-between items-center mb-2">
-                    <div className="flex items-center">
-                      <Skeleton className="h-4 w-16" />
-                    </div>
-                    <Skeleton className="h-4 w-12" />
-                  </div>
-
-                  {/* Service Name Skeleton */}
-                  <div className="mb-2">
-                    <Skeleton className="h-5 w-full mb-1" />
-                    <Skeleton className="h-5 w-3/4" />
-                  </div>
-
-                  {/* Location Skeleton */}
-                  <div className="mb-2">
-                    <Skeleton className="h-4 w-32" />
+                <div>
+                  <Skeleton className="h-6 w-20 mb-4" />
+                  <div className="space-y-3">
+                    {Array.from({ length: 4 }).map((_, i) => (
+                      <div key={i} className="flex items-center space-x-2">
+                        <Skeleton className="h-4 w-4" />
+                        <Skeleton className="h-4 w-28" />
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
-            ))}
+            </div>
+
+            {/* Services Grid Skeleton */}
+            <div className="flex-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                {Array.from({ length: 9 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="overflow-hidden transition-all duration-300 flex flex-col"
+                  >
+                    {/* Image Skeleton - Square aspect ratio */}
+                    <div className="relative aspect-square size-full mb-2">
+                      <Skeleton className="w-full h-full rounded-2xl" />
+
+                      {/* Skeleton badges */}
+                      <div className="absolute top-4 left-4 flex gap-2">
+                        <Skeleton className="h-6 w-16 rounded-full" />
+                        <Skeleton className="h-6 w-12 rounded-full" />
+                      </div>
+
+                      {/* Skeleton image counter */}
+                      <div className="absolute bottom-2 right-2">
+                        <Skeleton className="h-5 w-8 rounded-full" />
+                      </div>
+                    </div>
+
+                    <div className="px-1">
+                      {/* Price and Actions Skeleton */}
+                      <div className="flex justify-between items-center mb-2">
+                        <div className="flex items-center gap-2">
+                          <Skeleton className="h-6 w-20" />
+                          <Skeleton className="h-4 w-16" />
+                        </div>
+                        <div className="flex gap-2">
+                          <Skeleton className="h-8 w-8 rounded-full" />
+                          <Skeleton className="h-8 w-8 rounded-full" />
+                        </div>
+                      </div>
+
+                      {/* Duration and Category Skeleton */}
+                      <div className="flex justify-between items-center mb-2">
+                        <div className="flex items-center">
+                          <Skeleton className="h-4 w-4 mr-1" />
+                          <Skeleton className="h-4 w-16" />
+                        </div>
+                        <Skeleton className="h-4 w-20" />
+                      </div>
+
+                      {/* Service Name Skeleton */}
+                      <div className="mb-2">
+                        <Skeleton className="h-5 w-full mb-1" />
+                        <Skeleton className="h-5 w-3/4" />
+                      </div>
+
+                      {/* Provider Name Skeleton */}
+                      <div className="mb-2">
+                        <div className="flex items-center">
+                          <Skeleton className="h-4 w-4 mr-1" />
+                          <Skeleton className="h-4 w-32" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Pagination Skeleton */}
+              <div className="mt-8 flex justify-center">
+                <div className="flex items-center gap-2">
+                  <Skeleton className="h-10 w-10 rounded-md" />
+                  <Skeleton className="h-10 w-10 rounded-md" />
+                  <Skeleton className="h-10 w-10 rounded-md" />
+                  <Skeleton className="h-10 w-10 rounded-md" />
+                  <Skeleton className="h-10 w-10 rounded-md" />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -160,48 +212,59 @@ export default function ServicesListings() {
   return (
     <section className="w-full max-w-screen px-8 md:px-8 xl:px-32 mx-auto py-16 bg-background text-foreground">
       <div className="max-w-screen mx-auto">
+        {/* Header */}
         <div className="mb-12 text-center md:text-left md:flex md:justify-between md:items-end">
           <div className="max-w-lg">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">Dịch vụ</h2>
             <p className="text-muted-foreground font-light">
-              {searchFilters.searchTerm ? `Tìm kiếm: ${searchFilters.searchTerm}` : 'Dịch vụ'}
+              {searchFilters.name ? `Tìm kiếm: ${searchFilters.name}` : 'Dịch vụ'}
             </p>
-            {(clientFilters.category || clientFilters.priceRange) && (
+            {clientFilters.categories && (
               <div className="mt-2 text-sm text-muted-foreground">
                 Bộ lọc:
-                {clientFilters.category && <span className="ml-2">{clientFilters.category}</span>}
-                {clientFilters.priceRange && (
-                  <span className="ml-2">{clientFilters.priceRange}</span>
+                {clientFilters.categories && (
+                  <span className="ml-2">{clientFilters.categories}</span>
                 )}
               </div>
             )}
           </div>
         </div>
 
-        {/* Services grid with loading overlay when fetching */}
-        <div className="relative">
-          {isFetching && !isLoading && (
-            <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-10 backdrop-blur-sm">
-              <div className="flex flex-col items-center">
-                <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
-                <p className="text-primary font-medium">Đang cập nhật</p>
+        {/* Main Content with Filter and Services */}
+        <div className="flex flex-col lg:flex-row gap-8">
+          {/* Filter Sidebar */}
+          <div className="lg:w-80 flex-shrink-0">
+            <ServicesFilter />
+          </div>
+
+          {/* Services Grid */}
+          <div className="flex-1">
+            {/* Services grid with loading overlay when fetching */}
+            <div className="relative">
+              {isFetching && !isLoading && (
+                <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-10 backdrop-blur-sm">
+                  <div className="flex flex-col items-center">
+                    <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+                    <p className="text-primary font-medium">Đang cập nhật</p>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                {data.services.map((service, index) => (
+                  <ServiceCard key={service.id} service={service} priority={index < 4} />
+                ))}
               </div>
             </div>
-          )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-6">
-            {data.services.map((service, index) => (
-              <ServiceCard key={service.id} service={service} priority={index < 4} />
-            ))}
+            <ServicesPagination
+              currentPage={page}
+              totalPages={data.totalPages}
+              onPageChange={setPage}
+              isLoading={isFetching}
+            />
           </div>
         </div>
-
-        <ServicesPagination
-          currentPage={page}
-          totalPages={data.totalPages}
-          onPageChange={setPage}
-          isLoading={isFetching}
-        />
       </div>
     </section>
   );

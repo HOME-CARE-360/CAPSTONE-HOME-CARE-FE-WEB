@@ -2,7 +2,7 @@
 
 import { BookingCard } from './BookingCard';
 import { Alert } from '@/components/ui/alert';
-import { AlertCircle, Clock, CheckCircle, Archive } from 'lucide-react';
+import { AlertCircle, Clock, CheckCircle, Archive, AlertTriangle } from 'lucide-react';
 import { AlertTitle } from '@/components/ui/alert';
 import { AlertDescription } from '@/components/ui/alert';
 import { Booking, StatusServiceRequest } from '@/lib/api/services/fetchBooking';
@@ -11,18 +11,28 @@ import { useStaffBooking } from '@/hooks/useBooking';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-const ALL_COLUMNS = [
+const ACTIVE_COLUMNS = [
+  {
+    id: StatusServiceRequest.PENDING,
+    title: 'Chờ xử lý',
+    description: 'Dịch vụ đang chờ xử lý',
+    icon: AlertTriangle,
+  },
   {
     id: StatusServiceRequest.IN_PROGRESS,
     title: 'Đang trong quá trình',
     description: 'Dịch vụ đang trong quá trình',
     icon: CheckCircle,
   },
+];
+
+const COMPLETED_COLUMNS = [
   {
     id: StatusServiceRequest.ESTIMATED,
-    title: 'Đang ước lượng',
-    description: 'Dịch vụ đang được ước lượng',
+    title: 'Đã ước lượng',
+    description: 'Dịch vụ đã được ước lượng',
     icon: Clock,
   },
   {
@@ -107,9 +117,61 @@ export function BookingKanban({ onRefresh }: BookingKanbanProps) {
     ),
   };
 
-  const renderKanbanColumns = () => (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      {ALL_COLUMNS.map(column => {
+  const renderActiveColumns = () => (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {ACTIVE_COLUMNS.map(column => {
+        const columnBookings = groupedBookings[column.id as StatusServiceRequest];
+        return (
+          <Card key={column.id} className="border-0 shadow-sm bg-gray-50/50">
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-white border flex items-center justify-center">
+                    <column.icon className="h-4 w-4 text-gray-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-sm font-medium text-gray-900">
+                      {column.title}
+                    </CardTitle>
+                    <p className="text-xs text-gray-500 mt-1">{column.description}</p>
+                  </div>
+                </div>
+                <Badge variant="secondary" className="text-xs px-2 py-1">
+                  {columnBookings.length}
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="p-4 space-y-3 min-h-[500px]">
+              {columnBookings.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <div className="w-12 h-12 rounded-lg bg-white border flex items-center justify-center mb-3">
+                    <column.icon className="h-6 w-6 text-gray-400" />
+                  </div>
+                  <p className="text-sm font-medium text-gray-500">Chưa có đặt lịch</p>
+                  <p className="text-xs text-gray-400 mt-1">Danh sách công việc theo trạng thái</p>
+                </div>
+              ) : (
+                columnBookings.map((booking: Booking) => (
+                  <BookingCard
+                    key={booking.id.toString()}
+                    booking={booking}
+                    status={booking.serviceRequest.status}
+                    isDragging={false}
+                    isLoading={false}
+                    onStaffAssigned={onRefresh}
+                  />
+                ))
+              )}
+            </CardContent>
+          </Card>
+        );
+      })}
+    </div>
+  );
+
+  const renderCompletedColumns = () => (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {COMPLETED_COLUMNS.map(column => {
         const columnBookings = groupedBookings[column.id as StatusServiceRequest];
         return (
           <Card key={column.id} className="border-0 shadow-sm bg-gray-50/50">
@@ -162,33 +224,72 @@ export function BookingKanban({ onRefresh }: BookingKanbanProps) {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {ALL_COLUMNS.map(column => (
-            <Card key={column.id} className="border-0 shadow-sm bg-gray-50/50">
-              <CardHeader className="pb-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-white border flex items-center justify-center">
-                      <column.icon className="h-4 w-4 text-gray-600" />
+        <Tabs defaultValue="active" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="active">Đang xử lý</TabsTrigger>
+            <TabsTrigger value="completed">Đã hoàn thành</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="active" className="mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {ACTIVE_COLUMNS.map(column => (
+                <Card key={column.id} className="border-0 shadow-sm bg-gray-50/50">
+                  <CardHeader className="pb-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-white border flex items-center justify-center">
+                          <column.icon className="h-4 w-4 text-gray-600" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-sm font-medium text-gray-900">
+                            {column.title}
+                          </CardTitle>
+                          <p className="text-xs text-gray-500 mt-1">{column.description}</p>
+                        </div>
+                      </div>
+                      <div className="h-5 w-8 bg-gray-200 rounded animate-pulse" />
                     </div>
-                    <div>
-                      <CardTitle className="text-sm font-medium text-gray-900">
-                        {column.title}
-                      </CardTitle>
-                      <p className="text-xs text-gray-500 mt-1">{column.description}</p>
+                  </CardHeader>
+                  <CardContent className="p-4 space-y-3">
+                    {Array.from({ length: 2 }).map((_, index) => (
+                      <BookingCardSkeleton key={index} />
+                    ))}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="completed" className="mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {COMPLETED_COLUMNS.map(column => (
+                <Card key={column.id} className="border-0 shadow-sm bg-gray-50/50">
+                  <CardHeader className="pb-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-white border flex items-center justify-center">
+                          <column.icon className="h-4 w-4 text-gray-600" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-sm font-medium text-gray-900">
+                            {column.title}
+                          </CardTitle>
+                          <p className="text-xs text-gray-500 mt-1">{column.description}</p>
+                        </div>
+                      </div>
+                      <div className="h-5 w-8 bg-gray-200 rounded animate-pulse" />
                     </div>
-                  </div>
-                  <div className="h-5 w-8 bg-gray-200 rounded animate-pulse" />
-                </div>
-              </CardHeader>
-              <CardContent className="p-4 space-y-3">
-                {Array.from({ length: 2 }).map((_, index) => (
-                  <BookingCardSkeleton key={index} />
-                ))}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                  </CardHeader>
+                  <CardContent className="p-4 space-y-3">
+                    {Array.from({ length: 2 }).map((_, index) => (
+                      <BookingCardSkeleton key={index} />
+                    ))}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
     );
   }
@@ -205,5 +306,22 @@ export function BookingKanban({ onRefresh }: BookingKanbanProps) {
     );
   }
 
-  return <div className="space-y-6">{renderKanbanColumns()}</div>;
+  return (
+    <div className="space-y-6">
+      <Tabs defaultValue="active" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="active">Đang xử lý</TabsTrigger>
+          <TabsTrigger value="completed">Đã hoàn thành</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="active" className="mt-6">
+          {renderActiveColumns()}
+        </TabsContent>
+
+        <TabsContent value="completed" className="mt-6">
+          {renderCompletedColumns()}
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
 }

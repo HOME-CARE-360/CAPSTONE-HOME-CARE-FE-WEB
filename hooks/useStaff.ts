@@ -133,3 +133,24 @@ export function useGetProposal(bookingId: number) {
     enabled: !!bookingId,
   });
 }
+
+export function useGetReview() {
+  return useQuery({
+    queryKey: ['staff-reviews'],
+    queryFn: () => staffService.getReview(),
+  });
+}
+
+export function useGetWorkLog() {
+  return useQuery({
+    queryKey: ['staff-work-logs'],
+    queryFn: () => staffService.getWorkLog(),
+  });
+}
+
+export function useGetMonthlyStats(month: string, year: number) {
+  return useQuery({
+    queryKey: ['staff-monthly-stats', month, year],
+    queryFn: () => staffService.getMonthlyStats(month, year),
+  });
+}

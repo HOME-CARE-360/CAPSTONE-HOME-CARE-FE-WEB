@@ -7,6 +7,7 @@ import {
 } from '@/lib/api/services/fetchBooking';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import { ValidationError } from '@/lib/api/services/fetchAuth';
 
 export const useAllBookings = () => {
   const { data, isLoading, error } = useQuery({
@@ -30,7 +31,7 @@ export const useDetailBooking = (id: number, options?: { enabled?: boolean }) =>
     },
     enabled: options?.enabled !== undefined ? options.enabled : !!id,
   });
-
+  ServiceWorker;
   return { data, isLoading, error, id };
 };
 
@@ -38,18 +39,34 @@ export const useCreateBooking = () => {
   const router = useRouter();
   const { data, isPending, error, mutate, mutateAsync } = useMutation({
     mutationFn: (data: CreateBookingRequest) => serviceBooking.createBooking(data),
-    onSuccess: () => {
+    onSuccess: response => {
       toast.success('Đặt lịch thành công!', {
-        description: `Mã đặt lịch: BK${Date.now()}`,
+        description: `Mã đặt lịch: BK${response.data.bookingId}`,
         duration: 5000,
       });
-      router.push('/');
+
+      // If checkout URL is available, open it in a new tab
+      if (response.data.responseData.checkoutUrl) {
+        window.open(response.data.responseData.checkoutUrl, '_blank');
+        toast.info('Đang mở trang thanh toán...', {
+          description: 'Vui lòng hoàn tất thanh toán để xác nhận đặt lịch',
+          duration: 3000,
+        });
+      }
+
+      router.push('/settings/bookings');
     },
     onError: (error: Error) => {
-      toast.error('Đặt lịch thất bại!', {
-        description: error.message || 'Có lỗi xảy ra. Vui lòng thử lại!',
-        duration: 5000,
-      });
+      let errorMessage = 'An unexpected error occurred';
+      if (typeof error === 'object' && error !== null && 'message' in error) {
+        const errorObj = error as { message: string | ValidationError[] };
+        if (Array.isArray(errorObj.message)) {
+          errorMessage = errorObj.message[0]?.message || errorMessage;
+        } else if (typeof errorObj.message === 'string') {
+          errorMessage = errorObj.message;
+        }
+      }
+      toast.error(errorMessage);
     },
   });
 
@@ -63,4 +80,27 @@ export const useStaffBooking = () => {
   });
 
   return { data, isLoading, error };
+};
+
+export const useUpdateCompleteBookingOfUser = () => {
+  const { data, isPending, error, mutate, mutateAsync } = useMutation<unknown, Error, number>({
+    mutationFn: (bookingId: number) => serviceBooking.updateCompleteBookingOfUser(bookingId),
+    onSuccess: () => {
+      toast.success('Cập nhật trạng thái thành công!');
+    },
+    onError: (error: Error) => {
+      let errorMessage = 'An unexpected error occurred';
+      if (typeof error === 'object' && error !== null && 'message' in error) {
+        const errorObj = error as { message: string | ValidationError[] };
+        if (Array.isArray(errorObj.message)) {
+          errorMessage = errorObj.message[0]?.message || errorMessage;
+        } else if (typeof errorObj.message === 'string') {
+          errorMessage = errorObj.message;
+        }
+      }
+      toast.error(errorMessage);
+    },
+  });
+
+  return { data, isLoading: isPending, error, mutate, mutateAsync };
 };

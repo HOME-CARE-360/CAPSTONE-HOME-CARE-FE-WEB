@@ -31,7 +31,7 @@ export function CategoryTableFilters({ table, onFilterChange }: CategoryTableFil
   };
 
   return (
-    <div className="flex items-center gap-4 mt-2">
+    <div className="flex items-center gap-4">
       <Input
         placeholder="Tìm kiếm danh mục..."
         value={(table.getColumn('name')?.getFilterValue() as string) ?? ''}

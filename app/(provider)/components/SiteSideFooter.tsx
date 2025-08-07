@@ -232,12 +232,7 @@ export function SiteSideFooter() {
 
             <DropdownMenuGroup>
               <DropdownMenuItem asChild>
-                <Link
-                  href={
-                    // profileData?.data?.user?.role === 'Admin' ? '/admin/profile' : '/saler/profile'
-                    '#'
-                  }
-                >
+                <Link href="/provider/profile">
                   <UserCircleIcon className="mr-2 h-4 w-4" />
                   Tài khoản
                 </Link>

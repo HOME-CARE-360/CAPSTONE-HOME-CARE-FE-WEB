@@ -39,11 +39,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         icon: Calendar,
       },
       {
-        title: 'Quản lý review',
-        url: '/staff/review',
-        icon: UsersIcon,
-      },
-      {
         title: 'Quản lý lịch làm',
         url: '/staff/works',
         icon: UsersIcon,

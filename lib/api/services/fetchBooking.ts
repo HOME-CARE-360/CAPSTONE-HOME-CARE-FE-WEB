@@ -18,6 +18,37 @@ export interface CreateBookingRequest {
   paymentMethod: 'BANK_TRANSFER' | 'CREDIT_CARD';
 }
 
+export interface CreateServiceRequestResponse {
+  code: string;
+  data: {
+    message: string;
+    amount: number;
+    transactionId: number;
+    bookingId: number;
+    createdAt: string;
+    createdById: number;
+    method: 'BANK_TRANSFER' | 'CREDIT_CARD' | string;
+    responseData: {
+      accountNumber: string;
+      accountName: string;
+      amount: number;
+      bin: string;
+      checkoutUrl: string;
+      currency: string;
+      description: string;
+      orderCode: string;
+      paymentLinkId: string;
+      qrCode: string;
+      status: string;
+    };
+    status: 'PENDING' | 'SUCCESS' | 'FAILED' | string;
+  };
+  message: string;
+  statusCode: number;
+  success: boolean;
+  timestamp: string;
+}
+
 export enum StatusBooking {
   PENDING = 'PENDING',
   CONFIRMED = 'CONFIRMED',
@@ -162,10 +193,10 @@ export interface StaffBookingResponse {
 }
 
 export const serviceBooking = {
-  createBooking: async (data: CreateBookingRequest) => {
+  createBooking: async (data: CreateBookingRequest): Promise<CreateServiceRequestResponse> => {
     try {
       const response = await apiService.post(`/bookings/create-service-request`, data);
-      return response.data;
+      return response.data as CreateServiceRequestResponse;
     } catch (error) {
       console.error('Create Booking Service Error:', error);
       throw error;
@@ -198,6 +229,18 @@ export const serviceBooking = {
       return response.data as StaffBookingResponse;
     } catch (error) {
       console.error('Get List Booking Error:', error);
+      throw error;
+    }
+  },
+
+  updateCompleteBookingOfUser: async (bookingId: number) => {
+    try {
+      const response = await apiService.put(
+        `/manage-bookings/update-complete-booking-of-user/${bookingId}`
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Update Complete Booking Of User Error:', error);
       throw error;
     }
   },

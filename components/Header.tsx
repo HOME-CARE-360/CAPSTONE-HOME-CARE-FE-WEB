@@ -15,9 +15,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { UserCircleIcon, LogOutIcon, Menu } from 'lucide-react';
+import { UserCircleIcon, LogOutIcon } from 'lucide-react';
 import { NavigationBar } from './NavigationBar';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { getNameFallback } from '@/utils/helper';
 
 export default function Header() {
@@ -43,7 +42,7 @@ export default function Header() {
         <div className="flex h-full items-center justify-between">
           {/* Logo and Mobile Menu */}
           <div className="flex items-center gap-4">
-            <Sheet>
+            {/* <Sheet>
               <SheetTrigger asChild className="md:hidden">
                 <Button variant="ghost" size="icon" className="h-9 w-9">
                   <Menu className="h-5 w-5" />
@@ -81,23 +80,23 @@ export default function Header() {
                   </Link>
                 </nav>
               </SheetContent>
-            </Sheet>
+            </Sheet> */}
 
             <Link href="/" className="flex items-center">
-              <Image
-                src="/"
+              {/* <Image
+                src="/images/logo2.png"
                 alt="HomeCare icon"
                 width={50}
                 height={50}
                 priority
                 className="rounded-md"
-              />
+              /> */}
               <div className="lg:block hidden">
                 <Image
-                  src="/"
+                  src="/images/logo.png"
                   alt="HomeCare text"
-                  width={120}
-                  height={120}
+                  width={150}
+                  height={150}
                   priority
                   className="rounded-md"
                 />
@@ -118,7 +117,7 @@ export default function Header() {
                   <Button variant="ghost" className="relative size-10 rounded-full">
                     <Avatar className="size-10 ring-zinc-300 ring-2">
                       <AvatarImage
-                        src={user.avatar || 'https://github.com/shadcn.png'}
+                        src={user.avatar || ''}
                         alt={user.name}
                         className="object-cover"
                       />

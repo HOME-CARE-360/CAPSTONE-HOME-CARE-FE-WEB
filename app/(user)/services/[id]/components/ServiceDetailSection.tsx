@@ -3,7 +3,7 @@ import { Service } from '@/lib/api/services/fetchService';
 import { Home, Clock, Tag } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useGetProviderInfomation } from '@/hooks/useUser';
+import { useGetServiceProviderInformation } from '@/hooks/useUser';
 import ProviderInfo from '@/app/(user)/services/[id]/components/ProviderInfo';
 
 interface ServiceDetailsSectionProps {
@@ -11,7 +11,7 @@ interface ServiceDetailsSectionProps {
 }
 
 export default function ServiceDetailsSection({ service }: ServiceDetailsSectionProps) {
-  const { data: profileProvider, isLoading: isProviderLoading } = useGetProviderInfomation(
+  const { data: profileProvider, isLoading: isProviderLoading } = useGetServiceProviderInformation(
     service.providerId
   );
 

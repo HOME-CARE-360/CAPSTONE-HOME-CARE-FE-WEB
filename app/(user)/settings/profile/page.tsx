@@ -362,11 +362,8 @@ export default function ProfilePage() {
             <div className="flex flex-col items-center gap-4">
               <div className="relative group">
                 <Avatar className="w-24 h-24 ring-4 ring-blue-100 hover:ring-blue-200 transition-all duration-200">
-                  <AvatarImage
-                    src={currentAvatar || 'https://github.com/shadcn.png'}
-                    className="object-cover"
-                  />
-                  <AvatarFallback className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-xl font-bold">
+                  <AvatarImage src={currentAvatar || ''} className="object-cover" />
+                  <AvatarFallback className="text-black text-xl font-bold">
                     {getNameFallback(profile?.data?.user.name || 'User')}
                   </AvatarFallback>
                 </Avatar>
@@ -443,7 +440,7 @@ export default function ProfilePage() {
             <Button
               type="submit"
               disabled={isLoading || !form.formState.isDirty}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+              className="w-full"
             >
               {isLoading ? (
                 <>

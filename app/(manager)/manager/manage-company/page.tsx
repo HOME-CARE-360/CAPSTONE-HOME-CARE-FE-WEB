@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useGetListProvider } from '@/hooks/useManager';
+import { useChangeStatusProvider, useGetListProvider } from '@/hooks/useManager';
 import { Company, CompanyType, VerificationStatus } from '@/lib/api/services/fetchManager';
 import {
   ColumnDef,
@@ -88,6 +88,9 @@ export default function ManageCompanyPage() {
 
   // Pagination meta
   const totalPages = data?.pagination?.totalPages || 1;
+
+  // Change status mutation
+  const { mutate: changeStatus, isPending: isChanging } = useChangeStatusProvider();
 
   const columns: ColumnDef<Company>[] = useMemo(
     () => [
@@ -235,11 +238,29 @@ export default function ManageCompanyPage() {
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>Thao tác</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-green-600">
+                <DropdownMenuItem
+                  className="text-green-600"
+                  disabled={isChanging}
+                  onClick={() =>
+                    changeStatus({
+                      id: company.id,
+                      verificationStatus: VerificationStatus.VERIFIED,
+                    })
+                  }
+                >
                   <CheckCircle className="mr-2 h-4 w-4" />
                   Duyệt
                 </DropdownMenuItem>
-                <DropdownMenuItem className="text-red-600">
+                <DropdownMenuItem
+                  className="text-red-600"
+                  disabled={isChanging}
+                  onClick={() =>
+                    changeStatus({
+                      id: company.id,
+                      verificationStatus: VerificationStatus.REJECTED,
+                    })
+                  }
+                >
                   <XCircle className="mr-2 h-4 w-4" />
                   Từ chối
                 </DropdownMenuItem>
@@ -249,7 +270,7 @@ export default function ManageCompanyPage() {
         },
       },
     ],
-    []
+    [changeStatus, isChanging]
   );
 
   const table = useReactTable({

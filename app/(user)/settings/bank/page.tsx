@@ -194,6 +194,7 @@ export default function BankAccountPage() {
                                   width={32}
                                   height={32}
                                   className="rounded-full"
+                                  style={{ width: 32, height: 'auto' }}
                                   unoptimized
                                 />
                               ) : (

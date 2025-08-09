@@ -122,30 +122,25 @@ export interface GetProposalResponse {
   success: boolean;
   code: string;
   message: string;
-  data: ProposalData[];
+  data: ProposalData;
   statusCode: number;
   timestamp: string;
 }
 
 export interface ProposalData {
   id: number;
-  bookingId: number;
-  notes: string;
   status: string;
+  notes: string;
   createdAt: string;
-  updatedAt: string;
-  services: ProposalService[];
+  items: ItemsService[];
 }
 
-export interface ProposalService {
+export interface ItemsService {
   id: number;
-  proposalId: number;
-  serviceId: number;
   quantity: number;
   service: {
     id: number;
     name: string;
-    description: string;
     basePrice: number;
     durationMinutes: number;
   };
@@ -218,6 +213,24 @@ export interface GetMonthlyStatsResponse {
 export interface GetMonthlyStatsRequest {
   month: string;
   year: number;
+}
+
+export interface StaffCheckOutRequest {
+  imageUrls?: string[];
+}
+
+export interface StaffCheckoutResponse {
+  success: boolean;
+  code: string;
+  message: string;
+  data: {
+    message: string;
+    bookingId: number;
+    checkOutTime: string;
+    imageCount: number;
+  };
+  statusCode: number;
+  timestamp: string;
 }
 
 export interface StaffSearchParams {
@@ -317,4 +330,15 @@ export const staffService = {
   //   );
   //   return response.data;
   // }
+
+  staffCheckOut: async (
+    bookingId: number,
+    data: Record<string, unknown>
+  ): Promise<StaffCheckoutResponse> => {
+    const response = await apiService.patch<StaffCheckoutResponse>(
+      `/staffs/staff-checkout/${bookingId}`,
+      data
+    );
+    return response.data;
+  },
 };

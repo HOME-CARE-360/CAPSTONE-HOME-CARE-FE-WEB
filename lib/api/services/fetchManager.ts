@@ -51,6 +51,15 @@ export interface CompanySearchParams {
   verificationStatus?: VerificationStatus;
 }
 
+export interface ChangeStatusProviderRequest {
+  id: number;
+  verificationStatus: VerificationStatus;
+}
+
+export interface ChangeStatusProviderResponse {
+  message: string;
+}
+
 const convertManagerFilters = (filters?: CompanySearchParams): RequestParams => {
   if (!filters) return {};
 
@@ -75,5 +84,13 @@ export const managerSerivce = {
     return response.data;
   },
 
-  // changeStatusProvider: async (id: number; verificationStatus: VerificationStatus): Promise<
+  changeStatusProvider: async (
+    data: ChangeStatusProviderRequest
+  ): Promise<ChangeStatusProviderResponse> => {
+    const response = await apiService.patch<
+      ChangeStatusProviderResponse,
+      ChangeStatusProviderRequest
+    >(`/managers/change-status-provider`, data);
+    return response.data;
+  },
 };

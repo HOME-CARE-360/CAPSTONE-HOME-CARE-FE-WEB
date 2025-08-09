@@ -102,6 +102,10 @@ export function BookingKanban({ onRefresh }: BookingKanbanProps) {
 
   const bookingsArray = staffBookingsData?.data?.bookings || [];
 
+  // Treat backend booking.status = 'COMPLETED' as completed regardless of serviceRequest status
+  const isCompletedBooking = (booking: Booking) =>
+    `${booking.status}`.toUpperCase() === 'COMPLETED';
+
   const groupedBookings: Record<StatusServiceRequest, Booking[]> = {
     [StatusServiceRequest.PENDING]: bookingsArray.filter(
       booking => booking.serviceRequest.status === StatusServiceRequest.PENDING
@@ -110,7 +114,9 @@ export function BookingKanban({ onRefresh }: BookingKanbanProps) {
       booking => booking.serviceRequest.status === StatusServiceRequest.IN_PROGRESS
     ),
     [StatusServiceRequest.ESTIMATED]: bookingsArray.filter(
-      booking => booking.serviceRequest.status === StatusServiceRequest.ESTIMATED
+      booking =>
+        booking.serviceRequest.status === StatusServiceRequest.ESTIMATED &&
+        !isCompletedBooking(booking)
     ),
     [StatusServiceRequest.CANCELLED]: bookingsArray.filter(
       booking => booking.serviceRequest.status === StatusServiceRequest.CANCELLED
@@ -227,7 +233,7 @@ export function BookingKanban({ onRefresh }: BookingKanbanProps) {
         <Tabs defaultValue="active" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="active">Đang xử lý</TabsTrigger>
-            <TabsTrigger value="completed">Đã hoàn thành</TabsTrigger>
+            <TabsTrigger value="completed">Đã xử lý</TabsTrigger>
           </TabsList>
 
           <TabsContent value="active" className="mt-6">
@@ -311,7 +317,7 @@ export function BookingKanban({ onRefresh }: BookingKanbanProps) {
       <Tabs defaultValue="active" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="active">Đang xử lý</TabsTrigger>
-          <TabsTrigger value="completed">Đã hoàn thành</TabsTrigger>
+          <TabsTrigger value="completed">Đang trong quá trình</TabsTrigger>
         </TabsList>
 
         <TabsContent value="active" className="mt-6">

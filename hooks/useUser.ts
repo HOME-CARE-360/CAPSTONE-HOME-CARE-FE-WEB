@@ -5,6 +5,8 @@ import userService, {
   GetUserInformationResponse,
   UpdateBankAccountRequest,
   AddOrRemoveFavoriteResponse,
+  UpdateUserProposalRequest,
+  UpdateUserProposalResponse,
 } from '@/lib/api/services/fetchUser';
 import {
   UpdateUserProfileRequestType,
@@ -48,12 +50,12 @@ export function useUpdateProfile() {
   });
 }
 
-export function useGetUserInfomation(userId: string | number) {
+export function useGetUserInformation(userId: string | number) {
   const isAuthenticated = useAuthStore(state => state.isAuthenticated);
 
   return useQuery({
-    queryKey: ['users', 'infomation', userId],
-    queryFn: () => userService.getUserInfomation(userId),
+    queryKey: ['users', 'information', userId],
+    queryFn: () => userService.getUserInformation(userId),
     enabled: isAuthenticated,
     select: (data: GetUserInformationResponse) => ({
       profile: data.data,
@@ -62,19 +64,19 @@ export function useGetUserInfomation(userId: string | number) {
   });
 }
 
-export const useGetProviderInfomation = (providerId: string | number) => {
-  const isAuthenticated = useAuthStore(state => state.isAuthenticated);
+// export const useGetProviderInfomation = (providerId: string | number) => {
+//   const isAuthenticated = useAuthStore(state => state.isAuthenticated);
 
-  return useQuery({
-    queryKey: ['providers', 'infomation', providerId],
-    queryFn: () => userService.getProviderInfomation(providerId),
-    enabled: isAuthenticated,
-    // select: (data: GetUserInformationResponse) => ({
-    //   profile: data.data,
-    //   message: data.message,
-    // }),
-  });
-};
+//   return useQuery({
+//     queryKey: ['providers', 'infomation', providerId],
+//     queryFn: () => userService.getProviderInfomation(providerId),
+//     enabled: isAuthenticated,
+//     // select: (data: GetUserInformationResponse) => ({
+//     //   profile: data.data,
+//     //   message: data.message,
+//     // }),
+//   });
+// };
 
 export const useChangePassword = () => {
   const queryClient = useQueryClient();
@@ -136,7 +138,7 @@ export const useCustomerBooking = () => {
     queryFn: () => userService.getCustomerBooking(),
     enabled: isAuthenticated,
     select: (data: CustomerBooking) => ({
-      bookings: data.data.bookings,
+      bookings: Array.isArray(data.data.bookings) ? data.data.bookings : [data.data.bookings],
       message: data.message,
     }),
   });
@@ -159,6 +161,47 @@ export const useAddOrRemoveFavorite = () => {
     mutationFn: (serviceId: number) => userService.addOrRemoveFavorite(serviceId),
     onSuccess: (data: AddOrRemoveFavoriteResponse) => {
       queryClient.invalidateQueries({ queryKey: ['users', 'favorite'] });
+      toast.success(data.message);
+    },
+    onError: (error: Error | ValidationError) => {
+      let errorMessage = 'An unexpected error occurred';
+      if (typeof error === 'object' && error !== null && 'message' in error) {
+        const errorObj = error as { message: string | ValidationError[] };
+        if (Array.isArray(errorObj.message)) {
+          errorMessage = errorObj.message[0]?.message || errorMessage;
+        } else if (typeof errorObj.message === 'string') {
+          errorMessage = errorObj.message;
+        }
+      }
+      toast.error(errorMessage);
+    },
+  });
+};
+
+export const useGetServiceProviderInformation = (providerId: number) => {
+  return useQuery({
+    queryKey: ['providers', 'information', providerId],
+    queryFn: () => userService.getServiceProviderInformation(providerId),
+    enabled: !!providerId && !isNaN(providerId),
+  });
+};
+
+export const useGetUserProposal = (id: number) => {
+  return useQuery({
+    queryKey: ['users', 'proposal', id],
+    queryFn: () => userService.getUserProposal(id),
+    enabled: !!id && !isNaN(id),
+  });
+};
+
+export const useUpdateUserProposal = () => {
+  return useMutation<
+    UpdateUserProposalResponse,
+    Error | ValidationError,
+    { id: number; data: UpdateUserProposalRequest }
+  >({
+    mutationFn: ({ id, data }) => userService.updateUserProposal(id, data),
+    onSuccess: (data: UpdateUserProposalResponse) => {
       toast.success(data.message);
     },
     onError: (error: Error | ValidationError) => {

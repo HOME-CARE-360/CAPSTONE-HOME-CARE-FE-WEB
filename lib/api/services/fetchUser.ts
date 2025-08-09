@@ -9,7 +9,7 @@ import apiService from '../core';
 import { ValidationError } from './fetchAuth';
 import { ProviderType } from '@/schemaValidations/provider.schema';
 import { StatusBooking, StatusServiceRequest } from './fetchBooking';
-
+import { CompanyType, VerificationStatus } from './fetchManager';
 export interface User {
   userName: string;
   fullName: string;
@@ -39,8 +39,8 @@ export interface UserInfomationRepsonse {
   phone: string;
   avatar: string | null;
   status: string;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface CustomerInfomationResponse {
@@ -49,8 +49,8 @@ export interface CustomerInfomationResponse {
   address: string | null;
   dateOfBirth: string;
   gender: string;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface GetUserInformationResponse {
@@ -109,7 +109,7 @@ export interface CustomerBooking {
       ServiceRequest: {
         id: number;
         customerId: number;
-        providerId: 3;
+        providerId: number;
         note: string;
         preferredDate: string;
         status: StatusServiceRequest;
@@ -118,6 +118,18 @@ export interface CustomerBooking {
         location: string;
         phoneNumber: string;
         categoryId: number;
+        Category: {
+          id: number;
+          name: string;
+          logo: string | null;
+          parentCategoryId: number | null;
+          createdById: number | null;
+          updatedById: number | null;
+          deletedById: number | null;
+          deletedAt: string | null;
+          createdAt: string;
+          updatedAt: string;
+        };
       };
       ServiceProvider: {
         id: number;
@@ -140,32 +152,46 @@ export interface CustomerBooking {
           phone: string;
           avatar: string | null;
         };
-        WorkLog: {
-          id: number;
-          staffId: number;
-          bookingId: number;
-          checkIn: string;
-          checkOut: string | null;
-          note: string | null;
-          createdAt: string;
-          updatedAt: string;
-        };
-        Transaction: {
-          id: number;
-          bookingId: number;
-          amount: number;
-          status: string;
-          method: string;
-          paidAt: string | null;
-          createdById: number;
-          updatedById: number | null;
-          deletedById: number | null;
-          deletedAt: string | null;
-          createdAt: string;
-          orderCode: string;
+      };
+      Staff_Booking_staffIdToStaff?: {
+        id: number;
+        userId: number;
+        providerId: number;
+        createdAt: string;
+        updatedAt: string;
+        isActive: boolean;
+        User: {
+          name: string;
+          email: string;
+          phone: string;
+          avatar: string | null;
         };
       };
-    };
+      WorkLog?: {
+        id: number;
+        staffId: number;
+        bookingId: number;
+        checkIn: string;
+        checkOut: string | null;
+        note: string | null;
+        createdAt: string;
+        updatedAt: string;
+      };
+      Transaction?: {
+        id: number;
+        bookingId: number;
+        amount: number;
+        status: string;
+        method: string;
+        paidAt: string | null;
+        createdById: number;
+        updatedById: number | null;
+        deletedById: number | null;
+        deletedAt: string | null;
+        createdAt: string;
+        orderCode: string;
+      };
+    }[];
     totalItems: number;
     page: number;
     pageSize: number;
@@ -239,6 +265,83 @@ export interface AddOrRemoveFavoriteResponse {
   timestamp: string;
 }
 
+export interface GetServiceProviderResponse {
+  success: boolean;
+  code: string;
+  message: string;
+  data: {
+    serviceProvider: {
+      id: number;
+      description: string;
+      address: string;
+      createdAt: string; // ISO 8601 string
+      updatedAt: string;
+      userId: number;
+      companyType: CompanyType;
+      industry: string | null;
+      licenseNo: string | null;
+      logo: string | null;
+      taxId: string;
+      verificationStatus: VerificationStatus;
+      verifiedAt: string;
+      verifiedById: number | null;
+    };
+    user: {
+      id: number;
+      email: string;
+      name: string;
+      phone: string;
+      avatar: string | null;
+      status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | string;
+      createdById: number | null;
+      updatedById: number | null;
+      createdAt: string;
+      updatedAt: string;
+    };
+  };
+  statusCode: number;
+  timestamp: string;
+}
+
+export interface GetUserProposalResponse {
+  success: boolean;
+  code: string;
+  message: string;
+  data: {
+    id: number;
+    notes: string;
+    status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | string;
+    createdAt: string; // ISO 8601
+    items: {
+      id: number;
+      serviceId: number;
+      quantity: number;
+      serviceName: string;
+      unitPrice: number;
+    }[];
+  };
+  statusCode: number;
+  timestamp: string; // ISO 8601
+}
+
+export interface UpdateUserProposalResponse {
+  success: boolean;
+  code: string;
+  message: string;
+  data: {
+    id: number;
+  };
+  statusCode: number;
+}
+
+export interface UpdateUserProposalRequest {
+  action: 'ACCEPT' | 'REJECT';
+}
+
+export interface UserCompleteBookingRequest {
+  bookingId: number;
+}
+
 // User service with profile-related API methods
 export const userService = {
   // Get current user profile
@@ -269,19 +372,19 @@ export const userService = {
     }
   },
 
-  getUserInfomation: async (userId: string | number): Promise<GetUserInformationResponse> => {
+  getUserInformation: async (userId: string | number): Promise<GetUserInformationResponse> => {
     const response = await apiService.get<GetUserInformationResponse>(
       `/users/get-customer-information/${userId}`
     );
     return response.data;
   },
 
-  getProviderInfomation: async (providerId: string | number): Promise<GetProviderResponse> => {
-    const response = await apiService.get<GetProviderResponse>(
-      `/publics/get-service-provider-information/${providerId}`
-    );
-    return response.data;
-  },
+  // getProviderInfomation: async (providerId: string | number): Promise<GetProviderResponse> => {
+  //   const response = await apiService.get<GetProviderResponse>(
+  //     `/publics/get-service-provider-information/${providerId}`
+  //   );
+  //   return response.data;
+  // },
 
   // Change Passwod
   changePassword: async (data: ChangePasswordRequestType) => {
@@ -321,6 +424,38 @@ export const userService = {
       `/users/my-favorite-services/${serviceId}`
     );
     return response.data;
+  },
+
+  getServiceProviderInformation: async (
+    providerId: number
+  ): Promise<GetServiceProviderResponse> => {
+    const response = await apiService.get<GetServiceProviderResponse>(
+      `/publics/get-service-provider-information/${providerId}`
+    );
+    return response.data;
+  },
+
+  getUserProposal: async (id: number): Promise<GetUserProposalResponse> => {
+    const response = await apiService.get<GetUserProposalResponse>(`/users/my-proposal/${id}`);
+    return response.data;
+  },
+
+  updateUserProposal: async (
+    id: number,
+    data: UpdateUserProposalRequest
+  ): Promise<UpdateUserProposalResponse> => {
+    try {
+      // Ensure the payload is a plain object for compatibility with apiService.patch
+      const payload: Record<string, unknown> = { ...data };
+      const response = await apiService.patch<UpdateUserProposalResponse>(
+        `/users/proposal/${id}`,
+        payload
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Update User Proposal Error:', error);
+      throw error;
+    }
   },
 };
 

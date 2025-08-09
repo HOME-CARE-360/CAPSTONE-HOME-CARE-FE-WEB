@@ -8,17 +8,18 @@ import { getNameFallback } from '@/utils/helper';
 import { formatCurrency } from '@/utils/numbers/formatCurrency';
 import { Service } from '@/lib/api/services/fetchService';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 interface ProviderInfoProps {
   providerProfile: {
     user: UserType;
-    provider: ProviderType;
+    serviceProvider: ProviderType;
   };
   service?: Service; // Add service prop to show price and details
 }
 
 export default function ProviderInfo({ providerProfile, service }: ProviderInfoProps) {
-  const { user, provider } = providerProfile;
+  const { user, serviceProvider } = providerProfile;
   const initials = getNameFallback(user.name || 'User');
   const router = useRouter();
 
@@ -67,19 +68,47 @@ export default function ProviderInfo({ providerProfile, service }: ProviderInfoP
 
         {/* Provider Info */}
         <div className="space-y-4 pt-4 border-t">
-          <h4 className="font-semibold text-sm">Nhà cung cấp dịch vụ</h4>
-          <div className="flex items-center gap-3 p-2 rounded-lg">
-            <Avatar className="w-12 h-12 border-2 border-primary/20">
-              <AvatarImage src={provider?.logo || ''} />
-              <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1">
-              <h3 className="font-bold text-sm">{user.name}</h3>
-              <p className="text-muted-foreground text-xs">Chuyên gia được chứng nhận</p>
+          <h4 className="font-semibold text-sm mb-2">Nhà cung cấp dịch vụ</h4>
+          <Link
+            href={`/service-provider/${serviceProvider?.id}`}
+            className="block group focus:outline-none focus:ring-2 focus:ring-primary/60 rounded-lg transition-shadow"
+            tabIndex={0}
+            aria-label={`Xem thông tin nhà cung cấp dịch vụ ${user.name}`}
+          >
+            <div className="flex items-center gap-4 p-3 rounded-lg border border-muted bg-muted/30 hover:bg-primary/5 group-hover:shadow-md transition-all">
+              <Avatar className="w-14 h-14 border-2 border-primary/30 shadow-sm">
+                <AvatarImage src={serviceProvider?.logo || ''} alt={user.name} />
+                <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-bold text-base text-foreground truncate group-hover:text-primary transition-colors">
+                  {user.name}
+                </h3>
+                <p className="text-muted-foreground text-xs mt-1 flex items-center gap-1">
+                  <span
+                    className="inline-block w-2 h-2 rounded-full bg-green-500 mr-1"
+                    aria-label="Đã xác thực"
+                  ></span>
+                  Chuyên gia được chứng nhận
+                </p>
+              </div>
+              <span className="ml-2 text-primary group-hover:translate-x-1 transition-transform">
+                <svg
+                  width="20"
+                  height="20"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M9 18l6-6-6-6" />
+                </svg>
+              </span>
             </div>
-          </div>
+          </Link>
         </div>
       </CardContent>
     </Card>

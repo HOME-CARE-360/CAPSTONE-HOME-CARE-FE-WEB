@@ -1,7 +1,7 @@
 'use client';
 
 import { useUserProfile } from '@/hooks/useUser';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -32,13 +32,231 @@ import { vi } from 'date-fns/locale';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useService } from '@/hooks/useService';
-import { useGetProviderInfomation } from '@/hooks/useUser';
+import { useGetServiceProviderInformation } from '@/hooks/useUser';
 import { useProvince, useProvinceCommunes } from '@/hooks/useProvince';
 import { CreateBookingRequest } from '@/lib/api/services/fetchBooking';
 import { useCreateBooking } from '@/hooks/useBooking';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { formatCurrency } from '@/utils/numbers/formatCurrency';
 import { toast } from 'sonner';
+import { Skeleton } from '@/components/ui/skeleton';
+
+// Skeleton Components
+const ServiceInfoSkeleton = () => (
+  <Card className="shadow-sm border-0">
+    <CardHeader className="pb-6">
+      <CardTitle className="flex items-center gap-3 text-xl">
+        <div className="p-2 rounded-lg bg-primary/10">
+          <Wrench className="h-6 w-6 text-primary" />
+        </div>
+        <span>Thông tin dịch vụ</span>
+      </CardTitle>
+    </CardHeader>
+    <CardContent>
+      <div className="flex items-start gap-6">
+        <Skeleton className="w-20 h-20 rounded-xl" />
+        <div className="flex-1 space-y-4">
+          <div>
+            <Skeleton className="h-8 w-64 mb-2" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-3/4" />
+          </div>
+          <div className="flex items-center gap-6">
+            <Skeleton className="h-8 w-32" />
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-4 w-4" />
+              <Skeleton className="h-4 w-16" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+);
+
+const CustomerInfoSkeleton = () => (
+  <Card className="shadow-sm border-0">
+    <CardHeader className="pb-6">
+      <CardTitle className="flex items-center gap-3 text-xl">
+        <div className="p-2 rounded-lg bg-primary/10">
+          <User className="h-6 w-6 text-primary" />
+        </div>
+        <span>Thông tin khách hàng</span>
+      </CardTitle>
+    </CardHeader>
+    <CardContent className="space-y-6">
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-20" />
+          <Skeleton className="h-12 w-full" />
+        </div>
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-12 w-full" />
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+);
+
+const DateTimeLocationSkeleton = () => (
+  <Card className="shadow-sm border-0">
+    <CardHeader className="pb-6">
+      <CardTitle className="flex items-center gap-3 text-xl">
+        <div className="p-2 rounded-lg bg-primary/10">
+          <CalendarIcon className="h-6 w-6 text-primary" />
+        </div>
+        <span>Thời gian và địa điểm</span>
+      </CardTitle>
+    </CardHeader>
+    <CardContent className="space-y-8">
+      <div className="space-y-4">
+        <Skeleton className="h-4 w-48" />
+        <Skeleton className="h-12 w-full" />
+      </div>
+      <div className="space-y-6">
+        <Skeleton className="h-4 w-40" />
+        <div className="space-y-3">
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-12 w-full" />
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-10 w-full" />
+            ))}
+          </div>
+        </div>
+        <div className="space-y-3">
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-12 w-full" />
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-10 w-full" />
+            ))}
+          </div>
+        </div>
+        <div className="space-y-3">
+          <Skeleton className="h-4 w-48" />
+          <Skeleton className="h-12 w-full" />
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+);
+
+const PaymentMethodSkeleton = () => (
+  <Card className="shadow-sm border-0">
+    <CardHeader className="pb-6">
+      <CardTitle className="flex items-center gap-3 text-xl">
+        <div className="p-2 rounded-lg bg-primary/10">
+          <CreditCard className="h-6 w-6 text-primary" />
+        </div>
+        <span>Phương thức thanh toán</span>
+      </CardTitle>
+    </CardHeader>
+    <CardContent>
+      <div className="grid gap-4">
+        {Array.from({ length: 2 }).map((_, i) => (
+          <div key={i} className="flex items-center space-x-4">
+            <Skeleton className="h-4 w-4" />
+            <div className="flex items-center gap-4 flex-1 p-4 rounded-lg border">
+              <Skeleton className="h-5 w-5" />
+              <div className="flex-1">
+                <Skeleton className="h-4 w-32 mb-1" />
+                <Skeleton className="h-3 w-48" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </CardContent>
+  </Card>
+);
+
+const NotesSkeleton = () => (
+  <Card className="shadow-sm border-0">
+    <CardHeader className="pb-6">
+      <CardTitle className="flex items-center gap-3 text-xl">
+        <div className="p-2 rounded-lg bg-primary/10">
+          <FileText className="h-6 w-6 text-primary" />
+        </div>
+        <span>Ghi chú bổ sung</span>
+      </CardTitle>
+    </CardHeader>
+    <CardContent>
+      <div className="space-y-4">
+        <Skeleton className="h-4 w-48" />
+        <Skeleton className="h-24 w-full" />
+      </div>
+    </CardContent>
+  </Card>
+);
+
+const BookingSummarySkeleton = () => (
+  <Card className="sticky top-24 shadow-lg border-0">
+    <CardHeader className="pb-6">
+      <CardTitle className="flex items-center gap-3 text-xl">
+        <div className="p-2 rounded-lg bg-primary/10">
+          <CheckCircle className="h-6 w-6 text-primary" />
+        </div>
+        <span>Tóm tắt đặt lịch</span>
+      </CardTitle>
+    </CardHeader>
+    <CardContent className="space-y-6">
+      <div className="space-y-4">
+        <Skeleton className="h-6 w-16" />
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <Skeleton className="w-12 h-12 rounded-lg" />
+            <div className="flex-1">
+              <Skeleton className="h-4 w-32 mb-1" />
+              <Skeleton className="h-3 w-20" />
+            </div>
+          </div>
+        </div>
+      </div>
+      <Separator />
+      <div className="space-y-4">
+        <Skeleton className="h-6 w-24" />
+        <div className="flex items-center gap-3">
+          <Skeleton className="w-10 h-10 rounded-full" />
+          <div>
+            <Skeleton className="h-4 w-32 mb-1" />
+            <Skeleton className="h-3 w-40" />
+          </div>
+        </div>
+      </div>
+      <Separator />
+      <div className="space-y-4">
+        <Skeleton className="h-6 w-32" />
+        <div className="bg-muted/30 p-4 rounded-lg">
+          <Skeleton className="h-4 w-40 mb-2" />
+          <Skeleton className="h-3 w-24" />
+        </div>
+      </div>
+      <div className="space-y-4">
+        <Skeleton className="h-6 w-16" />
+        <div className="flex items-start gap-2">
+          <Skeleton className="h-4 w-4" />
+          <Skeleton className="h-3 w-32" />
+        </div>
+      </div>
+      <Separator />
+      <div className="space-y-4">
+        <Skeleton className="h-6 w-20" />
+        <Skeleton className="h-3 w-40" />
+      </div>
+      <div className="pt-6 border-t">
+        <div className="flex justify-between items-center">
+          <Skeleton className="h-8 w-24" />
+          <Skeleton className="h-8 w-32" />
+        </div>
+        <Skeleton className="h-3 w-48 mt-2" />
+      </div>
+      <Skeleton className="h-12 w-full" />
+      <Skeleton className="h-3 w-64 mx-auto" />
+    </CardContent>
+  </Card>
+);
 
 const paymentMethods = [
   {
@@ -59,15 +277,20 @@ export default function NewBookingPage() {
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { data: profifeData } = useUserProfile();
+  const { data: profifeData, isLoading: isProfileLoading } = useUserProfile();
   const params = useParams();
   const serviceId = params.serviceId;
-  const { data: serviceData } = useService(serviceId as unknown as string);
-  const { data: profileProvider } = useGetProviderInfomation(
-    serviceData?.service?.providerId ? String(serviceData.service.providerId) : ''
+  const { data: serviceData, isLoading: isServiceLoading } = useService(
+    serviceId as unknown as string
   );
-  const { data: provinceData, isLoading: isProvinceLoading, error } = useProvince();
+  const { data: profileProvider, isLoading: isProviderLoading } = useGetServiceProviderInformation(
+    serviceData?.service?.providerId ? Number(serviceData.service.providerId) : 0
+  );
+  const { data: provinceData, isLoading: isProvinceLoading } = useProvince();
   const { mutateAsync: createBooking } = useCreateBooking();
+
+  // Check if any critical data is still loading
+  const isDataLoading = isProfileLoading || isServiceLoading || isProviderLoading;
 
   // Location state
   const [selectedProvince, setSelectedProvince] = useState<string>('');
@@ -104,7 +327,7 @@ export default function NewBookingPage() {
     }));
 
     return mappedProvinces;
-  }, [provinceData, isProvinceLoading, error]);
+  }, [provinceData]);
 
   // Get communes for selected province
   const communes = useMemo(() => {
@@ -218,51 +441,54 @@ export default function NewBookingPage() {
     }
   }, [serviceData]);
 
-  const validateTime = (timeStr: string): boolean => {
-    if (!timeStr) {
-      setTimeError('Vui lòng chọn giờ');
-      return false;
-    }
+  const validateTime = useCallback(
+    (timeStr: string): boolean => {
+      if (!timeStr) {
+        setTimeError('Vui lòng chọn giờ');
+        return false;
+      }
 
-    const [hours, minutes] = timeStr.split(':').map(Number);
-    const timeInMinutes = hours * 60 + minutes;
-    const minTimeInMinutes = 7 * 60; // 7:00 AM
-    const maxTimeInMinutes = 19 * 60; // 7:00 PM
+      const [hours, minutes] = timeStr.split(':').map(Number);
+      const timeInMinutes = hours * 60 + minutes;
+      const minTimeInMinutes = 7 * 60; // 7:00 AM
+      const maxTimeInMinutes = 19 * 60; // 7:00 PM
 
-    // Check business hours first
-    if (timeInMinutes < minTimeInMinutes) {
-      setTimeError('Giờ phải từ 7:00 sáng trở về sau');
-      return false;
-    }
+      // Check business hours first
+      if (timeInMinutes < minTimeInMinutes) {
+        setTimeError('Giờ phải từ 7:00 sáng trở về sau');
+        return false;
+      }
 
-    if (timeInMinutes > maxTimeInMinutes) {
-      setTimeError('Giờ phải trước 19:00 tối');
-      return false;
-    }
+      if (timeInMinutes > maxTimeInMinutes) {
+        setTimeError('Giờ phải trước 19:00 tối');
+        return false;
+      }
 
-    // Check if selected date is today and time is in the past
-    if (selectedDate) {
-      const currentDate = new Date();
-      const isToday = selectedDate.toDateString() === currentDate.toDateString();
+      // Check if selected date is today and time is in the past
+      if (selectedDate) {
+        const currentDate = new Date();
+        const isToday = selectedDate.toDateString() === currentDate.toDateString();
 
-      if (isToday) {
-        const currentTimeInMinutes = currentDate.getHours() * 60 + currentDate.getMinutes();
+        if (isToday) {
+          const currentTimeInMinutes = currentDate.getHours() * 60 + currentDate.getMinutes();
 
-        if (timeInMinutes <= currentTimeInMinutes) {
-          const nextAvailableHour = Math.max(currentDate.getHours() + 1, 7);
-          if (nextAvailableHour > 19) {
-            setTimeError('Không thể đặt lịch hôm nay. Vui lòng chọn ngày mai');
-          } else {
-            setTimeError(`Vui lòng chọn từ ${nextAvailableHour}:00 trở đi`);
+          if (timeInMinutes <= currentTimeInMinutes) {
+            const nextAvailableHour = Math.max(currentDate.getHours() + 1, 7);
+            if (nextAvailableHour > 19) {
+              setTimeError('Không thể đặt lịch hôm nay. Vui lòng chọn ngày mai');
+            } else {
+              setTimeError(`Vui lòng chọn từ ${nextAvailableHour}:00 trở đi`);
+            }
+            return false;
           }
-          return false;
         }
       }
-    }
 
-    setTimeError('');
-    return true;
-  };
+      setTimeError('');
+      return true;
+    },
+    [selectedDate]
+  );
 
   const handleTimeChange = (newTime: string) => {
     setSelectedTime(newTime);
@@ -274,7 +500,7 @@ export default function NewBookingPage() {
     if (selectedTime) {
       validateTime(selectedTime);
     }
-  }, [selectedDate, validateTime]);
+  }, [selectedDate, selectedTime, validateTime]);
 
   const validateForm = (): boolean => {
     const newErrors: Partial<CreateBookingRequest> = {};
@@ -365,6 +591,41 @@ export default function NewBookingPage() {
     }
   };
 
+  // Show loading state if critical data is still loading
+  if (isDataLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-6xl mx-auto">
+            {/* Page Header */}
+            <div className="text-center mb-12">
+              <h1 className="text-4xl font-bold mb-4">Đặt lịch dịch vụ</h1>
+              <p className="text-muted-foreground text-lg">
+                Hoàn tất thông tin để đặt lịch dịch vụ của bạn
+              </p>
+            </div>
+
+            <div className="grid lg:grid-cols-3 gap-8">
+              {/* Left Column - Form Fields */}
+              <div className="lg:col-span-2 space-y-8">
+                <ServiceInfoSkeleton />
+                <CustomerInfoSkeleton />
+                <DateTimeLocationSkeleton />
+                <PaymentMethodSkeleton />
+                <NotesSkeleton />
+              </div>
+
+              {/* Right Column - Booking Summary */}
+              <div className="space-y-6">
+                <BookingSummarySkeleton />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
@@ -399,7 +660,7 @@ export default function NewBookingPage() {
                       <div className="flex-1 space-y-4">
                         <div>
                           <h3 className="text-2xl font-semibold mb-2">
-                            {serviceData?.service?.name || 'Tên dịch vụ'}
+                            {serviceData?.service?.name || ''}
                           </h3>
                           <p className="text-muted-foreground leading-relaxed">
                             {serviceData?.service?.description || 'Mô tả dịch vụ'}
@@ -521,7 +782,7 @@ export default function NewBookingPage() {
                         {isProvinceLoading ? (
                           <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                             {Array.from({ length: 6 }).map((_, i) => (
-                              <div key={i} className="h-10 bg-muted rounded-lg animate-pulse" />
+                              <Skeleton key={i} className="h-10 w-full" />
                             ))}
                           </div>
                         ) : (
@@ -566,7 +827,7 @@ export default function NewBookingPage() {
                           {isCommuneLoading ? (
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                               {Array.from({ length: 6 }).map((_, i) => (
-                                <div key={i} className="h-10 bg-muted rounded-lg animate-pulse" />
+                                <Skeleton key={i} className="h-10 w-full" />
                               ))}
                             </div>
                           ) : communes.length > 0 ? (
@@ -749,7 +1010,7 @@ export default function NewBookingPage() {
                         <h4 className="font-semibold text-lg">Nhà cung cấp</h4>
                         <div className="flex items-center gap-3">
                           <Avatar className="w-10 h-10">
-                            <AvatarImage src={profileProvider.data.provider?.logo || ''} />
+                            <AvatarImage src={profileProvider.data.serviceProvider?.logo || ''} />
                             <AvatarFallback>
                               {profileProvider.data.user.name?.charAt(0)}
                             </AvatarFallback>
@@ -804,8 +1065,6 @@ export default function NewBookingPage() {
                         </div>
                       </div>
                     )}
-
-                    <Separator />
 
                     {/* Payment Summary */}
                     <div className="space-y-4">

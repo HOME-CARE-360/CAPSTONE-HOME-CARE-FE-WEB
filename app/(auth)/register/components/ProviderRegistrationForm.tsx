@@ -15,7 +15,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/hooks/useAuth';
 import { EyeOff, Eye, Lock, User, Building2, MapPin, Mail } from 'lucide-react';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
@@ -76,7 +75,7 @@ export function ProviderRegistrationForm() {
       companyType: CompanyType.PARTNERSHIP,
       industry: '',
       address: '',
-      description: '',
+      description: 'Create account',
       terms: false,
     },
     mode: 'onChange',
@@ -409,7 +408,7 @@ export function ProviderRegistrationForm() {
           </div>
         </div>
 
-        <div className="space-y-2">
+        {/* <div className="space-y-2">
           <Label htmlFor="description">Mô tả</Label>
           <Textarea
             id="description"
@@ -420,7 +419,7 @@ export function ProviderRegistrationForm() {
           {form.formState.errors.description && (
             <p className="text-sm text-destructive">{form.formState.errors.description.message}</p>
           )}
-        </div>
+        </div> */}
 
         <div className="space-y-2">
           <Label htmlFor="password">Mật khẩu</Label>

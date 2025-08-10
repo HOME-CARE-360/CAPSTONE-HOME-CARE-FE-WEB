@@ -1,4 +1,5 @@
 import apiService, { RequestParams } from '@/lib/api/core';
+import { StatusBooking } from '@/lib/api/services/fetchBooking';
 
 export interface GetAllStaffResponse<T> {
   data: T;
@@ -65,9 +66,9 @@ export interface WorkLog {
   id: number;
   staffId: number;
   bookingId: number;
-  checkIn: string;
-  checkOut: string | null;
-  note: string | null;
+  checkIn?: string | null;
+  checkOut?: string | null;
+  note?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -121,36 +122,117 @@ export interface GetProposalResponse {
   success: boolean;
   code: string;
   message: string;
-  data: ProposalData[];
+  data: ProposalData;
   statusCode: number;
   timestamp: string;
 }
 
 export interface ProposalData {
   id: number;
-  bookingId: number;
-  notes: string;
   status: string;
+  notes: string;
   createdAt: string;
-  updatedAt: string;
-  services: ProposalService[];
+  items: ItemsService[];
 }
 
-export interface ProposalService {
+export interface ItemsService {
   id: number;
-  proposalId: number;
-  serviceId: number;
   quantity: number;
   service: {
     id: number;
     name: string;
-    description: string;
     basePrice: number;
     durationMinutes: number;
   };
 }
 
-// Thêm interface cho query parameters
+export interface GetReviewResponse {
+  success: boolean;
+  code: string;
+  message: string;
+  data: {
+    reviews: [];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+  statusCode: number;
+  timestamp: string;
+}
+
+export interface WorkLogResponse {
+  id: number;
+  checkIn?: string | null;
+  checkOut?: string | null;
+  note?: string | null;
+  createdAt: string;
+  booking: {
+    id: number;
+    status: StatusBooking;
+    createdAt: string;
+  };
+}
+
+export interface GetWorkLogResponse {
+  success: boolean;
+  code: string;
+  message: string;
+  data: {
+    workLogs: WorkLogResponse[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+  statusCode: number;
+  timestamp: string;
+}
+
+export interface MonthlyStats {
+  month: string;
+  year: number;
+  totalCompletedBookings: number;
+  totalWorkLogs: number;
+  totalHoursWorked: number;
+  averageHoursPerLog: number;
+  workDays: number;
+  firstCheckIn?: string | null;
+  lastCheckOut?: string | null;
+}
+
+export interface GetMonthlyStatsResponse {
+  success: boolean;
+  code: string;
+  message: string;
+  data: MonthlyStats;
+  statusCode: number;
+  timestamp: string;
+}
+
+export interface GetMonthlyStatsRequest {
+  month: string;
+  year: number;
+}
+
+export interface StaffCheckOutRequest {
+  imageUrls?: string[];
+}
+
+export interface StaffCheckoutResponse {
+  success: boolean;
+  code: string;
+  message: string;
+  data: {
+    message: string;
+    bookingId: number;
+    checkOutTime: string;
+    imageCount: number;
+  };
+  statusCode: number;
+  timestamp: string;
+}
+
 export interface StaffSearchParams {
   orderBy?: 'asc' | 'desc';
   categories?: number[];
@@ -225,10 +307,38 @@ export const staffService = {
     return response.data;
   },
 
+  getReview: async (): Promise<GetReviewResponse> => {
+    const response = await apiService.get<GetReviewResponse>('/staffs/staff-get-review-summary');
+    return response.data;
+  },
+
+  getWorkLog: async (): Promise<GetWorkLogResponse> => {
+    const response = await apiService.get<GetWorkLogResponse>('/staffs/get-recent-work-logs');
+    return response.data;
+  },
+
+  getMonthlyStats: async (month: string, year: number): Promise<GetMonthlyStatsResponse> => {
+    const response = await apiService.get<GetMonthlyStatsResponse>(
+      `/staffs/staff-get-monthly-stats?month=${month}&year=${year}`
+    );
+    return response.data;
+  },
+
   // getStaffInfomation: async (staffId: string | number): Promise<GetStaffResponse> => {
   //   const response = await apiService.get<GetProviderResponse>(
   //     `/publics/get-staff-information/${staffId}`
   //   );
   //   return response.data;
   // }
+
+  staffCheckOut: async (
+    bookingId: number,
+    data: Record<string, unknown>
+  ): Promise<StaffCheckoutResponse> => {
+    const response = await apiService.patch<StaffCheckoutResponse>(
+      `/staffs/staff-checkout/${bookingId}`,
+      data
+    );
+    return response.data;
+  },
 };

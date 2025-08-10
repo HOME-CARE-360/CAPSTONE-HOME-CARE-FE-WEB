@@ -1,6 +1,9 @@
 import apiService, { RequestParams } from '../core';
-import { Category } from './fetchCategory';
 
+export interface Category {
+  logo: string;
+  name: string;
+}
 export interface Service {
   id: number;
   name: string;
@@ -10,7 +13,7 @@ export interface Service {
   durationMinutes: number;
   providerId: number;
   description: string;
-  category: Category[];
+  Category: Category;
   provider: string;
 }
 
@@ -42,8 +45,8 @@ export interface OrderBy {
 export interface ServiceSearchParams {
   page?: number;
   limit?: number;
-  searchTerm?: string;
-  category?: string;
+  name?: string;
+  categories?: number[];
   minPrice?: number;
   maxPrice?: number;
   providerId?: number;
@@ -57,10 +60,10 @@ const convertServiceFilters = (filters?: ServiceSearchParams): RequestParams => 
 
   const params: RequestParams = {};
 
-  if (filters.searchTerm) params.searchTerm = filters.searchTerm;
+  if (filters.name) params.name = filters.name;
   if (filters.page !== undefined) params.page = filters.page;
   if (filters.limit !== undefined) params.limit = filters.limit;
-  if (filters.category) params.category = filters.category;
+  if (filters.categories) params.categories = filters.categories;
   if (filters.minPrice !== undefined) params.minPrice = filters.minPrice;
   if (filters.maxPrice !== undefined) params.maxPrice = filters.maxPrice;
   if (filters.providerId !== undefined) params.providerId = filters.providerId;

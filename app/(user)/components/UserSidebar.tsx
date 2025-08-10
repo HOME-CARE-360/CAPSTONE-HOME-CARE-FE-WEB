@@ -10,17 +10,17 @@ const accountItems = [
   { label: 'Đổi mật khẩu', value: 'password', href: '/settings/change-password' },
 ];
 
-const settingItems = [
-  { label: 'Ngân hàng', value: 'bank', href: '/user/bank' },
-  { label: 'Địa chỉ', value: 'address', href: '/user/address' },
-  { label: 'Cài đặt thông báo', value: 'notifications', href: '/user/notifications' },
-  { label: 'Thiết lập riêng tư', value: 'privacy', href: '/user/privacy' },
+const serviceItems = [
+  { label: 'Ngân hàng', value: 'bank', href: '/settings/bank' },
+  // { label: 'Địa chỉ', value: 'address', href: '/user/address' },
+  { label: 'Dịch vụ đã đặt', value: 'booking', href: '/settings/bookings' },
+  { label: 'Dịch vụ yêu thích', value: 'favorites', href: '/settings/favorites' },
 ];
 
-const notificationItems = [
-  { label: 'Cập nhật ví', value: 'wallet', href: '/settings/notifications/wallet' },
-  { label: 'Cập nhật đặt lịch', value: 'booking', href: '/settings/notifications/booking' },
-];
+// const notificationItems = [
+//   { label: 'Cập nhật ví', value: 'wallet', href: '/settings/notifications/wallet' },
+//   { label: 'Cập nhật đặt lịch', value: 'booking', href: '/settings/notifications/booking' },
+// ];
 
 export default function UserSidebar() {
   const pathname = usePathname();
@@ -42,11 +42,10 @@ export default function UserSidebar() {
 
         <Separator />
 
-        {/* Cài đặt */}
         <div>
-          <p className="text-xs font-semibold text-gray-500 mb-2">Cài đặt</p>
+          <p className="text-xs font-semibold text-gray-500 mb-2">Dịch vụ</p>
           <ul className="space-y-1">
-            {settingItems.map(item => (
+            {serviceItems.map(item => (
               <SidebarLink key={item.value} href={item.href} active={pathname === item.href}>
                 {item.label}
               </SidebarLink>
@@ -56,8 +55,7 @@ export default function UserSidebar() {
 
         <Separator />
 
-        {/* Thông báo */}
-        <div>
+        {/* <div>
           <p className="text-xs font-semibold text-gray-500 mb-2">Thông báo</p>
           <ul className="space-y-1">
             {notificationItems.map(item => (
@@ -66,7 +64,7 @@ export default function UserSidebar() {
               </SidebarLink>
             ))}
           </ul>
-        </div>
+        </div> */}
       </nav>
     </aside>
   );

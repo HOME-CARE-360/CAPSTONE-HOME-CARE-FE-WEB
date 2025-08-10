@@ -1,62 +1,115 @@
-import { Shield, Award, Users } from 'lucide-react';
+import { CalendarCheck } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ProviderType } from '@/schemaValidations/provider.schema';
 import { UserType } from '@/schemaValidations/user.schema';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getNameFallback } from '@/utils/helper';
+import { formatCurrency } from '@/utils/numbers/formatCurrency';
+import { Service } from '@/lib/api/services/fetchService';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 interface ProviderInfoProps {
   providerProfile: {
     user: UserType;
-    provider: ProviderType;
+    serviceProvider: ProviderType;
   };
+  service?: Service; // Add service prop to show price and details
 }
 
-export default function ProviderInfo({ providerProfile }: ProviderInfoProps) {
-  const { user, provider } = providerProfile;
+export default function ProviderInfo({ providerProfile, service }: ProviderInfoProps) {
+  const { user, serviceProvider } = providerProfile;
+  const initials = getNameFallback(user.name || 'User');
+  const router = useRouter();
+
+  const handleBookingClick = () => {
+    if (service?.id) {
+      router.push(`/booking/${service.id}`);
+    }
+  };
 
   return (
-    <Card className="border border-gray-200 shadow-sm bg-white">
+    <Card className="shadow-lg border-0 bg-white sticky top-24">
       <CardHeader className="pb-4">
-        <CardTitle className="text-xl font-semibold text-gray-900">Nhà cung cấp</CardTitle>
+        <CardTitle className="text-sm text-muted-foreground font-normal">Giá dịch vụ</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-5">
-        <div className="flex items-center gap-4">
-          {/* <div className="w-16 h-16 bg-gray-900 rounded-full flex items-center justify-center text-white font-bold text-xl">
-            {user.name}
-          </div> */}
-          <Avatar className="w-20 h-20 border-2 border-gray-200">
-            <AvatarImage src={provider?.logo || ''} />
-            <AvatarFallback>{getNameFallback(user.name || 'User')}</AvatarFallback>
-          </Avatar>
-          <div>
-            <p className="font-bold text-lg text-gray-900">{user.name}</p>
-            <p className="text-gray-600 font-medium">Nhà cung cấp dịch vụ</p>
+      <CardContent className="space-y-6">
+        {/* Service Price */}
+        {service && (
+          <div className="space-y-3">
+            <div className="text-center">
+              <div className="flex items-end">
+                <div className="text-2xl md:text-3xl font-medium text-foreground">
+                  {formatCurrency(service.basePrice)}
+                </div>
+                {/* {service.basePrice > service.virtualPrice && (
+                <div className="text-2xl md:text-3xl font-medium mb-2 text-foreground">
+                  {formatCurrency(service.virtualPrice)}
+                </div>
+              )} */}
+                <div className="text-sm text-muted-foreground">/{service.durationMinutes} phút</div>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
 
+        {/* Action Buttons */}
         <div className="space-y-3">
-          <div className="flex items-center gap-3">
-            <Shield className="w-5 h-5 text-gray-600" />
-            <span className="text-gray-700 font-medium">Được xác minh</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <Award className="w-5 h-5 text-gray-600" />
-            <span className="text-gray-700 font-medium">Chuyên gia được chứng nhận</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <Users className="w-5 h-5 text-gray-600" />
-            <span className="text-gray-700 font-medium">Đã phục vụ 1000+ khách hàng</span>
-          </div>
+          <Button
+            className="w-full bg-primary hover:bg-primary/90 text-white"
+            onClick={handleBookingClick}
+            disabled={!service?.id}
+          >
+            <CalendarCheck className="w-4 h-4 mr-2" />
+            Đặt lịch hẹn
+          </Button>
         </div>
 
-        <Button
-          variant="outline"
-          className="w-full border-2 border-gray-300 text-gray-700 hover:bg-gray-50 py-3 rounded-xl font-medium"
-        >
-          Xem thông tin chi tiết
-        </Button>
+        {/* Provider Info */}
+        <div className="space-y-4 pt-4 border-t">
+          <h4 className="font-semibold text-sm mb-2">Nhà cung cấp dịch vụ</h4>
+          <Link
+            href={`/service-provider/${serviceProvider?.id}`}
+            className="block group focus:outline-none focus:ring-2 focus:ring-primary/60 rounded-lg transition-shadow"
+            tabIndex={0}
+            aria-label={`Xem thông tin nhà cung cấp dịch vụ ${user.name}`}
+          >
+            <div className="flex items-center gap-4 p-3 rounded-lg border border-muted bg-muted/30 hover:bg-primary/5 group-hover:shadow-md transition-all">
+              <Avatar className="w-14 h-14 border-2 border-primary/30 shadow-sm">
+                <AvatarImage src={serviceProvider?.logo || ''} alt={user.name} />
+                <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-bold text-base text-foreground truncate group-hover:text-primary transition-colors">
+                  {user.name}
+                </h3>
+                <p className="text-muted-foreground text-xs mt-1 flex items-center gap-1">
+                  <span
+                    className="inline-block w-2 h-2 rounded-full bg-green-500 mr-1"
+                    aria-label="Đã xác thực"
+                  ></span>
+                  Chuyên gia được chứng nhận
+                </p>
+              </div>
+              <span className="ml-2 text-primary group-hover:translate-x-1 transition-transform">
+                <svg
+                  width="20"
+                  height="20"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M9 18l6-6-6-6" />
+                </svg>
+              </span>
+            </div>
+          </Link>
+        </div>
       </CardContent>
     </Card>
   );

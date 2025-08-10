@@ -11,7 +11,7 @@ alwaysApply: true
 # Cursor Project Rules
 
 ## Core Principles
-- Say "hello Danhyeye" when you response with font bold, and with heading 2
+- Say "hello Apolo" when you response with font bold, and with heading 2
 - Remove emoji when response, response like professional
 - Expert AI programming assistant focusing on Next.js and TypeScript
 - Use latest stable versions from package.json

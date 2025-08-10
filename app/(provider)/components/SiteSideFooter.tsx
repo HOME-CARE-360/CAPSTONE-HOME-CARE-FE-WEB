@@ -17,12 +17,7 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
   DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -77,12 +72,7 @@ export function SiteSideFooter() {
         avatar: profileData.data.user.avatar || '',
         status: profileData.data.user.status,
       }
-    : {
-        name: 'FPT Student Code',
-        email: 'exampletest@gmail.com',
-        avatar: 'https://placehold.co/400',
-        status: 'Online',
-      };
+    : {};
 
   // Update status state when profile data loads
   useEffect(() => {
@@ -90,26 +80,6 @@ export function SiteSideFooter() {
       setStatus(profileData.data.user.status);
     }
   }, [profileData]);
-
-  // Update user status
-  const handleStatusChange = (newStatus: string) => {
-    setStatus(newStatus);
-
-    // Create FormData for the status update
-    const formData = new FormData();
-    formData.append('status', newStatus);
-
-    // Get current user data to include in the form
-    if (profileData?.data) {
-      formData.append('userName', profileData.data.user.name);
-      formData.append('fullName', profileData.data.user.name);
-      formData.append('email', profileData.data.user.email);
-
-      if (profileData.data.user.phone) {
-        formData.append('phoneNumber', profileData.data.user.phone);
-      }
-    }
-  };
 
   // Handle logout
   const handleLogout = () => {
@@ -127,7 +97,7 @@ export function SiteSideFooter() {
       .substring(0, 2);
   };
 
-  const initials = getInitials(user.name);
+  const initials = getInitials(user.name || '');
 
   // Get status option based on current status
   const currentStatusOption =
@@ -208,36 +178,9 @@ export function SiteSideFooter() {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
 
-            {/* Status selection */}
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
-                <div className="flex items-center">
-                  <StatusIcon className={`mr-2 h-4 w-4 ${currentStatusOption.color}`} />
-                  <span>Trạng thái hoạt động</span>
-                </div>
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent>
-                <DropdownMenuRadioGroup value={status} onValueChange={handleStatusChange}>
-                  {userStatusOptions.map(option => (
-                    <DropdownMenuRadioItem key={option.value} value={option.value}>
-                      <div className="flex items-center">
-                        <option.icon className={`mr-2 h-4 w-4 ${option.color}`} />
-                        <span>{option.label}</span>
-                      </div>
-                    </DropdownMenuRadioItem>
-                  ))}
-                </DropdownMenuRadioGroup>
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
-
             <DropdownMenuGroup>
               <DropdownMenuItem asChild>
-                <Link
-                  href={
-                    // profileData?.data?.user?.role === 'Admin' ? '/admin/profile' : '/saler/profile'
-                    '#'
-                  }
-                >
+                <Link href="/provider/profile">
                   <UserCircleIcon className="mr-2 h-4 w-4" />
                   Tài khoản
                 </Link>

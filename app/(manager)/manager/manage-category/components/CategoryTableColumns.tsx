@@ -4,9 +4,14 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Edit2, Trash2, FolderTree } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import Link from 'next/link';
 
-export function useCategoryTableColumns(): ColumnDef<Category>[] {
+interface CategoryTableColumnsProps {
+  onEdit: (category: Category) => void;
+}
+
+export function useCategoryTableColumns({
+  onEdit,
+}: CategoryTableColumnsProps): ColumnDef<Category>[] {
   return [
     {
       accessorKey: 'name',
@@ -35,7 +40,7 @@ export function useCategoryTableColumns(): ColumnDef<Category>[] {
     },
     {
       accessorKey: 'parentCategory',
-      header: 'Danh mục cha',
+      header: 'Danh mục tổng',
       cell: ({ row }) => {
         const parentCategory = row.original.parentCategory;
         return parentCategory ? (
@@ -60,11 +65,14 @@ export function useCategoryTableColumns(): ColumnDef<Category>[] {
       cell: ({ row }) => {
         const category = row.original;
         return (
-          <div className="flex items-center justify-end gap-2">
-            <Button variant="ghost" size="icon" asChild>
-              <Link href={`/manager/manage-category/action?id=${category.id}`}>
-                <Edit2 className="h-4 w-4" />
-              </Link>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onEdit(category)}
+              className="hover:bg-blue-50 hover:text-blue-600"
+            >
+              <Edit2 className="h-4 w-4" />
             </Button>
             <Button variant="ghost" size="icon" className="hover:text-destructive">
               <Trash2 className="h-4 w-4" />

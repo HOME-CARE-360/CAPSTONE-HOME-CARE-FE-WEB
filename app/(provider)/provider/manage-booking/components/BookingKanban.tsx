@@ -214,7 +214,7 @@ export function BookingKanban({ onRefresh }: BookingKanbanProps) {
   return (
     <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 max-w-md">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="active" className="flex items-center gap-2">
             Đang xử lý
             <Badge variant="secondary" className="text-xs">
@@ -222,7 +222,7 @@ export function BookingKanban({ onRefresh }: BookingKanbanProps) {
             </Badge>
           </TabsTrigger>
           <TabsTrigger value="completed" className="flex items-center gap-2">
-            Đã xong
+            Đang trong quá trình
             <Badge variant="outline" className="text-xs">
               {completedBookingsCount}
             </Badge>

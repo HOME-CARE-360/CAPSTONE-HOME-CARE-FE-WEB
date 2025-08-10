@@ -7,6 +7,7 @@ import type {
   StaffCheckInResponse,
   CreateInspectionReportRequest,
   CreateInspectionReportResponse,
+  StaffCheckoutResponse,
 } from '@/lib/api/services/fetchStaff';
 import { toast } from 'sonner';
 import { ValidationError } from '@/lib/api/services/fetchAuth';
@@ -131,5 +132,57 @@ export function useGetProposal(bookingId: number) {
     queryKey: ['staff-proposals', bookingId],
     queryFn: () => staffService.getProposal(bookingId),
     enabled: !!bookingId,
+  });
+}
+
+export function useGetReview() {
+  return useQuery({
+    queryKey: ['staff-reviews'],
+    queryFn: () => staffService.getReview(),
+  });
+}
+
+export function useGetWorkLog() {
+  return useQuery({
+    queryKey: ['staff-work-logs'],
+    queryFn: () => staffService.getWorkLog(),
+  });
+}
+
+export function useGetMonthlyStats(month: string, year: number) {
+  return useQuery({
+    queryKey: ['staff-monthly-stats', month, year],
+    queryFn: () => staffService.getMonthlyStats(month, year),
+  });
+}
+
+export function useStaffCheckOut() {
+  const queryClient = useQueryClient();
+  return useMutation<
+    StaffCheckoutResponse,
+    Error,
+    { bookingId: number; data: Record<string, unknown> }
+  >({
+    mutationFn: async ({ bookingId, data }) => {
+      const response = await staffService.staffCheckOut(bookingId, data);
+      return response;
+    },
+    onSuccess: () => {
+      toast.success('Check out thành công');
+      queryClient.invalidateQueries({ queryKey: ['staff-bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['bookings'] });
+    },
+    onError: (error: Error | ValidationError) => {
+      let errorMessage = 'AlreadyCheckedOut';
+      if (typeof error === 'object' && error !== null && 'message' in error) {
+        const errorObj = error as { message: string | ValidationError[] };
+        if (Array.isArray(errorObj.message)) {
+          errorMessage = errorObj.message[0]?.message || errorMessage;
+        } else if (typeof errorObj.message === 'string') {
+          errorMessage = errorObj.message;
+        }
+      }
+      toast.error(errorMessage);
+    },
   });
 }

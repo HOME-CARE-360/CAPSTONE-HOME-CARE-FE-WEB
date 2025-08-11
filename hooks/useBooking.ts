@@ -31,7 +31,6 @@ export const useDetailBooking = (id: number, options?: { enabled?: boolean }) =>
     },
     enabled: options?.enabled !== undefined ? options.enabled : !!id,
   });
-  ServiceWorker;
   return { data, isLoading, error, id };
 };
 
@@ -40,10 +39,7 @@ export const useCreateBooking = () => {
   const { data, isPending, error, mutate, mutateAsync } = useMutation({
     mutationFn: (data: CreateBookingRequest) => serviceBooking.createBooking(data),
     onSuccess: response => {
-      toast.success('Đặt lịch thành công!', {
-        description: `Mã đặt lịch: BK${response.data.bookingId}`,
-        duration: 5000,
-      });
+      toast.success('Đặt lịch thành công!');
 
       // If checkout URL is available, open it in a new tab
       if (response.data.responseData.checkoutUrl) {
@@ -67,6 +63,7 @@ export const useCreateBooking = () => {
         }
       }
       toast.error(errorMessage);
+      router.push('/settings/bookings');
     },
   });
 

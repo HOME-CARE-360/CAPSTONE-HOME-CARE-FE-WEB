@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { House, LayoutDashboardIcon, UserRoundPen, UsersIcon } from 'lucide-react';
+import { House, LayoutDashboardIcon, Package, UserRoundPen, UsersIcon } from 'lucide-react';
 import { NavMain } from '@/components/common/navMain';
 import { SiteSideFooter } from '@/app/(provider)/components/SiteSideFooter';
 import {
@@ -37,6 +37,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         title: 'Quản lý dịch vụ',
         url: '/provider/manage-services',
         icon: House,
+      },
+      {
+        title: 'Quản lý vật liệu dịch vụ',
+        url: '/provider/manage-service-items',
+        icon: Package,
       },
       {
         title: 'Quản lý nhân viên',

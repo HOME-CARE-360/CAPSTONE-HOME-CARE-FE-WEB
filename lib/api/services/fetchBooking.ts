@@ -137,7 +137,7 @@ export interface DetailBookingResponse {
       id: number;
       notes: string;
       createdAt: string;
-      status: string;
+      status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | string;
       ProposalItem: Array<{
         id: number;
         proposalId: number;

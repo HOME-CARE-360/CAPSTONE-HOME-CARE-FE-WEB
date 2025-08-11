@@ -45,7 +45,7 @@ export const categoryService = {
     id: string | number,
     data: CategoryUpdateType
   ): Promise<ResponseMessageType> => {
-    const response = await apiService.put<ResponseMessageType>(
+    const response = await apiService.patch<ResponseMessageType>(
       `/managers/update-category/${id}`,
       data
     );

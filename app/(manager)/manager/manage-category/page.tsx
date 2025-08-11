@@ -1,86 +1,95 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Plus, Search } from 'lucide-react';
 import { SiteHeader } from '@/app/(manager)/components/SiteHeader';
-import { CategoryTable } from './components/CategoryTable';
-import { useCategories, useCreateCategory, useUpdateCategoryById } from '@/hooks/useCategory';
-import CategorySheet from './components/CategorySheet';
-import { CategoryCreateType } from '@/schemaValidations/category.schema';
+import { useCategories } from '@/hooks/useCategory';
 import { Category } from '@/lib/api/services/fetchCategory';
+import { Input } from '@/components/ui/input';
+import { CategoryList } from './components/CategoryList';
+import { CategorySheet } from './components/CategorySheet';
 
 export default function ManageCategory() {
   const [searchParams, setSearchParams] = useState({
     name: '',
-    limit: 10,
-    page: 1,
   });
 
   const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<Category | undefined>(undefined);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
 
-  const { data: categoryData, isFetching } = useCategories();
-  const { mutate: createCategory } = useCreateCategory();
-  const { mutate: updateCategory } = useUpdateCategoryById();
+  const { data: categoryData, isFetching } = useCategories(searchParams);
+  const categories = categoryData?.categories || [];
 
-  const handleFilterChange = (params: Partial<typeof searchParams>) => {
+  const handleFilterChange = useCallback((params: Partial<typeof searchParams>) => {
     setSearchParams(prev => ({ ...prev, ...params }));
-  };
+  }, []);
 
-  const handleCreateCategory = (data: CategoryCreateType) => {
-    createCategory(data);
-    setIsSheetOpen(false);
-  };
-
-  const handleUpdateCategory = (data: CategoryCreateType) => {
-    if (editingCategory) {
-      updateCategory({ id: editingCategory.id, data });
-      setIsSheetOpen(false);
-      setEditingCategory(undefined);
-    }
-  };
-
-  const handleEditCategory = (category: Category) => {
+  const handleEditCategory = useCallback((category: Category) => {
     setEditingCategory(category);
     setIsSheetOpen(true);
-  };
+  }, []);
 
-  const handleCloseSheet = () => {
-    setIsSheetOpen(false);
-    setEditingCategory(undefined);
-  };
+  const handleCloseSheet = useCallback((open: boolean) => {
+    if (!open) {
+      setIsSheetOpen(false);
+      setEditingCategory(null);
+    }
+  }, []);
 
   return (
     <>
       <SiteHeader title="Quản lý danh mục" />
-      <div className="container mx-auto p-6 space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold">Quản lý danh mục</h1>
-            <p className="text-muted-foreground">Quản lý và cập nhật các danh mục dịch vụ</p>
+      <div className="space-y-6">
+        {/* Filter Bar */}
+        <div className="flex items-center justify-between gap-4 bg-white border-b-2 p-4">
+          <div className="relative flex-1 max-w-md w-full">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <form
+              className="flex"
+              onSubmit={e => {
+                e.preventDefault();
+                handleFilterChange({ name: searchParams.name });
+              }}
+              role="search"
+              aria-label="Tìm kiếm danh mục"
+            >
+              <Input
+                placeholder="Tìm kiếm danh mục..."
+                value={searchParams.name}
+                onChange={e => setSearchParams(prev => ({ ...prev, name: e.target.value }))}
+                className="pl-10"
+                name="category-search"
+                aria-label="Tìm kiếm danh mục"
+                autoComplete="off"
+              />
+              <Button
+                type="submit"
+                className="ml-2 px-4 bg-green-500 hover:bg-green-600 text-white"
+                aria-label="Tìm kiếm"
+              >
+                Tìm
+              </Button>
+            </form>
           </div>
-          <Button onClick={() => setIsSheetOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Thêm danh mục mới
-          </Button>
+
+          <CategorySheet
+            trigger={
+              <Button className="bg-green-500 hover:bg-green-600 text-white">
+                <Plus className="h-4 w-4 mr-2" /> Thêm mới
+              </Button>
+            }
+          />
         </div>
 
-        {/* Category Table */}
-        <CategoryTable
-          data={categoryData?.categories || []}
-          isLoading={isFetching}
-          onFilterChange={handleFilterChange}
-          onEdit={handleEditCategory}
-        />
+        {/* Category List */}
+        <CategoryList categories={categories} isLoading={isFetching} onEdit={handleEditCategory} />
 
-        {/* Category Sheet */}
+        {/* Edit Sheet */}
         <CategorySheet
-          isOpen={isSheetOpen}
-          onClose={handleCloseSheet}
-          onSubmit={editingCategory ? handleUpdateCategory : handleCreateCategory}
-          initialData={editingCategory}
-          mode={editingCategory ? 'edit' : 'create'}
+          category={editingCategory ?? undefined}
+          open={isSheetOpen}
+          onOpenChange={handleCloseSheet}
         />
       </div>
     </>

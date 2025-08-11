@@ -90,7 +90,7 @@ const ProposalSection = ({
   }
 
   if (error) {
-    return <div className="text-sm text-muted-foreground">Không thể tải đề xuất dịch vụ.</div>;
+    return <div className="text-sm text-muted-foreground">Không có đề xuất dịch vụ.</div>;
   }
 
   const proposal = data?.data;

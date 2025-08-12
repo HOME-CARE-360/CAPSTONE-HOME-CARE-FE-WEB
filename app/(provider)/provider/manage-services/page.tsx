@@ -19,7 +19,6 @@ export default function ManageServicesPage() {
     page: 1,
   });
 
-  // State for editing services
   const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
   const [selectedService, setSelectedService] = useState<ServiceManager | null>(null);
 

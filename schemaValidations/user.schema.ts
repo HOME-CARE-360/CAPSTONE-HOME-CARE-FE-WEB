@@ -9,6 +9,18 @@ export const userSchema = z.object({
   status: z.string(),
   createdAt: z.string(),
   updatedAt: z.string(),
+  wallet: z
+    .object({
+      id: z.number(),
+      userId: z.number(),
+      balance: z.number(),
+      createdAt: z.string(),
+      updatedAt: z.string(),
+      accountHolder: z.string(),
+      bankAccount: z.string(),
+      bankName: z.string(),
+    })
+    .nullable(),
 });
 
 export const customerSchema = z.object({

@@ -192,6 +192,61 @@ export interface StaffBookingResponse {
   timestamp: string;
 }
 
+export interface CreateReportRequest {
+  reason: string;
+  description: string;
+  imageUrls: string[];
+}
+
+export interface CreateReportResponse {
+  success: true;
+  code: string;
+  message: string;
+  data: {
+    id: number;
+    status: 'PENDING' | 'ACCEPTED' | 'REJECTED';
+    createdAt: string;
+  };
+  statusCode: number;
+  timestamp: string;
+}
+
+export interface Report {
+  id: string;
+  reason: string;
+  description: string;
+  status: 'PENDING' | 'ACCEPTED' | 'REJECTED';
+  createdAt: string;
+  booking: Booking;
+  provider: Provider;
+}
+
+export interface Booking {
+  id: number;
+  status: StatusBooking;
+}
+
+export interface Provider {
+  name: string;
+  email: string;
+  phone: string;
+}
+
+export interface GetReportResponse {
+  success: true;
+  code: string;
+  message: string;
+  data: {
+    reports: Report[];
+    totalItems: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+  statusCode: number;
+  timestamp: string;
+}
+
 export const serviceBooking = {
   createBooking: async (data: CreateBookingRequest): Promise<CreateServiceRequestResponse> => {
     try {
@@ -241,6 +296,26 @@ export const serviceBooking = {
       return response.data;
     } catch (error) {
       console.error('Update Complete Booking Of User Error:', error);
+      throw error;
+    }
+  },
+
+  createReport: async (bookingId: number, data: CreateReportRequest) => {
+    try {
+      const response = await apiService.post(`/users/create-customer-report/${bookingId}`, data);
+      return response.data as CreateReportResponse;
+    } catch (error) {
+      console.error('Create Report Error:', error);
+      throw error;
+    }
+  },
+
+  getReport: async (): Promise<GetReportResponse> => {
+    try {
+      const response = await apiService.get(`/users/my-reports`);
+      return response.data as GetReportResponse;
+    } catch (error) {
+      console.error('Get Report Error:', error);
       throw error;
     }
   },

@@ -161,7 +161,16 @@ export default function ServiceDetailsSection({ service }: ServiceDetailsSection
       <div className="lg:w-1/3 space-y-8">
         {/* Provider Info */}
         {profileProvider && (
-          <ProviderInfo providerProfile={profileProvider.data} service={service} />
+          <ProviderInfo
+            providerProfile={{
+              ...profileProvider.data,
+              user: {
+                ...profileProvider.data.user,
+                wallet: null,
+              },
+            }}
+            service={service}
+          />
         )}
       </div>
     </div>

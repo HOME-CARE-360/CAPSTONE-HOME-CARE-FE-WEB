@@ -173,7 +173,7 @@ export function ServiceItemCard({ serviceItem, onEdit }: ServiceItemCardProps) {
               <AlertDialogHeader>
                 <AlertDialogTitle>Xác nhận xóa vật tư</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Bạn có chắc chắn muốn xóa vật tư {serviceItem.name}? Hành động này không thể hoàn
+                  Bạn có chắc chắn muốn xóa vật tư {serviceItem.name} ? Hành động này không thể hoàn
                   tác.
                 </AlertDialogDescription>
               </AlertDialogHeader>

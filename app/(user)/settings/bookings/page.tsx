@@ -20,12 +20,27 @@ import {
   Clock as ClockIcon,
   Loader2,
   LucideIcon,
+  Flag,
 } from 'lucide-react';
 import Image from 'next/image';
 import { formatDate } from '@/utils/numbers/formatDate';
 import { formatCurrency } from '@/utils/numbers/formatCurrency';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCreateProposalTransaction } from '@/hooks/usePayment';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { ImageUpload } from '@/components/ui/image-upload';
+import { useForm } from 'react-hook-form';
+import { useCreateReport } from '@/hooks/useBooking';
+import { useUploadImage } from '@/hooks/useImage';
 
 const getStatusConfig = (status: string) => {
   const map: Record<string, { label: string; icon: LucideIcon }> = {
@@ -236,10 +251,56 @@ const ProposalSection = ({
 
 const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings'][0] }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isReportOpen, setIsReportOpen] = useState(false);
   const statusConfig = getStatusConfig(booking.status);
   const transactionStatusLabel = getTransactionStatusConfig(
     booking.Transaction?.status || 'PENDING'
   );
+
+  type ReportFormValues = {
+    reason: string;
+    description: string;
+    imageUrls: string[];
+  };
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset,
+    setValue,
+    watch,
+  } = useForm<ReportFormValues>({
+    defaultValues: { reason: '', description: '', imageUrls: [] },
+  });
+
+  const imageUrls = watch('imageUrls');
+  const { mutate: createReport, isPending: isReporting } = useCreateReport();
+  const { mutateAsync: uploadImage, isPending: isUploading } = useUploadImage();
+
+  const handleUpload = async (file: File): Promise<string> => {
+    const res = await uploadImage(file);
+    return res.url;
+  };
+
+  const onSubmitReport = (values: ReportFormValues) => {
+    createReport(
+      {
+        bookingId: booking.id,
+        data: {
+          reason: values.reason,
+          description: values.description,
+          imageUrls: values.imageUrls,
+        },
+      },
+      {
+        onSuccess: () => {
+          setIsReportOpen(false);
+          reset();
+        },
+      }
+    );
+  };
 
   return (
     <Card className="overflow-hidden hover:shadow-md transition-shadow">
@@ -261,15 +322,27 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
               {formatDate(booking.createdAt)}
             </CardDescription>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsExpanded(!isExpanded)}
-            aria-expanded={isExpanded}
-            aria-controls={`booking-${booking.id}-details`}
-          >
-            <Eye className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-2">
+            {booking.status?.toUpperCase() === 'COMPLETED' && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsReportOpen(true)}
+                aria-label="Báo cáo sự cố cho đơn đặt này"
+              >
+                <Flag className="h-4 w-4 mr-1" /> Báo cáo
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsExpanded(!isExpanded)}
+              aria-expanded={isExpanded}
+              aria-controls={`booking-${booking.id}-details`}
+            >
+              <Eye className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </CardHeader>
 
@@ -409,6 +482,58 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
           </div>
         )}
       </CardContent>
+
+      <Dialog open={isReportOpen} onOpenChange={setIsReportOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Báo cáo sự cố</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit(onSubmitReport)} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor={`reason-${booking.id}`}>Lý do</Label>
+              <Input
+                id={`reason-${booking.id}`}
+                placeholder="Nhập lý do báo cáo"
+                aria-invalid={!!errors.reason}
+                {...register('reason', { required: true, minLength: 3 })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor={`description-${booking.id}`}>Mô tả chi tiết</Label>
+              <Textarea
+                id={`description-${booking.id}`}
+                placeholder="Mô tả vấn đề bạn gặp phải"
+                aria-invalid={!!errors.description}
+                {...register('description', { required: true, minLength: 10 })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Hình ảnh minh họa (tùy chọn)</Label>
+              <ImageUpload
+                disabled={isUploading || isReporting}
+                onChange={(urls: string[]) => setValue('imageUrls', urls, { shouldDirty: true })}
+                onUpload={handleUpload}
+                value={imageUrls}
+              />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="ghost" onClick={() => setIsReportOpen(false)}>
+                Hủy
+              </Button>
+              <Button type="submit" disabled={isReporting} className="min-w-24">
+                {isReporting ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="animate-spin h-4 w-4" />
+                    Đang gửi
+                  </span>
+                ) : (
+                  'Gửi báo cáo'
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };

@@ -241,7 +241,7 @@ export function ServiceCard({
                 <AlertDialogHeader>
                   <AlertDialogTitle>Xác nhận xóa dịch vụ</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Bạn có chắc chắn muốn xóa dịch vụ {service.name}? Hành động này không thể hoàn
+                    Bạn có chắc chắn muốn xóa dịch vụ {service.name} ? Hành động này không thể hoàn
                     tác.
                   </AlertDialogDescription>
                 </AlertDialogHeader>

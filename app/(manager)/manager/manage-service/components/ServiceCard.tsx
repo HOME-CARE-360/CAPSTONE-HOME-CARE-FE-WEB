@@ -4,7 +4,7 @@ import { Service, ServiceStatus } from '@/lib/api/services/fetchManager';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
-import { Clock, CheckCircle, ChevronLeft, ChevronRight, Package, X } from 'lucide-react';
+import { Clock, CheckCircle, ChevronLeft, ChevronRight, Package } from 'lucide-react';
 import { useState } from 'react';
 import { useChangeService } from '@/hooks/useManager';
 import {
@@ -51,10 +51,6 @@ export function ServiceCard({ service }: ServiceCardProps) {
 
   const approveService = () => {
     changeStatus({ id: service.id, status: 'ACCEPTED' });
-  };
-
-  const rejectService = () => {
-    changeStatus({ id: service.id, status: 'REJECTED' });
   };
 
   const nextImage = (e: React.MouseEvent) => {
@@ -175,7 +171,7 @@ export function ServiceCard({ service }: ServiceCardProps) {
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>Xác nhận duyệt dịch vụ</AlertDialogTitle>
-                  <AlertDialogDescription>Duyệt dịch vụ {service.name}?</AlertDialogDescription>
+                  <AlertDialogDescription>Duyệt dịch vụ {service.name} ?</AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Hủy</AlertDialogCancel>
@@ -184,34 +180,6 @@ export function ServiceCard({ service }: ServiceCardProps) {
                     className="bg-green-600 hover:bg-green-700"
                   >
                     Duyệt
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={isPending}
-                  className="flex-1 border-gray-300 text-black hover:bg-gray-50"
-                >
-                  <X className="h-4 w-4 mr-2" /> Từ chối
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Xác nhận từ chối dịch vụ</AlertDialogTitle>
-                  <AlertDialogDescription>Từ chối dịch vụ {service.name}?</AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Hủy</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={rejectService}
-                    className="bg-red-600 hover:bg-red-700"
-                  >
-                    Từ chối
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>

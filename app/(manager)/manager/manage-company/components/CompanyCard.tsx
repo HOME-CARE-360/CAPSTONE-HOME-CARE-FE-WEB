@@ -102,7 +102,7 @@ export function CompanyCard({ company }: CompanyCardProps) {
                 <AlertDialogHeader>
                   <AlertDialogTitle>Xác nhận duyệt</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Bạn có chắc chắn muốn duyệt công ty {company.description}?
+                    Bạn có chắc chắn muốn duyệt công ty {company.description} ?
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -127,7 +127,7 @@ export function CompanyCard({ company }: CompanyCardProps) {
                 <AlertDialogHeader>
                   <AlertDialogTitle>Xác nhận từ chối</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Bạn có chắc chắn muốn từ chối công ty {company.description}?
+                    Bạn có chắc chắn muốn từ chối công ty {company.description} ?
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

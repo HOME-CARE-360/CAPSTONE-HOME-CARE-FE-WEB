@@ -35,6 +35,49 @@ export interface CreateProposalTransactionResponse {
   timestamp: string;
 }
 
+export interface WalletTopUpResponse {
+  success: boolean;
+  code: string;
+  message: string;
+  data: {
+    responseData: {
+      bin: string;
+      accountNumber: string;
+      accountName: string;
+      amount: number;
+      description: string;
+      orderCode: number;
+      currency: string;
+      paymentLinkId: string;
+      status: string;
+      checkoutUrl: string;
+      qrCode: string;
+    };
+  };
+  statusCode: number;
+  timestamp: string;
+}
+
+export interface WalletTopUpRequest {
+  amount: number;
+}
+
+export interface CheckPaymentStatusResponse {
+  success: boolean;
+  code: string;
+  message: string;
+  data: {
+    message: string;
+  };
+  statusCode: number;
+  timestamp: string; // ISO 8601
+}
+
+export interface CheckPaymentStatusParams {
+  orderCode: string;
+  status: string;
+}
+
 export const paymentService = {
   createProposalTransaction: async (
     data: CreateProposalTransactionRequest
@@ -48,6 +91,37 @@ export const paymentService = {
       '/payments/create-proposal-transaction',
       payload
     );
+    return response.data;
+  },
+
+  walletTopUp: async (data: WalletTopUpRequest): Promise<WalletTopUpResponse> => {
+    const payload: Record<string, unknown> = {
+      amount: data.amount,
+    };
+    const response = await apiService.post<WalletTopUpResponse>('/payments/create-topup', payload);
+    return response.data;
+  },
+
+  checkPaymentSuccess: async (
+    data: CheckPaymentStatusParams
+  ): Promise<CheckPaymentStatusResponse> => {
+    const payload: Record<string, unknown> = {
+      orderCode: data.orderCode,
+      status: data.status,
+    };
+    const response = await apiService.post<CheckPaymentStatusResponse>(
+      '/payments/success',
+      payload
+    );
+    return response.data;
+  },
+
+  checkPaymentFail: async (data: CheckPaymentStatusParams): Promise<CheckPaymentStatusResponse> => {
+    const payload: Record<string, unknown> = {
+      orderCode: data.orderCode,
+      status: data.status,
+    };
+    const response = await apiService.post<CheckPaymentStatusResponse>('/payments/failed', payload);
     return response.data;
   },
 };

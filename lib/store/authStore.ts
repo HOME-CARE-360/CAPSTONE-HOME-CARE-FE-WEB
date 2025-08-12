@@ -108,6 +108,9 @@ export const useAuthStore = create<AuthState>()(
               get().setToken(response.data.accessToken, response.data.refreshToken);
               return true;
             }
+
+            console.error('Invalid refresh token response:', response);
+            get().logout();
             return false;
           } catch (error) {
             console.error('Failed to refresh token:', error);

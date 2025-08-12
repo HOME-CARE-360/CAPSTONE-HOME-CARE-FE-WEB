@@ -12,6 +12,7 @@ import {
   ServiceItemUpdateRequest,
   ServiceItemDetailResponse,
   ServiceItemResponse,
+  ServiceItemUpdateResponse,
 } from '@/lib/api/services/fetchServiceManager';
 import { toast } from 'sonner';
 
@@ -65,6 +66,26 @@ export function useCreateService() {
       toast.success(data.message as string);
     },
     onError: (error: ServiceManagerCreateResponse) => {
+      if (Array.isArray(error.message)) {
+        error.message.forEach(err => {
+          toast.error(err.message as string);
+        });
+      } else {
+        toast.error(error.message as string);
+      }
+    },
+  });
+}
+
+export function useDeleteService() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => serviceManagerService.deleteService(id),
+    onSuccess: data => {
+      queryClient.invalidateQueries({ queryKey: ['service-manager', 'list'] });
+      toast.success(data.message as string);
+    },
+    onError: (error: ServiceItemUpdateResponse) => {
       if (Array.isArray(error.message)) {
         error.message.forEach(err => {
           toast.error(err.message as string);
@@ -142,7 +163,7 @@ export function useDeleteServiceItem() {
       queryClient.invalidateQueries({ queryKey: ['service-items', 'list'] });
       toast.success(data.message as string);
     },
-    onError: (error: ServiceItemCreateResponse) => {
+    onError: (error: ServiceItemUpdateResponse) => {
       if (Array.isArray(error.message)) {
         error.message.forEach(err => {
           toast.error(err.message as string);

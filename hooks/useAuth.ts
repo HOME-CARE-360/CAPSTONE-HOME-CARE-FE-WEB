@@ -183,10 +183,10 @@ export function useLogin() {
     mutationFn: async (credentials: LoginCredentials): Promise<LoginResponse> => {
       const response = await fetchAuth.login(credentials);
       if (!response || !response.data?.accessToken || !response.data?.refreshToken) {
-        const error = {
-          message: Array.isArray(response.message) ? response.message[0].message : response.message,
-        };
-        throw error;
+        const errorMessage = Array.isArray(response.message)
+          ? response.message[0]?.message || 'Invalid response'
+          : response.message || 'Invalid response';
+        throw new Error(errorMessage);
       }
       return response;
     },

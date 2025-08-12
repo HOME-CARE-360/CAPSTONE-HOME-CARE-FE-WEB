@@ -128,8 +128,11 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
   const isPending = booking.status === 'PENDING';
 
   // Determine if we should show proposal tab
-  // Show when: no inspection report OR booking is estimated
-  const shouldShowProposalTab = !hasInspectionReport || booking.status === 'ESTIMATED';
+  // Show when: no inspection report OR booking is estimated OR proposal is rejected
+  const shouldShowProposalTab =
+    !hasInspectionReport ||
+    booking.status === 'ESTIMATED' ||
+    detailBooking?.booking?.Proposal?.status === 'REJECTED';
 
   // Determine if we should show staff assignment section
   // Show staff assignment for pending bookings OR when no staff is assigned
@@ -373,7 +376,11 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                     >
                       <TabsTrigger value="details">Chi tiết & Phân công</TabsTrigger>
                       {shouldShowProposalTab && (
-                        <TabsTrigger value="proposal">Đề xuất dịch vụ</TabsTrigger>
+                        <TabsTrigger value="proposal">
+                          {detailBooking?.booking?.Proposal?.status === 'REJECTED'
+                            ? 'Đề xuất lại'
+                            : 'Đề xuất dịch vụ'}
+                        </TabsTrigger>
                       )}
                     </TabsList>
 
@@ -488,11 +495,13 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                               onClick={() => setActiveTab('proposal')}
                             >
                               <FileText className="h-4 w-4 mr-2" />
-                              {isInProgress
-                                ? 'Thêm dịch vụ trong quá trình thực hiện'
-                                : booking.status === 'ESTIMATED'
-                                  ? 'Đề xuất dịch vụ cho đặt lịch đã ước lượng'
-                                  : 'Đề xuất dịch vụ bổ sung'}
+                              {detailBooking?.booking?.Proposal?.status === 'REJECTED'
+                                ? 'Đề xuất lại dịch vụ (đã bị từ chối)'
+                                : isInProgress
+                                  ? 'Thêm dịch vụ trong quá trình thực hiện'
+                                  : booking.status === 'ESTIMATED'
+                                    ? 'Đề xuất dịch vụ cho đặt lịch đã ước lượng'
+                                    : 'Đề xuất dịch vụ bổ sung'}
                             </Button>
                           </div>
                         )}
@@ -812,6 +821,11 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                                   Đã ước lượng
                                 </Badge>
                               )}
+                              {detailBooking?.booking?.Proposal?.status === 'REJECTED' && (
+                                <Badge className="ml-2 bg-red-100 text-red-700 border-red-200">
+                                  Đề xuất bị từ chối
+                                </Badge>
+                              )}
                             </h3>
                             <div className="grid gap-2 text-sm">
                               <div className="flex justify-between">
@@ -838,6 +852,14 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                                   </span>
                                 </div>
                               )}
+                              {detailBooking?.booking?.Proposal?.status === 'REJECTED' && (
+                                <div className="flex justify-between">
+                                  <span className="text-gray-600">Trạng thái:</span>
+                                  <span className="font-medium text-red-700">
+                                    Đề xuất trước đã bị từ chối - cần đề xuất lại
+                                  </span>
+                                </div>
+                              )}
                             </div>
                           </div>
 
@@ -846,11 +868,13 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                           {/* Service Selection */}
                           <div className="space-y-4">
                             <h3 className="text-sm font-medium text-gray-900">
-                              {isInProgress
-                                ? 'Chọn dịch vụ bổ sung'
-                                : booking.status === 'ESTIMATED'
-                                  ? 'Chọn dịch vụ cho đặt lịch đã ước lượng'
-                                  : 'Chọn dịch vụ'}
+                              {detailBooking?.booking?.Proposal?.status === 'REJECTED'
+                                ? 'Chọn dịch vụ để đề xuất lại'
+                                : isInProgress
+                                  ? 'Chọn dịch vụ bổ sung'
+                                  : booking.status === 'ESTIMATED'
+                                    ? 'Chọn dịch vụ cho đặt lịch đã ước lượng'
+                                    : 'Chọn dịch vụ'}
                             </h3>
                             {isInProgress && (
                               <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
@@ -865,6 +889,17 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                                 <p className="text-sm text-green-800">
                                   <strong>Lưu ý:</strong> Đây là các dịch vụ có thể đề xuất cho đặt
                                   lịch đã được ước lượng và có báo cáo khảo sát.
+                                </p>
+                              </div>
+                            )}
+                            {detailBooking?.booking?.Proposal?.status === 'REJECTED' && (
+                              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                                <p className="text-sm text-red-800">
+                                  <strong>Lưu ý:</strong> Đề xuất trước đã bị từ chối.
+                                  {detailBooking.booking.Proposal.notes && (
+                                    <span> Lý do: {detailBooking.booking.Proposal.notes}</span>
+                                  )}{' '}
+                                  Vui lòng xem xét và đề xuất lại với thông tin phù hợp hơn.
                                 </p>
                               </div>
                             )}

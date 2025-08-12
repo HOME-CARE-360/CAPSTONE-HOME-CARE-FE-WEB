@@ -2,6 +2,8 @@ import {
   ChangeStatusProviderRequest,
   CompanySearchParams,
   managerSerivce,
+  ServiceSearchParams,
+  ChangeStatusServiceRequest,
 } from '@/lib/api/services/fetchManager';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -22,6 +24,33 @@ export const useChangeStatusProvider = () => {
     onSuccess: res => {
       toast.success(res.message || 'Cập nhật trạng thái thành công');
       queryClient.invalidateQueries({ queryKey: ['getListProvider'] });
+    },
+    onError: (error: unknown) => {
+      const message =
+        typeof error === 'object' && error !== null && 'message' in error
+          ? (error as { message: string }).message
+          : 'Có lỗi xảy ra khi cập nhật trạng thái';
+      toast.error(message);
+    },
+  });
+};
+
+export const useGetListService = (filters?: Partial<ServiceSearchParams>) => {
+  return useQuery({
+    queryKey: ['getListService', filters],
+    queryFn: () => managerSerivce.getListService(filters as ServiceSearchParams | undefined),
+  });
+};
+
+export const useChangeService = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationKey: ['changeService'],
+    mutationFn: (payload: ChangeStatusServiceRequest) =>
+      managerSerivce.changeStatusService(payload),
+    onSuccess: res => {
+      toast.success(res.message || 'Cập nhật trạng thái thành công');
+      queryClient.invalidateQueries({ queryKey: ['getListService'] });
     },
     onError: (error: unknown) => {
       const message =

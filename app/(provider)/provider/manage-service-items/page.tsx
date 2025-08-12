@@ -3,38 +3,42 @@
 import { Button } from '@/components/ui/button';
 import { SiteHeader } from '@/app/(provider)/components/SiteHeader';
 import { Plus, Search } from 'lucide-react';
-import { useServiceManager } from '@/hooks/useServiceManager';
+import { useServiceItems } from '@/hooks/useServiceManager';
 import { useState, useCallback } from 'react';
-import { ServiceManagerSearchParams, ServiceManager } from '@/lib/api/services/fetchServiceManager';
-import { ServiceList } from './components/ServiceList';
-import { SheetService } from './components/SheetService';
+import { ServiceItemSearchParams, ServiceItem } from '@/lib/api/services/fetchServiceManager';
+import { ServiceItemList } from './components/ServiceItemList';
+import { SheetServiceItem } from './components/SheetServiceItem';
 import { Input } from '@/components/ui/input';
 
-export default function ManageServicesPage() {
-  const [searchParams, setSearchParams] = useState<ServiceManagerSearchParams>({
+export default function ManageServiceItemsPage() {
+  const [searchParams, setSearchParams] = useState<ServiceItemSearchParams>({
     sortBy: 'createdAt',
     orderBy: 'desc',
     name: '',
+    brand: '',
+    isActive: undefined,
     limit: 10,
     page: 1,
   });
 
+  // State for editing service items
   const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
-  const [selectedService, setSelectedService] = useState<ServiceManager | null>(null);
+  const [selectedServiceItem, setSelectedServiceItem] = useState<ServiceItem | null>(null);
 
-  const { data: serviceData, isFetching: isServiceFetching } = useServiceManager(searchParams);
+  const { data: serviceItemData, isFetching: isServiceItemFetching } =
+    useServiceItems(searchParams);
 
-  const handleEditService = useCallback((service: ServiceManager) => {
-    setSelectedService(service);
+  const handleEditServiceItem = useCallback((serviceItem: ServiceItem) => {
+    setSelectedServiceItem(serviceItem);
     setIsEditSheetOpen(true);
   }, []);
 
   const handleCloseEditSheet = useCallback(() => {
     setIsEditSheetOpen(false);
-    setSelectedService(null);
+    setSelectedServiceItem(null);
   }, []);
 
-  const handleFilterChange = useCallback((filters: Partial<ServiceManagerSearchParams>) => {
+  const handleFilterChange = useCallback((filters: Partial<ServiceItemSearchParams>) => {
     setSearchParams(prev => ({
       ...prev,
       ...filters,
@@ -42,13 +46,13 @@ export default function ManageServicesPage() {
     }));
   }, []);
 
-  const services = serviceData?.data || [];
+  const serviceItems = serviceItemData?.data?.data || [];
 
   return (
     <>
-      <SiteHeader title="Quản lý dịch vụ" />
+      <SiteHeader title="Quản lý vật tư" />
 
-      <div className="container space-y-6">
+      <div className="space-y-6">
         {/* Redesigned Filter Bar */}
         <div className="flex items-center justify-between gap-4 bg-white border-b-2 p-4">
           {/* Search Input */}
@@ -61,15 +65,15 @@ export default function ManageServicesPage() {
                 handleFilterChange({ name: searchParams.name });
               }}
               role="search"
-              aria-label="Tìm kiếm dịch vụ"
+              aria-label="Tìm kiếm vật tư"
             >
               <Input
-                placeholder="Tìm kiếm dịch vụ..."
+                placeholder="Tìm kiếm vật tư..."
                 value={searchParams.name}
                 onChange={e => setSearchParams(prev => ({ ...prev, name: e.target.value }))}
                 className="pl-10"
                 name="service-search"
-                aria-label="Tìm kiếm dịch vụ"
+                aria-label="Tìm kiếm vật tư"
                 autoComplete="off"
               />
               <Button
@@ -102,7 +106,7 @@ export default function ManageServicesPage() {
             </Button>
           </div> */}
 
-          <SheetService
+          <SheetServiceItem
             trigger={
               <Button className="bg-green-500 hover:bg-green-600 text-white">
                 <Plus className="h-4 w-4 mr-2" />
@@ -112,18 +116,25 @@ export default function ManageServicesPage() {
           />
         </div>
 
-        {/* Services List */}
+        {/* Service Items List */}
         <div className="space-y-4">
-          <ServiceList
-            services={services}
-            isLoading={isServiceFetching}
-            onEdit={handleEditService}
+          {/* <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold">Danh sách vật tư</h2>
+            <div className="text-sm text-muted-foreground">
+              {serviceItems.length} vật tư
+            </div>
+          </div> */}
+
+          <ServiceItemList
+            serviceItems={serviceItems}
+            isLoading={isServiceItemFetching}
+            onEdit={handleEditServiceItem}
           />
         </div>
 
-        {/* Edit Service Sheet */}
-        <SheetService
-          service={selectedService}
+        {/* Edit Service Item Sheet */}
+        <SheetServiceItem
+          serviceItem={selectedServiceItem}
           open={isEditSheetOpen}
           onOpenChange={handleCloseEditSheet}
         />

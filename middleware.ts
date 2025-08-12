@@ -117,7 +117,7 @@ export default function middleware(request: NextRequest) {
             return NextResponse.redirect(new URL('/staff/dashboard', request.url));
           }
           if (isManager(decodedToken)) {
-            return NextResponse.redirect(new URL('/manager/manage-category', request.url));
+            return NextResponse.redirect(new URL('/manager/manage-company', request.url));
           }
           if (isAdmin(decodedToken)) {
             return NextResponse.redirect(new URL('/admin/dashboard', request.url));

@@ -4,6 +4,9 @@ import {
   serviceBooking,
   StaffBookingResponse,
   DetailBookingResponse,
+  CreateReportRequest,
+  CreateReportResponse,
+  GetReportResponse,
 } from '@/lib/api/services/fetchBooking';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
@@ -31,7 +34,6 @@ export const useDetailBooking = (id: number, options?: { enabled?: boolean }) =>
     },
     enabled: options?.enabled !== undefined ? options.enabled : !!id,
   });
-  ServiceWorker;
   return { data, isLoading, error, id };
 };
 
@@ -40,10 +42,7 @@ export const useCreateBooking = () => {
   const { data, isPending, error, mutate, mutateAsync } = useMutation({
     mutationFn: (data: CreateBookingRequest) => serviceBooking.createBooking(data),
     onSuccess: response => {
-      toast.success('Đặt lịch thành công!', {
-        description: `Mã đặt lịch: BK${response.data.bookingId}`,
-        duration: 5000,
-      });
+      toast.success('Đặt lịch thành công!');
 
       // If checkout URL is available, open it in a new tab
       if (response.data.responseData.checkoutUrl) {
@@ -67,6 +66,7 @@ export const useCreateBooking = () => {
         }
       }
       toast.error(errorMessage);
+      router.push('/settings/bookings');
     },
   });
 
@@ -103,4 +103,40 @@ export const useUpdateCompleteBookingOfUser = () => {
   });
 
   return { data, isLoading: isPending, error, mutate, mutateAsync };
+};
+
+export const useCreateReport = () => {
+  const { data, isPending, error, mutate, mutateAsync } = useMutation<
+    CreateReportResponse,
+    Error,
+    { bookingId: number; data: CreateReportRequest }
+  >({
+    mutationFn: ({ bookingId, data }) => serviceBooking.createReport(bookingId, data),
+    onSuccess: () => {
+      toast.success('Tạo báo cáo thành công!');
+    },
+    onError: (error: Error) => {
+      let errorMessage = 'An unexpected error occurred';
+      if (typeof error === 'object' && error !== null && 'message' in error) {
+        const errorObj = error as { message: string | ValidationError[] };
+        if (Array.isArray(errorObj.message)) {
+          errorMessage = errorObj.message[0]?.message || errorMessage;
+        } else if (typeof errorObj.message === 'string') {
+          errorMessage = errorObj.message;
+        }
+      }
+      toast.error(errorMessage);
+    },
+  });
+
+  return { data, isPending, error, mutate, mutateAsync };
+};
+
+export const useGetReport = () => {
+  const { data, isLoading, error } = useQuery<GetReportResponse>({
+    queryKey: ['reports'],
+    queryFn: () => serviceBooking.getReport(),
+  });
+
+  return { data, isLoading, error };
 };

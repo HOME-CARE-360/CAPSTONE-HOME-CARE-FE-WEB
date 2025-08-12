@@ -122,7 +122,7 @@ export interface ServiceManagerUpdateRequest {
 }
 
 export interface ServiceItemUpdateRequest {
-  id: number;
+  id?: number;
   name?: string;
   unitPrice?: number;
   warrantyPeriod?: number;
@@ -151,6 +151,12 @@ export interface ServiceManagerCreateResponse {
 }
 
 export interface ServiceItemCreateResponse {
+  message: string | ValidationError[];
+  error?: string;
+  statusCode?: number;
+}
+
+export interface ServiceItemUpdateResponse {
   message: string | ValidationError[];
   error?: string;
   statusCode?: number;
@@ -233,7 +239,7 @@ export const serviceManagerService = {
       throw error;
     }
   },
-
+  //TODO API
   updateService: async (
     service: ServiceManagerUpdateRequest
   ): Promise<ServiceManagerCreateResponse> => {
@@ -258,6 +264,18 @@ export const serviceManagerService = {
       return response.data;
     } catch (error) {
       console.error('Create Service Error:', error);
+      throw error;
+    }
+  },
+
+  deleteService: async (id: number): Promise<ServiceItemUpdateResponse> => {
+    try {
+      const response = await apiService.patch<ServiceItemUpdateResponse>(
+        `/manage-services/delete-service/${id}`
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Delete Service Error:', error);
       throw error;
     }
   },
@@ -319,7 +337,7 @@ export const serviceManagerService = {
   ): Promise<ServiceItemCreateResponse> => {
     try {
       const response = await apiService.patch<ServiceItemCreateResponse, ServiceItemUpdateRequest>(
-        '/manage-services/update-service',
+        '/manage-services/update-service-item',
         serviceItem
       );
       return response.data;
@@ -329,10 +347,10 @@ export const serviceManagerService = {
     }
   },
 
-  deleteServiceItem: async (id: number): Promise<ServiceItemCreateResponse> => {
+  deleteServiceItem: async (id: number): Promise<ServiceItemUpdateResponse> => {
     try {
-      const response = await apiService.patch<ServiceItemCreateResponse, ServiceItemUpdateRequest>(
-        `/manage-services/delete-service/${id}`
+      const response = await apiService.delete<ServiceItemUpdateResponse>(
+        `/manage-services/delete-service-item/${id}`
       );
       return response.data;
     } catch (error) {

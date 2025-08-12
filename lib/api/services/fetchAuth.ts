@@ -94,8 +94,11 @@ export interface GoogleLoginResponse {
 }
 
 export interface RefreshTokenResponse {
-  data?: Token;
-  message?: string | ValidationError[];
+  message: string;
+  data: {
+    accessToken: string;
+    refreshToken: string;
+  };
 }
 
 export const fetchAuth = {

@@ -7,6 +7,11 @@ const protectedRoutes = [
   '/provider',
   '/user/profile',
   '/settings/profile',
+  '/settings/change-password',
+  '/settings/favorites',
+  '/settings/bookings',
+  '/settings/bank',
+  '/settings/report',
   '/manager',
   '/admin',
   '/admin/manage-user',
@@ -17,7 +22,7 @@ const protectedRoutes = [
 const authRoutes = ['/login', '/register', '/forgot-password'];
 
 // Define provider-only routes
-const providerRoutes = ['/provider', '/provider/dashboard'];
+const providerRoutes = ['/provider', '/provider/manage-services'];
 
 // Define customer-only protected routes (not public)
 const customerProtectedRoutes = ['/user/profile'];
@@ -111,7 +116,7 @@ export default function middleware(request: NextRequest) {
         // Redirect to appropriate dashboard based on role when accessing root
         if (pathname === '/') {
           if (isServiceProvider(decodedToken)) {
-            return NextResponse.redirect(new URL('/provider/dashboard', request.url));
+            return NextResponse.redirect(new URL('/provider/manage-services', request.url));
           }
           if (isStaff(decodedToken)) {
             return NextResponse.redirect(new URL('/staff/dashboard', request.url));

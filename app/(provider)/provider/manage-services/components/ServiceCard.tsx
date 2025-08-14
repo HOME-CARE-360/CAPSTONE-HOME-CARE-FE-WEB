@@ -6,7 +6,7 @@ import { Clock, ChevronLeft, ChevronRight, Edit, Trash } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
-import { ServiceManager } from '@/lib/api/services/fetchServiceManager';
+import { ServiceManager, StatusService } from '@/lib/api/services/fetchServiceManager';
 import { useDeleteService } from '@/hooks/useServiceManager';
 import {
   AlertDialog,
@@ -148,6 +148,39 @@ export function ServiceCard({
               )}
             >
               -{discountPercent}%
+            </Badge>
+          )}
+          {service.status === StatusService.PENDING && (
+            <Badge
+              variant="outline"
+              className={cn(
+                'bg-yellow-500 text-white border-yellow-500 backdrop-blur-sm z-10',
+                size === 'sm' && 'text-[10px] px-2 py-0.5'
+              )}
+            >
+              Đang chờ duyệt
+            </Badge>
+          )}
+          {service.status === StatusService.REJECTED && (
+            <Badge
+              variant="outline"
+              className={cn(
+                'bg-red-500 text-white border-red-500 backdrop-blur-sm z-10',
+                size === 'sm' && 'text-[10px] px-2 py-0.5'
+              )}
+            >
+              Từ chối
+            </Badge>
+          )}
+          {service.status === StatusService.ACCEPTED && (
+            <Badge
+              variant="outline"
+              className={cn(
+                'bg-green-500 text-white border-green-500 backdrop-blur-sm z-10',
+                size === 'sm' && 'text-[10px] px-2 py-0.5'
+              )}
+            >
+              Đã được duyệt
             </Badge>
           )}
         </div>

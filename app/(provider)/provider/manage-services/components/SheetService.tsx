@@ -24,10 +24,14 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
-import { useCreateService, useUpdateService } from '@/hooks/useServiceManager';
+import { useCreateService, useServiceItems, useUpdateService } from '@/hooks/useServiceManager';
 import { useCategories } from '@/hooks/useCategory';
 import { useUploadImage } from '@/hooks/useImage';
-import { ServiceManager, ServiceManagerRequest } from '@/lib/api/services/fetchServiceManager';
+import {
+  ServiceItem,
+  ServiceManager,
+  ServiceManagerRequest,
+} from '@/lib/api/services/fetchServiceManager';
 import { Category } from '@/lib/api/services/fetchCategory';
 import { Plus, Edit, Loader2, Upload, X } from 'lucide-react';
 import { toast } from 'sonner';
@@ -40,6 +44,7 @@ const serviceFormSchema = z.object({
   virtualPrice: z.number().min(0, 'Giá ảo phải lớn hơn 0'),
   durationMinutes: z.number().min(1, 'Thời gian phải lớn hơn 0'),
   categoryId: z.number().min(1, 'Vui lòng chọn loại dịch vụ'),
+  serviceItemsId: z.array(z.number()).optional(),
 });
 
 type ServiceFormData = z.infer<typeof serviceFormSchema>;
@@ -69,7 +74,15 @@ export function SheetService({ service, trigger, open, onOpenChange }: SheetServ
   const { mutate: createService, isPending: isCreating } = useCreateService();
   const { mutate: updateService, isPending: isUpdating } = useUpdateService();
   const { mutate: uploadImage, isPending: isUploading } = useUploadImage();
-
+  const { data: serviceItems, isLoading: isServiceItemsLoading } = useServiceItems({
+    limit: 1000,
+    page: 1,
+    brand: '',
+    isActive: true,
+    sortBy: 'createdAt',
+    orderBy: 'desc',
+    name: '',
+  });
   const form = useForm<ServiceFormData>({
     resolver: zodResolver(serviceFormSchema),
     defaultValues: {
@@ -79,6 +92,7 @@ export function SheetService({ service, trigger, open, onOpenChange }: SheetServ
       virtualPrice: 0,
       durationMinutes: 30,
       categoryId: 0,
+      serviceItemsId: [],
     },
   });
 
@@ -107,6 +121,7 @@ export function SheetService({ service, trigger, open, onOpenChange }: SheetServ
         virtualPrice: service.virtualPrice,
         durationMinutes: service.durationMinutes,
         categoryId: service.category?.id || 0,
+        serviceItemsId: [],
       });
 
       // Convert existing service images to UploadedImage format
@@ -128,6 +143,7 @@ export function SheetService({ service, trigger, open, onOpenChange }: SheetServ
         virtualPrice: 0,
         durationMinutes: 30,
         categoryId: 0,
+        serviceItemsId: [],
       });
       setUploadedImages([]);
     }
@@ -291,6 +307,74 @@ export function SheetService({ service, trigger, open, onOpenChange }: SheetServ
               {form.formState.errors.categoryId && (
                 <p className="text-sm text-red-600">{form.formState.errors.categoryId.message}</p>
               )}
+            </div>
+
+            {/* Service Items Selection */}
+            <div className="space-y-2">
+              <Label htmlFor="serviceItems">Vật tư</Label>
+
+              {/* Display selected service items */}
+              {(form.watch('serviceItemsId') || []).length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-600">Đã chọn:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {(form.watch('serviceItemsId') || []).map((serviceItemId: number) => {
+                      const serviceItem = serviceItems?.data?.data?.find(
+                        item => item.id === serviceItemId
+                      );
+                      return (
+                        <div
+                          key={serviceItemId}
+                          className="flex items-center gap-2 bg-blue-100 text-blue-800 px-2 py-1 rounded-md text-sm"
+                        >
+                          <span>{serviceItem?.name || `Service ${serviceItemId}`}</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const currentServiceItems = form.getValues('serviceItemsId') || [];
+                              const updatedItems = currentServiceItems.filter(
+                                id => id !== serviceItemId
+                              );
+                              form.setValue('serviceItemsId', updatedItems);
+                            }}
+                            className="text-blue-600 hover:text-blue-800"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              <Select
+                value={''}
+                onValueChange={value => {
+                  const currentServiceItems = form.getValues('serviceItemsId') || [];
+                  const parsedValue = parseInt(value);
+                  if (!currentServiceItems.includes(parsedValue)) {
+                    form.setValue('serviceItemsId', [...currentServiceItems, parsedValue]);
+                  }
+                }}
+                disabled={isSubmitting || isServiceItemsLoading}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Chọn service items" />
+                </SelectTrigger>
+                <SelectContent>
+                  {serviceItems?.data?.data
+                    ?.filter(
+                      (serviceItem: ServiceItem) =>
+                        !(form.watch('serviceItemsId') || []).includes(serviceItem.id)
+                    )
+                    .map((serviceItem: ServiceItem) => (
+                      <SelectItem key={serviceItem.id} value={serviceItem.id.toString()}>
+                        {serviceItem.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Price Fields */}

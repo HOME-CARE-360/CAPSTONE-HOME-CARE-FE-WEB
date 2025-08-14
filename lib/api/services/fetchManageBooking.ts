@@ -43,6 +43,15 @@ export interface CreateProposedBookingRequest {
   [key: string]: unknown;
 }
 
+export interface UpdateProposedBookingRequest {
+  notes: string;
+  services: {
+    serviceId: number;
+    quantity: number;
+  }[];
+  proposalId: number;
+}
+
 export interface ProposedService {
   serviceId: number;
   quantity: number;
@@ -55,6 +64,10 @@ export interface CreateProposedBookingResponse {
   data: unknown;
   statusCode: number;
   timestamp: string;
+}
+
+export interface UpdateProposedBookingResponse {
+  message: string;
 }
 
 export interface ManageBookingResponse {
@@ -99,6 +112,16 @@ export const serviceManageBooking = {
       `/manage-bookings/create-proposed`,
       data
     );
+    return response.data;
+  },
+
+  updateProposed: async (
+    data: UpdateProposedBookingRequest
+  ): Promise<UpdateProposedBookingResponse> => {
+    const response = await apiService.patch<
+      UpdateProposedBookingResponse,
+      UpdateProposedBookingRequest
+    >(`/manage-bookings/edit-proposed`, data);
     return response.data;
   },
 };

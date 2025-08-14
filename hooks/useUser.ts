@@ -156,14 +156,25 @@ export const useGetFavorite = () => {
 
 export const useAddOrRemoveFavorite = () => {
   const queryClient = useQueryClient();
+  const { isAuthenticated } = useAuthStore();
 
   return useMutation({
-    mutationFn: (serviceId: number) => userService.addOrRemoveFavorite(serviceId),
+    mutationFn: (serviceId: number) => {
+      if (!isAuthenticated) {
+        throw new Error('Authentication required');
+      }
+      return userService.addOrRemoveFavorite(serviceId);
+    },
     onSuccess: (data: AddOrRemoveFavoriteResponse) => {
       queryClient.invalidateQueries({ queryKey: ['users', 'favorite'] });
       toast.success(data.message);
     },
     onError: (error: Error | ValidationError) => {
+      if (error instanceof Error && error.message === 'Authentication required') {
+        toast.error('Bạn cần đăng nhập để sử dụng tính năng này');
+        return;
+      }
+
       let errorMessage = 'An unexpected error occurred';
       if (typeof error === 'object' && error !== null && 'message' in error) {
         const errorObj = error as { message: string | ValidationError[] };

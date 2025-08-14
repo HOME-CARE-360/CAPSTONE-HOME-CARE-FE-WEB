@@ -48,7 +48,7 @@ export default function ManageServicesPage() {
     <>
       <SiteHeader title="Quản lý dịch vụ" />
 
-      <div className="container space-y-6">
+      <div className="space-y-6">
         {/* Redesigned Filter Bar */}
         <div className="flex items-center justify-between gap-4 bg-white border-b-2 p-4">
           {/* Search Input */}

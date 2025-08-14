@@ -7,6 +7,8 @@ import {
   AssignStaffToBookingRequest,
   CreateProposedBookingRequest,
   CreateProposedBookingResponse,
+  UpdateProposedBookingRequest,
+  UpdateProposedBookingResponse,
 } from '@/lib/api/services/fetchManageBooking';
 import { useState, useMemo } from 'react';
 import { toast } from 'sonner';
@@ -154,6 +156,36 @@ export const useCreateProposedBooking = () => {
     },
     onError: (error: unknown) => {
       let errorMessage = 'Có lỗi xảy ra khi tạo đề xuất dịch vụ';
+
+      if (typeof error === 'object' && error !== null && 'message' in error) {
+        const errorObj = error as { message: string };
+        errorMessage = errorObj.message || errorMessage;
+      }
+
+      toast.error(errorMessage);
+    },
+  });
+
+  return { mutate, isPending, error };
+};
+
+export const useUpdateProposedBooking = () => {
+  const queryClient = useQueryClient();
+
+  const { mutate, isPending, error } = useMutation<
+    UpdateProposedBookingResponse,
+    Error,
+    UpdateProposedBookingRequest
+  >({
+    mutationFn: (data: UpdateProposedBookingRequest) => serviceManageBooking.updateProposed(data),
+    onSuccess: () => {
+      toast.success('Cập nhật đề xuất dịch vụ thành công');
+      queryClient.invalidateQueries({ queryKey: ['manage-bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['staff-bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['bookings'] });
+    },
+    onError: (error: unknown) => {
+      let errorMessage = 'Có lỗi xảy ra khi cập nhật đề xuất dịch vụ';
 
       if (typeof error === 'object' && error !== null && 'message' in error) {
         const errorObj = error as { message: string };

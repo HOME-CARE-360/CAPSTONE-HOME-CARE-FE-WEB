@@ -176,8 +176,24 @@ export const fetchAuth = {
         refreshToken,
       });
       return response.data;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Refresh Token API Error:', error);
+
+      type ErrorWithStatus = { status?: number; response?: { status?: number } };
+      const err = error as ErrorWithStatus;
+
+      // Ensure 401 errors are properly propagated
+      if (err?.response?.status === 401 || err?.status === 401) {
+        console.log('Refresh token request returned 401 - token expired');
+        // Create a structured error that includes the 401 status
+        const structuredError = {
+          ...(error as object),
+          status: 401,
+          response: { ...(err.response ?? {}), status: 401 },
+        } as ErrorWithStatus;
+        throw structuredError;
+      }
+
       throw error;
     }
   },

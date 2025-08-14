@@ -34,6 +34,11 @@ interface AuthState {
   setToken: (token: string | null, refreshToken: string | null) => void;
   refreshAccessToken: () => Promise<boolean>;
   logout: () => void;
+  forceClearAll: () => void;
+  getAuthState: () => {
+    store: AuthState;
+    cookies: { authToken: string | null; refreshToken: string | null; userId: string | null };
+  };
 }
 
 // Function to decode the token and extract user info
@@ -99,6 +104,7 @@ export const useAuthStore = create<AuthState>()(
           try {
             const currentRefreshToken = get().refreshToken;
             if (!currentRefreshToken) {
+              console.log('No refresh token available, logging out');
               get().logout();
               return false;
             }
@@ -112,14 +118,33 @@ export const useAuthStore = create<AuthState>()(
             console.error('Invalid refresh token response:', response);
             get().logout();
             return false;
-          } catch (error) {
+          } catch (error: unknown) {
             console.error('Failed to refresh token:', error);
+
+            // Check if it's a 401 error specifically
+            type ErrorWithStatus = { status?: number; response?: { status?: number } };
+            const err = error as ErrorWithStatus;
+            if (err?.response?.status === 401 || err?.status === 401) {
+              console.log('Refresh token expired (401), logging out');
+            }
+
+            // Immediately clear the store state to prevent any race conditions
+            set({
+              token: null,
+              refreshToken: null,
+              user: null,
+              isAuthenticated: false,
+              isLoading: false,
+            });
+
+            // Force logout regardless of error type
             get().logout();
             return false;
           }
         },
 
         logout: () => {
+          console.log('Logging out - clearing all auth data');
           deleteCookie('auth-token', { path: '/' });
           deleteCookie('refresh-token', { path: '/' });
           deleteCookie('userId', { path: '/' });
@@ -131,6 +156,35 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: false,
             isLoading: false,
           });
+          console.log('Logout completed - all auth data cleared');
+        },
+
+        forceClearAll: () => {
+          deleteCookie('auth-token', { path: '/' });
+          deleteCookie('refresh-token', { path: '/' });
+          deleteCookie('userId', { path: '/' });
+          apiService.setAuthToken(null);
+          set({
+            token: null,
+            refreshToken: null,
+            user: null,
+            isAuthenticated: false,
+            isLoading: false,
+          });
+        },
+
+        // Utility function to check current auth state
+        getAuthState: () => {
+          const cookies = {
+            authToken: (getCookie('auth-token') as string | null) ?? null,
+            refreshToken: (getCookie('refresh-token') as string | null) ?? null,
+            userId: (getCookie('userId') as string | null) ?? null,
+          };
+          const state = get();
+          return {
+            store: state,
+            cookies,
+          };
         },
       };
     },
@@ -145,6 +199,25 @@ export const useAuthStore = create<AuthState>()(
 );
 
 // Initial state sync from cookies
-const storedToken = getCookie('auth-token') as string | null;
-const storedRefreshToken = getCookie('refresh-token') as string | null;
-useAuthStore.getState().setToken(storedToken, storedRefreshToken);
+const initializeAuthFromCookies = () => {
+  const storedToken = getCookie('auth-token') as string | null;
+  const storedRefreshToken = getCookie('refresh-token') as string | null;
+
+  if (storedToken && storedRefreshToken) {
+    // Validate the stored token before setting it
+    const user = getUserFromToken(storedToken);
+    if (user) {
+      useAuthStore.getState().setToken(storedToken, storedRefreshToken);
+    } else {
+      // Invalid token, clear cookies and store
+      console.log('Invalid stored token found, clearing auth data');
+      useAuthStore.getState().logout();
+    }
+  } else {
+    // No tokens found, ensure clean state
+    useAuthStore.getState().logout();
+  }
+};
+
+// Initialize auth state when the module loads
+initializeAuthFromCookies();

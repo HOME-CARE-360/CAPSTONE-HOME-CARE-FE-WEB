@@ -54,7 +54,7 @@ export function getErrorMessage(error: ApiErrorResponse): string {
 export class ApiService {
   private client: AxiosInstance;
   private authToken: string | null = null;
-  private onAuthError?: () => void;
+  private onAuthError?: () => Promise<boolean>;
   private isRefreshing = false;
   private failedQueue: Array<{
     resolve: (value?: unknown) => void;
@@ -120,22 +120,39 @@ export class ApiService {
 
         // Handle authentication errors
         if (error.response?.status === 401) {
+          console.log('API received 401 error, attempting token refresh');
+
           if (this.onAuthError && !this.isRefreshing) {
             this.isRefreshing = true;
 
             try {
-              await this.onAuthError();
+              const refreshSuccess = await this.onAuthError();
 
-              // Retry all queued requests
-              this.processQueue(null, this.authToken);
+              if (refreshSuccess === true) {
+                // Retry all queued requests
+                this.processQueue(null, this.authToken);
 
-              // Retry the original request
-              if (originalRequest) {
-                return this.client(originalRequest);
+                // Retry the original request
+                if (originalRequest) {
+                  return this.client(originalRequest);
+                }
+              } else {
+                // Refresh failed, reject all queued requests
+                this.processQueue(new Error('Token refresh failed'));
+                return Promise.reject({
+                  ...error.response?.data,
+                  status: 401,
+                  response: { ...error.response, status: 401 },
+                });
               }
             } catch (refreshError) {
+              console.error('Token refresh error:', refreshError);
               this.processQueue(refreshError as Error);
-              return Promise.reject(refreshError);
+              return Promise.reject({
+                ...error.response?.data,
+                status: 401,
+                response: { ...error.response, status: 401 },
+              });
             } finally {
               this.isRefreshing = false;
             }
@@ -147,6 +164,13 @@ export class ApiService {
                 reject,
                 config: originalRequest!,
               });
+            });
+          } else {
+            // No auth error handler, reject with 401
+            return Promise.reject({
+              ...error.response?.data,
+              status: 401,
+              response: { ...error.response, status: 401 },
             });
           }
         }

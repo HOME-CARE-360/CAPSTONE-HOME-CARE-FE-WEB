@@ -9,6 +9,9 @@ import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo } from 'react';
 import { useAddOrRemoveFavorite, useGetFavorite } from '@/hooks/useUser';
 import { FavoriteResponse } from '@/lib/api/services/fetchUser';
+import { useAuthStore } from '@/lib/store/authStore';
+import { AuthDialog } from '@/components/ui/auth-dialog';
+import { toast } from 'sonner';
 
 interface ServiceCardProps {
   service: Service;
@@ -22,6 +25,9 @@ export function ServiceCard({ service, priority = false, onHover, size = 'md' }:
   const [isHovered, setIsHovered] = useState(false);
   const [preloadedImages, setPreloadedImages] = useState<number[]>([0]);
   const [isImageLoading, setIsImageLoading] = useState(true);
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
+
+  const { isAuthenticated } = useAuthStore();
 
   // Fetch all favorite services
   const { data: favoriteData } = useGetFavorite();
@@ -89,6 +95,13 @@ export function ServiceCard({ service, priority = false, onHover, size = 'md' }:
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+
+    if (!isAuthenticated) {
+      toast.info('Bạn cần đăng nhập để yêu thích dịch vụ này');
+      setShowAuthDialog(true);
+      return;
+    }
+
     // Optimistic update
     setIsFavorite(!isFavorite);
     toggleFavorite(service.id);
@@ -99,178 +112,216 @@ export function ServiceCard({ service, priority = false, onHover, size = 'md' }:
     // Share functionality
   };
 
+  const handleAuthSuccess = () => {
+    // After successful login, the favorite state will be updated automatically
+    // through the useGetFavorite hook
+  };
+
   return (
-    <Link href={`/services/${service.id}`}>
-      <div
-        className="overflow-hidden transition-all duration-300 flex flex-col"
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-      >
-        <div className="relative aspect-square size-full mb-2 group">
-          {isImageLoading && (
-            <div className="absolute inset-0 bg-gray-200 animate-pulse rounded-xl" />
-          )}
-          <Image
-            src={service.images[currentImageIndex] || '/placeholder-service.jpg'}
-            alt={service.name}
-            fill
-            priority={priority}
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-            className={cn(
-              'object-cover rounded-2xl transition-opacity duration-300',
-              isImageLoading ? 'opacity-0' : 'opacity-100'
+    <>
+      <Link href={`/services/${service.id}`}>
+        <div
+          className="overflow-hidden transition-all duration-300 flex flex-col"
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+        >
+          <div className="relative aspect-square size-full mb-2 group">
+            {isImageLoading && (
+              <div className="absolute inset-0 bg-gray-200 animate-pulse rounded-xl" />
             )}
-            onLoad={() => setIsImageLoading(false)}
-          />
-          {service.images.map(
-            (url, index) =>
-              index !== currentImageIndex && (
-                <Image
-                  key={index}
-                  src={url}
-                  alt={`${service.name} - Image ${index + 1}`}
-                  fill
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  className="hidden"
-                  priority={index === 0}
-                />
-              )
-          )}
-          <div className="absolute top-4 left-4 flex gap-2">
-            {Array.isArray(service.Category) &&
-              service.Category.slice(0, 2).map(category => (
+            <Image
+              src={service.images[currentImageIndex] || '/placeholder-service.jpg'}
+              alt={service.name}
+              fill
+              priority={priority}
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              className={cn(
+                'object-cover rounded-2xl transition-opacity duration-300',
+                isImageLoading ? 'opacity-0' : 'opacity-100'
+              )}
+              onLoad={() => setIsImageLoading(false)}
+            />
+            {service.images.map(
+              (url, index) =>
+                index !== currentImageIndex && (
+                  <Image
+                    key={index}
+                    src={url}
+                    alt={`${service.name} - Image ${index + 1}`}
+                    fill
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    className="hidden"
+                    priority={index === 0}
+                  />
+                )
+            )}
+            <div className="absolute top-4 left-4 flex gap-2">
+              {Array.isArray(service.Category) &&
+                service.Category.slice(0, 2).map(category => (
+                  <Badge
+                    key={category.name}
+                    variant="outline"
+                    className={cn(
+                      'bg-white/90 backdrop-blur-sm hover:bg-white/90 z-10',
+                      size === 'sm' && 'text-[10px] px-2 py-0.5'
+                    )}
+                  >
+                    {category.name}
+                  </Badge>
+                ))}
+              {isDiscounted && (
                 <Badge
-                  key={category.name}
                   variant="outline"
                   className={cn(
-                    'bg-white/90 backdrop-blur-sm hover:bg-white/90 z-10',
+                    'bg-red-500 text-white border-red-500 backdrop-blur-sm z-10',
                     size === 'sm' && 'text-[10px] px-2 py-0.5'
                   )}
                 >
-                  {category.name}
+                  -{discountPercent}%
                 </Badge>
-              ))}
-            {isDiscounted && (
-              <Badge
-                variant="outline"
+              )}
+            </div>
+            {isHovered && service.images.length > 1 && (
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white/90 rounded-full h-8 w-8 z-10"
+                  onClick={prevImage}
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white/90 rounded-full h-8 w-8 z-10"
+                  onClick={nextImage}
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </Button>
+              </>
+            )}
+            {service.images.length > 1 && (
+              <div
                 className={cn(
-                  'bg-red-500 text-white border-red-500 backdrop-blur-sm z-10',
-                  size === 'sm' && 'text-[10px] px-2 py-0.5'
+                  'absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded-full z-10',
+                  size === 'sm' && 'text-[10px]'
                 )}
               >
-                -{discountPercent}%
-              </Badge>
+                {currentImageIndex + 1}/{service.images.length}
+              </div>
             )}
           </div>
-          {isHovered && service.images.length > 1 && (
-            <>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white/90 rounded-full h-8 w-8 z-10"
-                onClick={prevImage}
-              >
-                <ChevronLeft className="h-5 w-5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white/90 rounded-full h-8 w-8 z-10"
-                onClick={nextImage}
-              >
-                <ChevronRight className="h-5 w-5" />
-              </Button>
-            </>
-          )}
-          {service.images.length > 1 && (
+          <div className="px-1">
+            <div className="flex justify-between items-center">
+              <div>
+                <p className={cn('text-xl font-semibold', size === 'sm' && 'text-base')}>
+                  {formatCurrency(service.basePrice)}
+                  {isDiscounted && (
+                    <span className="text-sm text-gray-400 line-through ml-2">
+                      {formatCurrency(service.virtualPrice)}
+                    </span>
+                  )}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <div className="flex flex-col items-center">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={cn(
+                      'hover:text-red-600 transition-colors',
+                      isFavorite && 'text-red-600',
+                      !isAuthenticated && 'hover:scale-110 transition-transform hover:bg-red-50'
+                    )}
+                    onClick={handleFavoriteClick}
+                    disabled={isToggling}
+                    aria-label={
+                      !isAuthenticated
+                        ? 'Đăng nhập để yêu thích'
+                        : isFavorite
+                          ? 'Xóa khỏi yêu thích'
+                          : 'Thêm vào yêu thích'
+                    }
+                    title={
+                      !isAuthenticated
+                        ? 'Đăng nhập để yêu thích dịch vụ này'
+                        : isFavorite
+                          ? 'Xóa khỏi yêu thích'
+                          : 'Thêm vào yêu thích'
+                    }
+                  >
+                    <Heart
+                      className={cn(
+                        'size-5',
+                        isFavorite && 'fill-current',
+                        !isAuthenticated && 'opacity-70'
+                      )}
+                    />
+                  </Button>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="hover:text-blue-600"
+                  onClick={handleShareClick}
+                >
+                  <Share2 className="h-5 w-5" />
+                </Button>
+              </div>
+            </div>
             <div
               className={cn(
-                'absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded-full z-10',
-                size === 'sm' && 'text-[10px]'
+                'flex justify-between items-center mb-2 text-foreground text-sm',
+                size === 'sm' && 'text-xs'
               )}
             >
-              {currentImageIndex + 1}/{service.images.length}
+              <div className="flex items-center">
+                <Clock className={cn('size-4 mr-1', size === 'sm' && 'size-3')} />
+                <span>{service.durationMinutes} phút</span>
+              </div>
+              <div
+                className={cn('text-sm text-muted-foreground', size === 'sm' && 'text-xs')}
+                aria-label="Service category"
+              >
+                {Array.isArray(service.Category) &&
+                service.Category.length > 0 &&
+                typeof service.Category[0]?.name === 'string'
+                  ? service.Category[0].name
+                  : 'Dịch vụ'}
+              </div>
             </div>
-          )}
-        </div>
-        <div className="px-1">
-          <div className="flex justify-between items-center">
-            <div>
-              <p className={cn('text-xl font-semibold', size === 'sm' && 'text-base')}>
-                {formatCurrency(service.basePrice)}
-                {isDiscounted && (
-                  <span className="text-sm text-gray-400 line-through ml-2">
-                    {formatCurrency(service.virtualPrice)}
-                  </span>
+            <div className="mb-2">
+              <h3 className={cn('text-base font-medium line-clamp-2', size === 'sm' && 'text-sm')}>
+                {service.name}
+              </h3>
+            </div>
+            <div className="mb-2">
+              <div
+                className={cn(
+                  'flex items-center text-xs text-muted-foreground',
+                  size === 'sm' && 'text-[10px]'
                 )}
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn('hover:text-red-600 transition-colors', isFavorite && 'text-red-600')}
-                onClick={handleFavoriteClick}
-                disabled={isToggling}
-                aria-label={isFavorite ? 'Xóa khỏi yêu thích' : 'Thêm vào yêu thích'}
               >
-                <Heart className={cn('size-5', isFavorite && 'fill-current')} />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="hover:text-blue-600"
-                onClick={handleShareClick}
-              >
-                <Share2 className="h-5 w-5" />
-              </Button>
-            </div>
-          </div>
-          <div
-            className={cn(
-              'flex justify-between items-center mb-2 text-foreground text-sm',
-              size === 'sm' && 'text-xs'
-            )}
-          >
-            <div className="flex items-center">
-              <Clock className={cn('size-4 mr-1', size === 'sm' && 'size-3')} />
-              <span>{service.durationMinutes} phút</span>
-            </div>
-            <div
-              className={cn('text-sm text-muted-foreground', size === 'sm' && 'text-xs')}
-              aria-label="Service category"
-            >
-              {Array.isArray(service.Category) &&
-              service.Category.length > 0 &&
-              typeof service.Category[0]?.name === 'string'
-                ? service.Category[0].name
-                : 'Dịch vụ'}
-            </div>
-          </div>
-          <div className="mb-2">
-            <h3 className={cn('text-base font-medium line-clamp-2', size === 'sm' && 'text-sm')}>
-              {service.name}
-            </h3>
-          </div>
-          <div className="mb-2">
-            <div
-              className={cn(
-                'flex items-center text-xs text-muted-foreground',
-                size === 'sm' && 'text-[10px]'
-              )}
-            >
-              <User className={cn('size-4 mr-1', size === 'sm' && 'size-3')} />
-              <span>
-                {typeof service.provider === 'object' &&
-                service.provider !== null &&
-                'name' in service.provider
-                  ? (service.provider as { name: string }).name
-                  : String(service.provider)}
-              </span>
+                <User className={cn('size-4 mr-1', size === 'sm' && 'size-3')} />
+                <span>
+                  {typeof service.provider === 'object' &&
+                  service.provider !== null &&
+                  'name' in service.provider
+                    ? (service.provider as { name: string }).name
+                    : String(service.provider)}
+                </span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </Link>
+      </Link>
+
+      <AuthDialog
+        open={showAuthDialog}
+        onOpenChange={setShowAuthDialog}
+        onSuccess={handleAuthSuccess}
+      />
+    </>
   );
 }

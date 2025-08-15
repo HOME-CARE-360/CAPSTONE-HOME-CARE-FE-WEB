@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/lib/store/authStore';
 import { useRouter } from 'next/navigation';
@@ -230,27 +230,43 @@ export function useLogin() {
 export function useAuth() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { logout: storeLogout, token, isAuthenticated } = useAuthStore();
+  const { logout: storeLogout, token, isAuthenticated, getAuthState } = useAuthStore();
   const loginHook = useLogin();
   const registerHook = useRegister();
   const otpHook = useRequestOTP();
   const registerProviderHook = useRegisterProvider();
 
+  // Monitor auth state changes for debugging
+  useEffect(() => {
+    const authState = getAuthState();
+    console.log('Auth state changed:', authState);
+  }, [token, isAuthenticated, getAuthState]);
+
   const { mutate: logout, isPending: isLoggingOut } = useMutation({
     mutationFn: () => fetchAuth.logout(),
     onSuccess: () => {
+      console.log('Logout API success, clearing local state');
       // Clear both zustand store and cookies
       storeLogout();
       deleteCookie('auth-token', { path: '/' });
+      deleteCookie('refresh-token', { path: '/' });
+      deleteCookie('userId', { path: '/' });
       window.dispatchEvent(new Event('logout'));
       queryClient.clear(); // Clear all queries
+      console.log('Logout completed, redirecting to login');
       router.push('/login');
     },
-    onError: () => {
+    onError: error => {
+      console.error('Logout API error:', error);
+      console.log('Logout API failed, clearing local state anyway');
       // Still logout locally even if API call fails
       storeLogout();
       deleteCookie('auth-token', { path: '/' });
-
+      deleteCookie('refresh-token', { path: '/' });
+      deleteCookie('userId', { path: '/' });
+      window.dispatchEvent(new Event('logout'));
+      queryClient.clear();
+      console.log('Local logout completed, redirecting to login');
       router.push('/login');
     },
   });

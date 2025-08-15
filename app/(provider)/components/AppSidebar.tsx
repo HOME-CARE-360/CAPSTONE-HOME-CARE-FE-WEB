@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { House, LayoutDashboardIcon, Package, UserRoundPen, UsersIcon } from 'lucide-react';
+import { House, Package, UserRoundPen, UsersIcon } from 'lucide-react';
 import { NavMain } from '@/components/common/navMain';
 import { SiteSideFooter } from '@/app/(provider)/components/SiteSideFooter';
 import {
@@ -28,11 +28,11 @@ interface NavigationData {
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const navigationData: NavigationData = {
     navMain: [
-      {
-        title: 'Quản lý chung',
-        url: '/provider/dashboard',
-        icon: LayoutDashboardIcon,
-      },
+      // {
+      //   title: 'Quản lý chung',
+      //   url: '/provider/dashboard',
+      //   icon: LayoutDashboardIcon,
+      // },
       {
         title: 'Quản lý dịch vụ',
         url: '/provider/manage-services',

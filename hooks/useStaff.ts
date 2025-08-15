@@ -173,7 +173,7 @@ export function useStaffCheckOut() {
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
     },
     onError: (error: Error | ValidationError) => {
-      let errorMessage = 'AlreadyCheckedOut';
+      let errorMessage = 'Booking cần phải được accept trước khi checkout';
       if (typeof error === 'object' && error !== null && 'message' in error) {
         const errorObj = error as { message: string | ValidationError[] };
         if (Array.isArray(errorObj.message)) {

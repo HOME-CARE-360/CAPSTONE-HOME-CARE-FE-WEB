@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Booking } from '@/lib/api/services/fetchManageBooking';
+import type { DetailBookingResponse } from '@/lib/api/services/fetchBooking';
 import { useDetailBooking } from '@/hooks/useBooking';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -35,7 +36,11 @@ import { Separator } from '@/components/ui/separator';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { useGetStaffAvailable } from '@/hooks/useStaff';
-import { useAssignStaffToBooking, useCreateProposedBooking } from '@/hooks/useManageBooking';
+import {
+  useAssignStaffToBooking,
+  useCreateProposedBooking,
+  useUpdateProposedBooking,
+} from '@/hooks/useManageBooking';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
 import { useServiceManager } from '@/hooks/useServiceManager';
@@ -108,6 +113,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
     }
   );
   const { mutate: createProposed, isPending: isCreatingProposal } = useCreateProposedBooking();
+  const { mutate: updateProposed, isPending: isUpdatingProposal } = useUpdateProposedBooking();
 
   const initials = booking.customer.name
     .split(' ')
@@ -117,7 +123,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
     .toUpperCase();
 
   const availableStaff = staffData?.data || [];
-  const availableServices = servicesData?.data || [];
+  const availableServices = (servicesData?.data || []).filter(s => s.status !== 'PENDING');
 
   // Check if inspection report exists and if staff is already assigned
   const hasInspectionReport = detailBooking?.booking?.inspectionReport !== undefined;
@@ -181,21 +187,42 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
       quantity: s.quantity,
     }));
 
-    createProposed(
-      {
-        bookingId: booking.id,
-        notes: notes.trim(),
-        services,
-      },
-      {
-        onSuccess: () => {
-          setNotes('');
-          setSelectedServices([]);
-          setActiveTab('details');
-          onStaffAssigned?.();
+    const existingProposal = detailBooking?.booking?.Proposal;
+    const existingProposalId = existingProposal?.id as number | undefined;
+
+    if (existingProposalId) {
+      updateProposed(
+        {
+          proposalId: existingProposalId,
+          notes: notes.trim(),
+          services,
         },
-      }
-    );
+        {
+          onSuccess: () => {
+            setNotes('');
+            setSelectedServices([]);
+            setActiveTab('details');
+            onStaffAssigned?.();
+          },
+        }
+      );
+    } else {
+      createProposed(
+        {
+          bookingId: booking.id,
+          notes: notes.trim(),
+          services,
+        },
+        {
+          onSuccess: () => {
+            setNotes('');
+            setSelectedServices([]);
+            setActiveTab('details');
+            onStaffAssigned?.();
+          },
+        }
+      );
+    }
   };
 
   const totalAmount = selectedServices.reduce((total, s) => {
@@ -203,6 +230,58 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
   }, 0);
 
   const isProposalFormValid = selectedServices.length > 0;
+  const isSubmittingProposal = isCreatingProposal || isUpdatingProposal;
+
+  // Aggregate proposal items by service to avoid duplicates (e.g., rejected + newly added)
+  type ProposalType = NonNullable<DetailBookingResponse['booking']['Proposal']>;
+  type ProposalItem = ProposalType['ProposalItem'][number];
+  const rawProposalItems: ProposalItem[] = Array.isArray(
+    detailBooking?.booking?.Proposal?.ProposalItem
+  )
+    ? (detailBooking?.booking?.Proposal?.ProposalItem as ProposalItem[])
+    : [];
+
+  // Determine the latest proposal by proposalId using newest createdAt among its items
+  const itemsByProposal = new Map<number, ProposalItem[]>();
+  rawProposalItems.forEach(item => {
+    const list = itemsByProposal.get(item.proposalId) ?? [];
+    list.push(item);
+    itemsByProposal.set(item.proposalId, list);
+  });
+
+  let lastProposalId: number | null = null;
+  let lastProposalTime = -Infinity;
+  itemsByProposal.forEach((items, pid) => {
+    const maxTime = Math.max(...items.map(it => new Date(it.createdAt).getTime()));
+    if (maxTime > lastProposalTime) {
+      lastProposalTime = maxTime;
+      lastProposalId = pid;
+    }
+  });
+
+  const lastProposalItems: ProposalItem[] =
+    lastProposalId !== null ? (itemsByProposal.get(lastProposalId) ?? []) : [];
+
+  // Within the latest proposal, take only the most recent snapshot (items with max createdAt)
+  const lastMaxTime = lastProposalItems.reduce(
+    (max, it) => Math.max(max, new Date(it.createdAt).getTime()),
+    -Infinity
+  );
+  const lastSnapshotItems = lastProposalItems.filter(
+    it => new Date(it.createdAt).getTime() === lastMaxTime
+  );
+  // Deduplicate by serviceId in that snapshot (prefer larger id if duplicated)
+  const dedupMap = new Map<number, ProposalItem>();
+  lastSnapshotItems.forEach(it => {
+    const existing = dedupMap.get(it.serviceId);
+    if (!existing || (it.id ?? 0) > (existing.id ?? 0)) {
+      dedupMap.set(it.serviceId, it);
+    }
+  });
+  const proposalDisplayItems = Array.from(dedupMap.values()).map(item => ({
+    item,
+    totalQuantity: item.quantity,
+  }));
 
   const handleAssignStaff = () => {
     if (!selectedStaffId) {
@@ -469,7 +548,13 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                         <div className="flex items-center gap-3">
                           <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
                             {booking.category.logo ? (
-                              <Image src={booking.category.logo} alt="" className="w-8 h-8" />
+                              <Image
+                                src={booking.category.logo}
+                                alt=""
+                                className="w-8 h-8"
+                                width={100}
+                                height={100}
+                              />
                             ) : (
                               <div className="w-8 h-8 bg-gray-300 rounded" />
                             )}
@@ -727,67 +812,42 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                               Dịch vụ được thêm vào
                             </h4>
                             <div className="p-3 border rounded-lg">
-                              <div className="space-y-3">
-                                <div className="flex justify-between items-start">
-                                  <div>
-                                    {Array.isArray(detailBooking?.booking.Proposal?.ProposalItem) &&
-                                      detailBooking.booking.Proposal.ProposalItem.map(
-                                        (item, idx) => (
-                                          <div key={item.id ?? idx}>
-                                            <p className="font-medium">
-                                              {item.Service?.name ?? ''}
-                                            </p>
-                                          </div>
-                                        )
-                                      )}
-                                  </div>
-                                </div>
-
-                                <div>
-                                  <div className="space-y-1">
-                                    {Array.isArray(detailBooking?.booking.Proposal?.ProposalItem) &&
-                                      detailBooking.booking.Proposal.ProposalItem.map(
-                                        (item, idx) => (
-                                          <p className="text-sm" key={item.id ?? idx}>
-                                            {typeof item.Service?.basePrice === 'number'
-                                              ? `Giá cơ bản: ${item.Service.basePrice.toLocaleString()}`
-                                              : 'Không có thông tin giá'}
-                                          </p>
-                                        )
-                                      )}
-                                  </div>
-                                </div>
-
-                                {Array.isArray(detailBooking?.booking.Proposal?.ProposalItem) &&
-                                  detailBooking.booking.Proposal.ProposalItem.some(
-                                    item =>
-                                      Array.isArray(item.Service?.images) &&
-                                      item.Service.images.length > 0
-                                  ) && (
-                                    <div>
-                                      <p className="text-sm mb-2">Hình ảnh dịch vụ:</p>
-                                      <div className="grid grid-cols-2 gap-2">
-                                        {detailBooking.booking.Proposal.ProposalItem.flatMap(
-                                          item =>
-                                            Array.isArray(item.Service?.images)
-                                              ? item.Service.images
-                                              : []
-                                        ).map((image, index) => (
-                                          <div
-                                            key={index}
-                                            className="relative aspect-square rounded-lg overflow-hidden bg-gray-100"
-                                          >
-                                            <Image
-                                              src={image}
-                                              alt={`Service ${index + 1}`}
-                                              fill
-                                              className="object-cover"
-                                            />
-                                          </div>
-                                        ))}
+                              <div className="grid gap-3 sm:grid-cols-2">
+                                {proposalDisplayItems.map(({ item, totalQuantity }, idx) => {
+                                  const firstImage = Array.isArray(item.Service?.images)
+                                    ? item.Service?.images[0]
+                                    : undefined;
+                                  return (
+                                    <div
+                                      key={item.id ?? idx}
+                                      className="flex gap-3 p-3 border rounded-lg"
+                                    >
+                                      <div className="relative w-20 h-20 rounded-md overflow-hidden bg-gray-100">
+                                        {firstImage ? (
+                                          <Image
+                                            src={firstImage}
+                                            alt={item.Service?.name ?? ''}
+                                            fill
+                                            className="object-cover"
+                                          />
+                                        ) : (
+                                          <div className="w-full h-full bg-gray-200" />
+                                        )}
+                                      </div>
+                                      <div className="flex-1">
+                                        <p className="font-medium">{item.Service?.name ?? ''}</p>
+                                        <p className="text-sm text-gray-600">
+                                          {typeof item.Service?.basePrice === 'number'
+                                            ? `Giá cơ bản: ${item.Service.basePrice.toLocaleString('vi-VN')}đ`
+                                            : 'Không có thông tin giá'}
+                                        </p>
+                                        <p className="text-xs text-gray-500">
+                                          Số lượng: {totalQuantity}
+                                        </p>
                                       </div>
                                     </div>
-                                  )}
+                                  );
+                                })}
                               </div>
                             </div>
                           </div>
@@ -1054,18 +1114,22 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                           <div className="flex gap-3">
                             <Button
                               type="submit"
-                              disabled={!isProposalFormValid || isCreatingProposal}
+                              disabled={!isProposalFormValid || isSubmittingProposal}
                               className="flex-1"
                             >
-                              {isCreatingProposal ? (
+                              {isSubmittingProposal ? (
                                 <>
                                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                  Đang tạo đề xuất...
+                                  {detailBooking?.booking?.Proposal?.id
+                                    ? 'Đang cập nhật đề xuất...'
+                                    : 'Đang tạo đề xuất...'}
                                 </>
                               ) : (
                                 <>
                                   <FileText className="h-4 w-4 mr-2" />
-                                  Tạo đề xuất ({selectedServices.length} dịch vụ)
+                                  {detailBooking?.booking?.Proposal?.id
+                                    ? `Cập nhật đề xuất (${selectedServices.length} dịch vụ)`
+                                    : `Tạo đề xuất (${selectedServices.length} dịch vụ)`}
                                 </>
                               )}
                             </Button>
@@ -1073,7 +1137,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                               type="button"
                               variant="outline"
                               onClick={() => setActiveTab('details')}
-                              disabled={isCreatingProposal}
+                              disabled={isSubmittingProposal}
                             >
                               Hủy
                             </Button>
@@ -1092,7 +1156,13 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
         <div className="flex items-center gap-2 mb-3">
           <div className="w-6 h-6 bg-gray-100 rounded flex items-center justify-center">
             {booking.category.logo ? (
-              <Image src={booking.category.logo} alt="" className="w-4 h-4" />
+              <Image
+                src={booking.category.logo}
+                alt=""
+                className="w-4 h-4"
+                width={100}
+                height={100}
+              />
             ) : (
               <div className="w-4 h-4 bg-gray-300 rounded" />
             )}

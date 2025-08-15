@@ -9,6 +9,9 @@ import { formatCurrency } from '@/utils/numbers/formatCurrency';
 import { Service } from '@/lib/api/services/fetchService';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useState } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import { AuthDialog } from '@/components/ui/auth-dialog';
 
 interface ProviderInfoProps {
   providerProfile: {
@@ -22,8 +25,14 @@ export default function ProviderInfo({ providerProfile, service }: ProviderInfoP
   const { user, serviceProvider } = providerProfile;
   const initials = getNameFallback(user.name || 'User');
   const router = useRouter();
+  const { isAuthenticated } = useAuth();
+  const [authDialogOpen, setAuthDialogOpen] = useState(false);
 
   const handleBookingClick = () => {
+    if (!isAuthenticated) {
+      setAuthDialogOpen(true);
+      return;
+    }
     if (service?.id) {
       router.push(`/booking/${service.id}`);
     }
@@ -65,6 +74,9 @@ export default function ProviderInfo({ providerProfile, service }: ProviderInfoP
             Đặt lịch hẹn
           </Button>
         </div>
+
+        {/* Auth Dialog */}
+        <AuthDialog open={authDialogOpen} onOpenChange={setAuthDialogOpen} />
 
         {/* Provider Info */}
         <div className="space-y-4 pt-4 border-t">

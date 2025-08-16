@@ -129,6 +129,192 @@ export const getStatisticsRolesUserResponseSchema = buildPaginationResponseSchem
   getStatisticsRolesUserSchema
 );
 
+export const assignRoleToUserResponseSchema = z.object({
+  success: z.boolean(),
+  code: z.string(),
+  message: z.string(),
+  data: z.array(
+    z.object({
+      id: z.number(),
+      name: z.string(),
+    })
+  ),
+  statusCode: z.number(),
+});
+
+export const assginRoleToUserRequestSchema = z.object({
+  roleIds: z.array(z.number()),
+});
+
+export const resetPasswordUserRequestSchema = z.object({
+  newPassword: z.string(),
+  confirmPassword: z.string(),
+});
+
+export const resetPasswordUserResponseSchema = z.object({
+  success: z.boolean(),
+  code: z.string(),
+  message: z.string(),
+  statusCode: z.number(),
+  data: z.object({
+    id: z.number(),
+    email: z.string(),
+    name: z.string(),
+    phone: z.string(),
+    avatar: z.string(),
+    status: z.string(),
+    createdAt: z.string(),
+    updatedAt: z.string(),
+    deletedAt: z.string().nullable(),
+    roles: z.array(
+      z.object({
+        id: z.number(),
+        name: z.string(),
+      })
+    ),
+  }),
+});
+
+export const getAllRoleResponseSchema = z.object({
+  success: z.boolean(),
+  code: z.string(),
+  message: z.string(),
+  statusCode: z.number(),
+  data: z.object({
+    data: z.array(
+      z.object({
+        id: z.number(),
+        name: z.string(),
+        createdAt: z.string(),
+        updatedAt: z.string(),
+        permissions: z.array(
+          z.object({
+            id: z.number(),
+            name: z.string(),
+            description: z.string().nullable(),
+            path: z.string(),
+            method: z.string(),
+            module: z.string(),
+          })
+        ),
+      })
+    ),
+    total: z.number(),
+    page: z.number(),
+    limit: z.number(),
+    totalPages: z.number(),
+    hasNext: z.boolean(),
+    hasPrev: z.boolean(),
+  }),
+});
+
+export const createRoleRequestSchema = z.object({
+  name: z.string(),
+});
+
+export const createRoleResponseSchema = z.object({
+  success: z.boolean(),
+  code: z.string(),
+  message: z.string(),
+  statusCode: z.number(),
+  data: z.object({
+    id: z.number(),
+    name: z.string(),
+    createdAt: z.string(),
+    updatedAt: z.string(),
+    permissions: z.array(
+      z.object({
+        id: z.number(),
+        name: z.string(),
+        description: z.string().nullable(),
+        path: z.string(),
+        method: z.string(),
+        module: z.string(),
+      })
+    ),
+    userCount: z.number(),
+  }),
+});
+
+export const getRoleByIdResponseSchema = z.object({
+  success: z.boolean(),
+  code: z.string(),
+  message: z.string(),
+  statusCode: z.number(),
+});
+
+export const getPermissionByRoleIdSchema = z.object({
+  success: z.boolean(),
+  code: z.string(),
+  message: z.string(),
+  statusCode: z.number(),
+  data: z.object({
+    data: z.array(
+      z.object({
+        id: z.number(),
+        name: z.string(),
+        description: z.string().nullable(),
+        path: z.string(),
+        method: z.string(),
+        module: z.string(),
+        createdAt: z.string(),
+        updatedAt: z.string(),
+      })
+    ),
+  }),
+});
+
+export const assignPermissionToRoleRequestSchema = z.object({
+  permissionIds: z.array(z.number()),
+});
+
+export const assignPermissionToRoleResponseSchema = z.object({
+  success: z.boolean(),
+  code: z.string(),
+  message: z.string(),
+  statusCode: z.number(),
+});
+
+export const getAllPermissionResponseSchema = z.object({
+  success: z.boolean(),
+  code: z.string(),
+  message: z.string(),
+  statusCode: z.number(),
+  data: z.object({
+    data: z.array(
+      z.object({
+        id: z.number(),
+        name: z.string(),
+        description: z.string().nullable(),
+        path: z.string(),
+        method: z.string(),
+        module: z.string(),
+        createdAt: z.string(),
+        updatedAt: z.string(),
+      })
+    ),
+    page: z.number(),
+    limit: z.number(),
+    total: z.number(),
+    hasNext: z.boolean(),
+    hasPrev: z.boolean(),
+  }),
+});
+
+export type GetAllPermissionResponseType = z.infer<typeof getAllPermissionResponseSchema>;
+export type AssignPermissionToRoleResponseType = z.infer<
+  typeof assignPermissionToRoleResponseSchema
+>;
+export type AssignPermissionToRoleRequestType = z.infer<typeof assignPermissionToRoleRequestSchema>;
+export type GetPermissionByRoleIdType = z.infer<typeof getPermissionByRoleIdSchema>;
+export type GetRoleByIdResponseType = z.infer<typeof getRoleByIdResponseSchema>;
+export type CreateRoleResponseType = z.infer<typeof createRoleResponseSchema>;
+export type CreateRoleRequestType = z.infer<typeof createRoleRequestSchema>;
+export type GetAllRoleResponseType = z.infer<typeof getAllRoleResponseSchema>;
+export type ResetPasswordUserRequestType = z.infer<typeof resetPasswordUserRequestSchema>;
+export type ResetPasswordUserResponseType = z.infer<typeof resetPasswordUserResponseSchema>;
+export type AssignRoleToUserResponseType = z.infer<typeof assignRoleToUserResponseSchema>;
+export type AssginRoleToUserRequestType = z.infer<typeof assginRoleToUserRequestSchema>;
 export type GetAllUsersResponseType = z.infer<typeof getAllUsersResponseSchema>;
 export type UserResponseType = z.infer<typeof userResponseSchema>;
 export type GetUserByIdResponseType = z.infer<typeof getUserByIdResponseSchema>;

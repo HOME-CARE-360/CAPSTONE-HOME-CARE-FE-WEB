@@ -87,8 +87,6 @@ export default function ManageUserPage() {
     });
   };
 
-  console.log('usersData?.data?.data: ', usersData);
-
   return (
     <>
       <SiteHeader title="Quản lý người dùng" />

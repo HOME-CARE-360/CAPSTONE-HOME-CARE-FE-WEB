@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { House, Package, UserRoundPen, UsersIcon } from 'lucide-react';
+import { House, Package, UsersIcon } from 'lucide-react';
 import { NavMain } from '@/components/common/navMain';
 import { SiteSideFooter } from '@/app/(provider)/components/SiteSideFooter';
 import {
@@ -53,11 +53,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         url: '/provider/manage-booking',
         icon: UsersIcon,
       },
-      {
-        title: 'Hòm thư',
-        url: '/provider/manage-feedback-review',
-        icon: UserRoundPen,
-      },
+      // {
+      //   title: 'Hòm thư',
+      //   url: '/provider/manage-feedback-review',
+      //   icon: UserRoundPen,
+      // },
     ],
   };
 

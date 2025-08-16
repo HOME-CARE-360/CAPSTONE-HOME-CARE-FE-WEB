@@ -46,9 +46,9 @@ const serviceTypes = [
 ];
 const myServices = [
   {
-    title: 'Dịch vụ của tôi',
+    title: 'Dịch vụ yêu thích của tôi',
     href: '/settings/favorites',
-    description: 'Xem dịch vụ của tôi',
+    description: 'Xem dịch vụ yêu thích của tôi',
     icon: HomeIcon,
     color: 'text-red-500',
   },

@@ -33,6 +33,10 @@ export function useServiceManagerDetail(id: number | null) {
     queryKey: ['service-manager', 'detail', id],
     queryFn: () => (id ? serviceManagerService.getService(id) : Promise.resolve(null)),
     enabled: !!id,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnReconnect: 'always',
+    refetchOnWindowFocus: false,
   });
 }
 

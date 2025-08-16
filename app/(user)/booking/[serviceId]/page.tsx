@@ -266,9 +266,9 @@ const paymentMethods = [
     icon: <Building2 className="h-5 w-5" />,
   },
   {
-    value: 'CREDIT_CARD' as const,
-    label: 'Thẻ tín dụng',
-    description: 'Thanh toán bằng thẻ tín dụng',
+    value: 'WALLET' as const,
+    label: 'VÍ',
+    description: 'Thanh toán bằng ví',
     icon: <CreditCard className="h-5 w-5" />,
   },
 ];
@@ -669,7 +669,7 @@ export default function NewBookingPage() {
                         <div className="flex items-center gap-6">
                           <div className="flex items-center gap-2">
                             <Badge variant="secondary" className="text-lg px-4 py-2">
-                              {formatCurrency(serviceData?.service?.basePrice || 0)}
+                              {formatCurrency(serviceData?.service?.virtualPrice || 0)}
                             </Badge>
                           </div>
                           <div className="flex items-center gap-2 text-muted-foreground">
@@ -1080,7 +1080,7 @@ export default function NewBookingPage() {
                         <div className="flex justify-between items-center text-2xl font-bold">
                           <span>Tổng cộng:</span>
                           <span className="text-primary">
-                            {formatCurrency(serviceData.service.basePrice)}
+                            {formatCurrency(serviceData.service.virtualPrice)}
                           </span>
                         </div>
                         <p className="text-xs text-muted-foreground mt-2">

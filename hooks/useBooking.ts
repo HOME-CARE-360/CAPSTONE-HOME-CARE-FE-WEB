@@ -3,7 +3,7 @@ import {
   CreateBookingRequest,
   serviceBooking,
   StaffBookingResponse,
-  DetailBookingResponse,
+  GetDetailBookingResponse,
   CreateReportRequest,
   CreateReportResponse,
   GetReportResponse,
@@ -22,7 +22,7 @@ export const useAllBookings = () => {
 };
 
 export const useDetailBooking = (id: number, options?: { enabled?: boolean }) => {
-  const { data, isLoading, error } = useQuery<DetailBookingResponse, Error>({
+  const { data, isLoading, error } = useQuery<GetDetailBookingResponse, Error>({
     queryKey: ['booking-detail', id],
     queryFn: async () => {
       const response = await serviceBooking.getDetailBooking(id);
@@ -30,7 +30,7 @@ export const useDetailBooking = (id: number, options?: { enabled?: boolean }) =>
       if (typeof response !== 'object' || response === null) {
         throw new Error('Invalid booking detail response');
       }
-      return response as DetailBookingResponse;
+      return response as GetDetailBookingResponse;
     },
     enabled: options?.enabled !== undefined ? options.enabled : !!id,
   });

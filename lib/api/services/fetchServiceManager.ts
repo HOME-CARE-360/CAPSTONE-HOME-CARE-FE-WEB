@@ -32,6 +32,25 @@ export interface AttachedItem {
   price: number;
   quantity: number;
 }
+
+// Detail response shapes (different from list)
+export interface AttachedItemDetail {
+  serviceItem: ServiceItem;
+}
+
+export interface ServiceManagerDetail {
+  name: string;
+  basePrice: number;
+  virtualPrice: number;
+  images: string[];
+  durationMinutes: number;
+  description: string;
+  publishedAt: string;
+  attachedItems: AttachedItemDetail[];
+  category: Pick<Category, 'name' | 'logo'>;
+  createdAt: string;
+  updatedAt: string;
+}
 export interface ServiceItem {
   id: number;
   name: string;
@@ -163,7 +182,7 @@ export interface ServiceItemUpdateResponse {
 }
 
 export interface ServiceManagerDetailResponse {
-  data: ServiceManager;
+  data: ServiceManagerDetail;
   message: string;
 }
 

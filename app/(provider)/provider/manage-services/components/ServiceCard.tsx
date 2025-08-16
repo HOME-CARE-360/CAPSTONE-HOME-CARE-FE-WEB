@@ -43,10 +43,7 @@ export function ServiceCard({
   const [isImageLoading, setIsImageLoading] = useState(true);
   const { mutate: deleteService, isPending: isDeleting } = useDeleteService();
 
-  const isDiscounted = service.virtualPrice > service.basePrice;
-  const discountPercent = isDiscounted
-    ? Math.round(((service.virtualPrice - service.basePrice) / service.virtualPrice) * 100)
-    : 0;
+  const isDiscounted = service.virtualPrice < service.basePrice;
 
   const handleMouseEnter = () => {
     setIsHovered(true);
@@ -139,17 +136,6 @@ export function ServiceCard({
               {service.category.name}
             </Badge>
           )}
-          {isDiscounted && (
-            <Badge
-              variant="outline"
-              className={cn(
-                'bg-red-500 text-white border-red-500 backdrop-blur-sm z-10',
-                size === 'sm' && 'text-[10px] px-2 py-0.5'
-              )}
-            >
-              -{discountPercent}%
-            </Badge>
-          )}
           {service.status === StatusService.PENDING && (
             <Badge
               variant="outline"
@@ -219,10 +205,10 @@ export function ServiceCard({
         <div className="flex justify-between items-center">
           <div>
             <p className={cn('text-xl font-semibold', size === 'sm' && 'text-base')}>
-              {formatCurrency(service.basePrice)}
+              {formatCurrency(service.virtualPrice)}
               {isDiscounted && (
                 <span className="text-sm text-gray-400 line-through ml-2">
-                  {formatCurrency(service.virtualPrice)}
+                  {formatCurrency(service.basePrice)}
                 </span>
               )}
             </p>

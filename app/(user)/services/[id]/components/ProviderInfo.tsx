@@ -48,17 +48,22 @@ export default function ProviderInfo({ providerProfile, service }: ProviderInfoP
         {service && (
           <div className="space-y-3">
             <div className="text-center">
-              <div className="flex items-end">
+              <div className="flex items-baseline justify-start gap-2">
                 <div className="text-2xl md:text-3xl font-medium text-foreground">
-                  {formatCurrency(service.basePrice)}
-                </div>
-                {/* {service.basePrice > service.virtualPrice && (
-                <div className="text-2xl md:text-3xl font-medium mb-2 text-foreground">
                   {formatCurrency(service.virtualPrice)}
                 </div>
-              )} */}
                 <div className="text-sm text-muted-foreground">/{service.durationMinutes} phút</div>
               </div>
+              {service.basePrice > service.virtualPrice && (
+                <div className="flex items-baseline justify-start gap-2">
+                  <div className="text-sm font-medium text-foreground line-through">
+                    {formatCurrency(service.basePrice)}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    /{service.durationMinutes} phút
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}

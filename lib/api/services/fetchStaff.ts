@@ -142,7 +142,9 @@ export interface ItemsService {
     id: number;
     name: string;
     basePrice: number;
+    virtualPrice: number;
     durationMinutes: number;
+    serviceItems: string[];
   };
 }
 

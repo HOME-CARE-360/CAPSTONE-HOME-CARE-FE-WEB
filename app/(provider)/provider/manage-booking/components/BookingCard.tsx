@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Booking } from '@/lib/api/services/fetchManageBooking';
-import type { DetailBookingResponse } from '@/lib/api/services/fetchBooking';
+import type { GetDetailBookingResponse } from '@/lib/api/services/fetchBooking';
 import { useDetailBooking } from '@/hooks/useBooking';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -126,8 +126,8 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
   const availableServices = (servicesData?.data || []).filter(s => s.status !== 'PENDING');
 
   // Check if inspection report exists and if staff is already assigned
-  const hasInspectionReport = detailBooking?.booking?.inspectionReport !== undefined;
-  const hasStaffAssigned = detailBooking?.booking?.staff !== undefined;
+  const hasInspectionReport = !!detailBooking?.booking?.inspectionReport;
+  const hasStaffAssigned = !!detailBooking?.booking?.staff;
 
   // Check if booking is in progress
   const isInProgress = booking.status === 'IN_PROGRESS';
@@ -140,9 +140,12 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
     booking.status === 'ESTIMATED' ||
     detailBooking?.booking?.Proposal?.status === 'REJECTED';
 
+  // Hide quick actions and proposal tab when booking is pending
+  const shouldShowQuickActions = shouldShowProposalTab && !isPending;
+
   // Determine if we should show staff assignment section
-  // Show staff assignment for pending bookings OR when no staff is assigned
-  const shouldShowStaffAssignment = isPending || !hasStaffAssigned;
+  // Show staff assignment only when booking is pending AND no staff is assigned
+  const shouldShowStaffAssignment = isPending && !hasStaffAssigned;
 
   // Check if this is a pending booking that needs immediate attention
   const needsStaffAssignment = isPending && !hasStaffAssigned;
@@ -188,6 +191,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
     }));
 
     const existingProposal = detailBooking?.booking?.Proposal;
+    const bookingIdForProposal = detailBooking?.booking?.id;
     const existingProposalId = existingProposal?.id as number | undefined;
 
     if (existingProposalId) {
@@ -207,9 +211,13 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
         }
       );
     } else {
+      if (!bookingIdForProposal) {
+        toast.error('Không tìm thấy mã booking để tạo đề xuất');
+        return;
+      }
       createProposed(
         {
-          bookingId: booking.id,
+          bookingId: bookingIdForProposal,
           notes: notes.trim(),
           services,
         },
@@ -226,14 +234,14 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
   };
 
   const totalAmount = selectedServices.reduce((total, s) => {
-    return total + (s.service?.basePrice || 0) * s.quantity;
+    return total + (s.service?.virtualPrice || 0) * s.quantity;
   }, 0);
 
   const isProposalFormValid = selectedServices.length > 0;
   const isSubmittingProposal = isCreatingProposal || isUpdatingProposal;
 
   // Aggregate proposal items by service to avoid duplicates (e.g., rejected + newly added)
-  type ProposalType = NonNullable<DetailBookingResponse['booking']['Proposal']>;
+  type ProposalType = NonNullable<GetDetailBookingResponse['booking']['Proposal']>;
   type ProposalItem = ProposalType['ProposalItem'][number];
   const rawProposalItems: ProposalItem[] = Array.isArray(
     detailBooking?.booking?.Proposal?.ProposalItem
@@ -451,10 +459,10 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                 {!isLoadingDetail && (
                   <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                     <TabsList
-                      className={`grid w-full ${shouldShowProposalTab ? 'grid-cols-2' : 'grid-cols-1'}`}
+                      className={`grid w-full ${shouldShowQuickActions ? 'grid-cols-2' : 'grid-cols-1'}`}
                     >
                       <TabsTrigger value="details">Chi tiết & Phân công</TabsTrigger>
-                      {shouldShowProposalTab && (
+                      {shouldShowQuickActions && (
                         <TabsTrigger value="proposal">
                           {detailBooking?.booking?.Proposal?.status === 'REJECTED'
                             ? 'Đề xuất lại'
@@ -571,7 +579,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                       {/* Actions */}
                       <div className="space-y-4">
                         {/* Quick Actions */}
-                        {shouldShowProposalTab && (
+                        {shouldShowQuickActions && (
                           <div className="space-y-3">
                             <h4 className="text-sm font-medium text-gray-700">Hành động nhanh</h4>
                             <Button
@@ -591,7 +599,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                           </div>
                         )}
 
-                        {shouldShowProposalTab && <Separator />}
+                        {shouldShowQuickActions && <Separator />}
 
                         {/* Staff Assignment - Always show for pending bookings */}
                         {shouldShowStaffAssignment && (
@@ -837,8 +845,8 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                                       <div className="flex-1">
                                         <p className="font-medium">{item.Service?.name ?? ''}</p>
                                         <p className="text-sm text-gray-600">
-                                          {typeof item.Service?.basePrice === 'number'
-                                            ? `Giá cơ bản: ${item.Service.basePrice.toLocaleString('vi-VN')}đ`
+                                          {typeof item.Service?.virtualPrice === 'number'
+                                            ? `Giá cơ bản: ${item.Service.virtualPrice.toLocaleString('vi-VN')}đ`
                                             : 'Không có thông tin giá'}
                                         </p>
                                         <p className="text-xs text-gray-500">
@@ -855,7 +863,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                       </div>
                     </TabsContent>
 
-                    {shouldShowProposalTab && (
+                    {shouldShowQuickActions && (
                       <TabsContent value="proposal" className="mt-6 space-y-6">
                         {/* Proposal Form */}
                         <form onSubmit={handleSubmitProposal} className="space-y-6">
@@ -997,7 +1005,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                                           </p>
                                           <div className="flex items-center gap-2 mt-2">
                                             <Badge variant="secondary" className="text-xs">
-                                              {service.basePrice.toLocaleString('vi-VN')}đ
+                                              {service.virtualPrice.toLocaleString('vi-VN')}đ
                                             </Badge>
                                             <span className="text-xs text-gray-500">
                                               {service.durationMinutes} phút
@@ -1036,7 +1044,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                                           {item.service?.name}
                                         </h4>
                                         <p className="text-sm text-gray-600">
-                                          {item.service?.basePrice.toLocaleString('vi-VN')}đ x{' '}
+                                          {item.service?.virtualPrice.toLocaleString('vi-VN')}đ x{' '}
                                           {item.quantity}
                                         </p>
                                       </div>

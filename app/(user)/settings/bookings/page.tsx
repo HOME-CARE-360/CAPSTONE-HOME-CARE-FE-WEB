@@ -114,10 +114,24 @@ const ProposalSection = ({
     return <div className="text-sm text-muted-foreground">Chưa có đề xuất dịch vụ.</div>;
   }
 
-  const totalAmount = proposal.items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
+  const normalizeQuantity = (q: unknown): number => {
+    return typeof q === 'number' ? q : typeof q === 'string' ? parseInt(q, 10) || 0 : 0;
+  };
+
+  const sortedItems = Array.isArray(proposal.ProposalItem)
+    ? [...proposal.ProposalItem].sort(
+        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      )
+    : [];
+
+  const lastProposalItem = sortedItems.length > 0 ? sortedItems[sortedItems.length - 1] : undefined;
+
+  const totalAmount = lastProposalItem
+    ? (lastProposalItem.Service?.virtualPrice ?? 0) * normalizeQuantity(lastProposalItem.quantity)
+    : 0;
 
   const isPaid = transactionStatus?.toUpperCase() === 'PAID';
-  const canShowActions = bookingStatus?.toUpperCase() === 'PENDING' && !isPaid;
+  const canShowActions = bookingStatus?.toUpperCase() === 'CONFIRMED' && !isPaid;
 
   return (
     <div className="space-y-3">
@@ -141,22 +155,44 @@ const ProposalSection = ({
 
         {proposal.notes && <p className="mt-2 text-sm text-muted-foreground">{proposal.notes}</p>}
 
-        <div className="mt-3 divide-y rounded-md border bg-background">
-          {proposal.items.map(item => (
-            <div
-              key={item.id}
-              className="flex items-center justify-between gap-3 px-3 py-2 text-sm"
-            >
-              <div className="flex-1 pr-2 truncate">
-                <span className="font-medium">{item.serviceName}</span>
-                <span className="text-muted-foreground"> × {item.quantity}</span>
+        {sortedItems && sortedItems.length > 0 ? (
+          <div className="mt-3 space-y-3">
+            {sortedItems.map((item, index) => (
+              <div key={item.id} className="rounded-md border bg-background p-3">
+                <div className="flex items-center justify-between gap-3 text-sm">
+                  <div className="flex-1 pr-2 truncate">
+                    <span className="font-medium">{item.Service?.name ?? 'Dịch vụ'}</span>
+                    <span className="text-muted-foreground">
+                      {' '}
+                      × {normalizeQuantity(item.quantity)}
+                    </span>
+                  </div>
+                  <div className="whitespace-nowrap font-medium">
+                    {formatCurrency(
+                      (item.Service?.virtualPrice ?? 0) * normalizeQuantity(item.quantity)
+                    )}
+                  </div>
+                </div>
+                <div className="mt-1 text-xs text-muted-foreground flex items-center gap-1">
+                  <ClockIcon className="h-3 w-3" />
+                  <span>
+                    {`Đề xuất ${index + 1}`} · {formatDate(item.createdAt)}
+                  </span>
+                </div>
               </div>
-              <div className="whitespace-nowrap font-medium">
-                {formatCurrency(item.unitPrice * item.quantity)}
+            ))}
+            {lastProposalItem && (
+              <div className="flex items-center justify-between text-xs text-muted-foreground border-t pt-2">
+                <span>Đề xuất gần nhất</span>
+                <span>{formatDate(lastProposalItem.createdAt)}</span>
               </div>
-            </div>
-          ))}
-        </div>
+            )}
+          </div>
+        ) : (
+          <div className="mt-3 p-3 text-center text-sm text-muted-foreground border rounded-md bg-muted/20">
+            Không có mục dịch vụ nào
+          </div>
+        )}
 
         <div className="mt-3 flex items-center justify-between text-sm">
           <span className="text-muted-foreground">Tổng cộng</span>

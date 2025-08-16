@@ -1,7 +1,12 @@
 'use client';
 
 import { useState, Fragment } from 'react';
-import { useCustomerBooking, useGetUserProposal, useUpdateUserProposal } from '@/hooks/useUser';
+import {
+  useCustomerBooking,
+  useGetUserProposal,
+  useUpdateUserProposal,
+  useCancelServiceRequest,
+} from '@/hooks/useUser';
 import { CustomerBooking } from '@/lib/api/services/fetchUser';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -61,6 +66,32 @@ const getTransactionStatusConfig = (status: string) => {
     // REFUNDED: 'Đã hoàn tiền',
   };
   return map[status.toUpperCase()] || status;
+};
+
+// Translate Service Request status to Vietnamese
+const getServiceRequestStatusVi = (status: string) => {
+  const key = status?.toUpperCase?.() || '';
+  const map: Record<string, string> = {
+    ESTIMATED: 'Đang ước lượng',
+    PENDING: 'Chờ xử lý',
+    CONFIRMED: 'Đã xác nhận',
+    ACCEPTED: 'Đã chấp nhận',
+    REJECTED: 'Từ chối',
+    IN_PROGRESS: 'Đang thực hiện',
+    COMPLETED: 'Hoàn thành',
+    CANCELLED: 'Đã hủy',
+  };
+  return map[key] || status;
+};
+
+// Translate payment method to Vietnamese
+const getPaymentMethodVi = (method: string) => {
+  const key = method?.toUpperCase?.() || '';
+  const map: Record<string, string> = {
+    BANK_TRANSFER: 'Chuyển khoản ngân hàng',
+    WALLET: 'Ví',
+  };
+  return map[key] || method;
 };
 
 // Strong types for bookings derived from API types
@@ -313,6 +344,7 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
   const imageUrls = watch('imageUrls');
   const { mutate: createReport, isPending: isReporting } = useCreateReport();
   const { mutateAsync: uploadImage, isPending: isUploading } = useUploadImage();
+  const { mutate: cancelServiceRequest, isPending: isCancelling } = useCancelServiceRequest();
 
   const handleUpload = async (file: File): Promise<string> => {
     const res = await uploadImage(file);
@@ -339,7 +371,7 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
   };
 
   return (
-    <Card className="overflow-hidden hover:shadow-md transition-shadow">
+    <Card className="overflow-hidden hover:shadow-md transition-shadow break-inside-avoid mb-4">
       <CardHeader className="pb-3">
         <div className="flex justify-between items-start">
           <div className="space-y-1">
@@ -359,6 +391,24 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
+            {booking.ServiceRequest?.status?.toUpperCase() === 'PENDING' && (
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={isCancelling}
+                onClick={() => cancelServiceRequest({ serviceRequestId: booking.serviceRequestId })}
+                aria-label="Hủy yêu cầu dịch vụ"
+              >
+                {isCancelling ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="animate-spin h-4 w-4" />
+                    Đang hủy...
+                  </span>
+                ) : (
+                  'Hủy yêu cầu'
+                )}
+              </Button>
+            )}
             {booking.status?.toUpperCase() === 'COMPLETED' && (
               <Button
                 variant="outline"
@@ -449,7 +499,7 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Phương thức:</span>
                 {booking.Transaction?.method ? (
-                  booking.Transaction.method
+                  getPaymentMethodVi(booking.Transaction.method)
                 ) : (
                   <span className="text-muted-foreground">N/A</span>
                 )}
@@ -484,7 +534,9 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
               <div>
                 <span className="text-muted-foreground">Trạng thái:</span>
-                <p className="font-medium">{booking.ServiceRequest.status}</p>
+                <p className="font-medium">
+                  {getServiceRequestStatusVi(booking.ServiceRequest.status)}
+                </p>
               </div>
               <div>
                 <span className="text-muted-foreground">Danh mục:</span>
@@ -575,7 +627,7 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
 };
 
 const BookingSkeleton = () => (
-  <Card className="overflow-hidden animate-pulse">
+  <Card className="overflow-hidden animate-pulse break-inside-avoid mb-4">
     <CardHeader className="pb-3">
       <div className="flex justify-between items-start">
         <div className="space-y-2">
@@ -672,13 +724,13 @@ export default function BookingsPage() {
         {statuses.map(s => (
           <TabsContent key={s.key} value={s.key}>
             {isLoading ? (
-              <div className="grid md:grid-cols-2 gap-4">
-                {Array.from({ length: 4 }).map((_, i) => (
+              <div className="columns-1 md:columns-2 gap-4 [column-fill:_balance]">
+                {Array.from({ length: 6 }).map((_, i) => (
                   <BookingSkeleton key={i} />
                 ))}
               </div>
             ) : bookings.filter(s.filter).length > 0 ? (
-              <div className="grid md:grid-cols-2 gap-4">
+              <div className="columns-1 md:columns-2 gap-4 [column-fill:_balance]">
                 {bookings.filter(s.filter).map((b: BookingItem) => (
                   <BookingCard key={b.id} booking={b} />
                 ))}

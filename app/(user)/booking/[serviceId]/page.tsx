@@ -41,13 +41,44 @@ import { formatCurrency } from '@/utils/numbers/formatCurrency';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 
+// Type-safe helpers
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function getServiceCategoryName(service: unknown): string {
+  if (!isRecord(service)) return '';
+  const directName = service['categoryName'];
+  if (typeof directName === 'string' && directName.trim()) return directName;
+  const category = service['Category'];
+  if (isRecord(category) && typeof category['name'] === 'string') return category['name'];
+  if (Array.isArray(category) && category.length > 0) {
+    const first = category[0];
+    if (isRecord(first) && typeof first['name'] === 'string') return first['name'];
+  }
+  return '';
+}
+
+function getServiceCategoryId(service: unknown): number {
+  if (!isRecord(service)) return 0;
+  const directId = service['categoryId'];
+  if (typeof directId === 'number' && !Number.isNaN(directId)) return directId;
+  const category = service['Category'];
+  if (isRecord(category) && typeof category['id'] === 'number') return category['id'];
+  if (Array.isArray(category) && category.length > 0) {
+    const first = category[0];
+    if (isRecord(first) && typeof first['id'] === 'number') return first['id'];
+  }
+  return 0;
+}
+
 // Skeleton Components
 const ServiceInfoSkeleton = () => (
   <Card className="shadow-sm border-0">
     <CardHeader className="pb-6">
       <CardTitle className="flex items-center gap-3 text-xl">
-        <div className="p-2 rounded-lg bg-primary/10">
-          <Wrench className="h-6 w-6 text-primary" />
+        <div className="p-2 rounded-lg bg-muted">
+          <Wrench className="h-6 w-6 text-muted-foreground" />
         </div>
         <span>Thông tin dịch vụ</span>
       </CardTitle>
@@ -78,8 +109,8 @@ const CustomerInfoSkeleton = () => (
   <Card className="shadow-sm border-0">
     <CardHeader className="pb-6">
       <CardTitle className="flex items-center gap-3 text-xl">
-        <div className="p-2 rounded-lg bg-primary/10">
-          <User className="h-6 w-6 text-primary" />
+        <div className="p-2 rounded-lg bg-muted">
+          <User className="h-6 w-6 text-muted-foreground" />
         </div>
         <span>Thông tin khách hàng</span>
       </CardTitle>
@@ -103,8 +134,8 @@ const DateTimeLocationSkeleton = () => (
   <Card className="shadow-sm border-0">
     <CardHeader className="pb-6">
       <CardTitle className="flex items-center gap-3 text-xl">
-        <div className="p-2 rounded-lg bg-primary/10">
-          <CalendarIcon className="h-6 w-6 text-primary" />
+        <div className="p-2 rounded-lg bg-muted">
+          <CalendarIcon className="h-6 w-6 text-muted-foreground" />
         </div>
         <span>Thời gian và địa điểm</span>
       </CardTitle>
@@ -147,8 +178,8 @@ const PaymentMethodSkeleton = () => (
   <Card className="shadow-sm border-0">
     <CardHeader className="pb-6">
       <CardTitle className="flex items-center gap-3 text-xl">
-        <div className="p-2 rounded-lg bg-primary/10">
-          <CreditCard className="h-6 w-6 text-primary" />
+        <div className="p-2 rounded-lg bg-muted">
+          <CreditCard className="h-6 w-6 text-muted-foreground" />
         </div>
         <span>Phương thức thanh toán</span>
       </CardTitle>
@@ -176,8 +207,8 @@ const NotesSkeleton = () => (
   <Card className="shadow-sm border-0">
     <CardHeader className="pb-6">
       <CardTitle className="flex items-center gap-3 text-xl">
-        <div className="p-2 rounded-lg bg-primary/10">
-          <FileText className="h-6 w-6 text-primary" />
+        <div className="p-2 rounded-lg bg-muted">
+          <FileText className="h-6 w-6 text-muted-foreground" />
         </div>
         <span>Ghi chú bổ sung</span>
       </CardTitle>
@@ -195,8 +226,8 @@ const BookingSummarySkeleton = () => (
   <Card className="sticky top-24 shadow-lg border-0">
     <CardHeader className="pb-6">
       <CardTitle className="flex items-center gap-3 text-xl">
-        <div className="p-2 rounded-lg bg-primary/10">
-          <CheckCircle className="h-6 w-6 text-primary" />
+        <div className="p-2 rounded-lg bg-muted">
+          <CheckCircle className="h-6 w-6 text-muted-foreground" />
         </div>
         <span>Tóm tắt đặt lịch</span>
       </CardTitle>
@@ -280,12 +311,12 @@ export default function NewBookingPage() {
   const { data: profifeData, isLoading: isProfileLoading } = useUserProfile();
   const params = useParams();
   const serviceId = params.serviceId;
-  const { data: serviceData, isLoading: isServiceLoading } = useService(
-    serviceId as unknown as string
-  );
-  const { data: profileProvider, isLoading: isProviderLoading } = useGetServiceProviderInformation(
-    serviceData?.service?.providerId ? Number(serviceData.service.providerId) : 0
-  );
+  const { data: serviceData, isLoading: isServiceLoading } = useService(serviceId as string);
+  const serviceProviderId = serviceData?.service?.providerId
+    ? Number(serviceData.service.providerId)
+    : 0;
+  const { data: profileProvider, isLoading: isProviderLoading } =
+    useGetServiceProviderInformation(serviceProviderId);
   const { data: provinceData, isLoading: isProvinceLoading } = useProvince();
   const { mutateAsync: createBooking } = useCreateBooking();
 
@@ -315,6 +346,9 @@ export default function NewBookingPage() {
   const [timeError, setTimeError] = useState<string>('');
 
   const [errors, setErrors] = useState<Partial<CreateBookingRequest>>({});
+
+  // Derive category display name from service data
+  const categoryName = useMemo(() => getServiceCategoryName(serviceData?.service), [serviceData]);
 
   const provinces = useMemo(() => {
     if (!provinceData?.provinces) {
@@ -430,13 +464,14 @@ export default function NewBookingPage() {
     }
   }, [profifeData]);
 
-  // Update providerId when service data is loaded
+  // Update providerId and categoryId when service data is loaded
   useEffect(() => {
     if (serviceData?.service?.providerId) {
+      const serviceCategoryId = getServiceCategoryId(serviceData.service);
       setFormData(prev => ({
         ...prev,
         providerId: serviceData.service.providerId,
-        categoryId: 1, // Set a default categoryId for validation
+        categoryId: serviceCategoryId,
       }));
     }
   }, [serviceData]);
@@ -642,14 +677,14 @@ export default function NewBookingPage() {
             <div className="grid lg:grid-cols-3 gap-8">
               {/* Left Column - Form Fields */}
               <div className="lg:col-span-2 space-y-8">
-                {/* Service Information */}
+                {/* Category Information (no service details) */}
                 <Card className="shadow-sm border-0">
                   <CardHeader className="pb-6">
                     <CardTitle className="flex items-center gap-3 text-xl">
                       <div className="p-2 rounded-lg bg-primary/10">
                         <Wrench className="h-6 w-6 text-primary" />
                       </div>
-                      <span>Thông tin dịch vụ</span>
+                      <span>Danh mục dịch vụ</span>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -658,25 +693,14 @@ export default function NewBookingPage() {
                         <Wrench className="h-10 w-10 text-muted-foreground" />
                       </div>
                       <div className="flex-1 space-y-4">
-                        <div>
-                          <h3 className="text-2xl font-semibold mb-2">
-                            {serviceData?.service?.name || ''}
-                          </h3>
-                          <p className="text-muted-foreground leading-relaxed">
-                            {serviceData?.service?.description || 'Mô tả dịch vụ'}
-                          </p>
+                        <div className="flex items-center gap-3">
+                          <Badge variant="secondary" className="text-base px-3 py-1">
+                            {categoryName || 'Danh mục'}
+                          </Badge>
                         </div>
-                        <div className="flex items-center gap-6">
-                          <div className="flex items-center gap-2">
-                            <Badge variant="secondary" className="text-lg px-4 py-2">
-                              {formatCurrency(serviceData?.service?.virtualPrice || 0)}
-                            </Badge>
-                          </div>
-                          <div className="flex items-center gap-2 text-muted-foreground">
-                            <Clock className="h-4 w-4" />
-                            <span>{serviceData?.service?.durationMinutes || 0} phút</span>
-                          </div>
-                        </div>
+                        <p className="text-muted-foreground leading-relaxed">
+                          Yêu cầu sẽ được xử lý theo danh mục đã chọn của nhà cung cấp.
+                        </p>
                       </div>
                     </div>
                   </CardContent>
@@ -982,21 +1006,19 @@ export default function NewBookingPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-6">
-                    {/* Service Summary */}
-                    {serviceData?.service && (
+                    {/* Category Summary (no service details) */}
+                    {categoryName && (
                       <div className="space-y-4">
-                        <h4 className="font-semibold text-lg">Dịch vụ</h4>
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center">
-                              <Wrench className="h-6 w-6 text-muted-foreground" />
-                            </div>
-                            <div className="flex-1">
-                              <h5 className="font-medium">{serviceData.service.name}</h5>
-                              <p className="text-sm text-muted-foreground">
-                                {serviceData.service.durationMinutes} phút
-                              </p>
-                            </div>
+                        <h4 className="font-semibold text-lg">Danh mục</h4>
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center">
+                            <Wrench className="h-6 w-6 text-muted-foreground" />
+                          </div>
+                          <div>
+                            <p className="font-medium">{categoryName}</p>
+                            <p className="text-sm text-muted-foreground">
+                              Thuộc nhà cung cấp đã chọn
+                            </p>
                           </div>
                         </div>
                       </div>

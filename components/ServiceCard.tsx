@@ -116,7 +116,7 @@ export function ServiceCard({ service, priority = false, onHover, size = 'md' }:
 
   return (
     <>
-      <Link href={`/services/${service.id}`}>
+      <Link href={`/service/${service.id}`}>
         <div
           className="overflow-hidden transition-all duration-300 flex flex-col"
           onMouseEnter={handleMouseEnter}

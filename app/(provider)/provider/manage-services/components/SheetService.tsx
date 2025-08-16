@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
@@ -42,10 +42,11 @@ import { Plus, Edit, Loader2, Upload, X } from 'lucide-react';
 import { toast } from 'sonner';
 import Image from 'next/image';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuthStore } from '@/lib/store/authStore';
 
 const serviceFormSchema = z.object({
   name: z.string().min(1, 'Tên dịch vụ là bắt buộc'),
-  description: z.string().min(4, 'Mô tả dịch vụ là bắt buộc'),
+  description: z.string().min(4, 'Mô tả dịch vụ phải có ít nhất 4 từ'),
   basePrice: z.number().min(0, 'Giá cơ bản phải lớn hơn 0'),
   virtualPrice: z.number().min(0, 'Giá ảo phải lớn hơn 0'),
   durationMinutes: z.number().min(1, 'Thời gian phải lớn hơn 0'),
@@ -99,6 +100,8 @@ export function SheetService({ service, trigger, open, onOpenChange }: SheetServ
   } = useServiceManagerDetail(isSheetOpen ? detailId : null);
   const form = useForm<ServiceFormData>({
     resolver: zodResolver(serviceFormSchema),
+    mode: 'onChange',
+    reValidateMode: 'onChange',
     defaultValues: {
       name: '',
       description: '',
@@ -231,6 +234,11 @@ export function SheetService({ service, trigger, open, onOpenChange }: SheetServ
   };
 
   const onSubmit = async (data: ServiceFormData) => {
+    const { isAuthenticated } = useAuthStore.getState();
+    if (!isAuthenticated) {
+      toast.error('Bạn cần đăng nhập để tạo dịch vụ');
+      return;
+    }
     setIsLoading(true);
     try {
       // Get all successfully uploaded image URLs
@@ -275,6 +283,18 @@ export function SheetService({ service, trigger, open, onOpenChange }: SheetServ
   };
 
   const isSubmitting = isCreating || isUpdating || isLoading;
+  const { isAuthenticated } = useAuthStore();
+  const canSubmit = isAuthenticated && form.formState.isValid && !isSubmitting;
+
+  const formatCurrencyVi = (value: number): string => {
+    if (typeof value !== 'number' || Number.isNaN(value)) return '';
+    return new Intl.NumberFormat('vi-VN').format(value);
+  };
+
+  const parseCurrencyToNumber = (input: string): number => {
+    const digitsOnly = input.replace(/[^\d]/g, '');
+    return digitsOnly ? Number(digitsOnly) : 0;
+  };
 
   return (
     <Sheet open={isSheetOpen} onOpenChange={handleOpenChange}>
@@ -471,12 +491,20 @@ export function SheetService({ service, trigger, open, onOpenChange }: SheetServ
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="basePrice">Giá cơ bản (VNĐ) *</Label>
-                  <Input
-                    id="basePrice"
-                    type="number"
-                    placeholder="0"
-                    {...form.register('basePrice', { valueAsNumber: true })}
-                    disabled={isSubmitting}
+                  <Controller
+                    name="basePrice"
+                    control={form.control}
+                    render={({ field }) => (
+                      <Input
+                        id="basePrice"
+                        inputMode="numeric"
+                        placeholder="0"
+                        value={field.value ? formatCurrencyVi(field.value) : ''}
+                        onChange={e => field.onChange(parseCurrencyToNumber(e.target.value))}
+                        onBlur={() => field.onChange(field.value || 0)}
+                        disabled={isSubmitting}
+                      />
+                    )}
                   />
                   {form.formState.errors.basePrice && (
                     <p className="text-sm text-red-600">
@@ -487,12 +515,20 @@ export function SheetService({ service, trigger, open, onOpenChange }: SheetServ
 
                 <div className="space-y-2">
                   <Label htmlFor="virtualPrice">Giá ảo (VNĐ) *</Label>
-                  <Input
-                    id="virtualPrice"
-                    type="number"
-                    placeholder="0"
-                    {...form.register('virtualPrice', { valueAsNumber: true })}
-                    disabled={isSubmitting}
+                  <Controller
+                    name="virtualPrice"
+                    control={form.control}
+                    render={({ field }) => (
+                      <Input
+                        id="virtualPrice"
+                        inputMode="numeric"
+                        placeholder="0"
+                        value={field.value ? formatCurrencyVi(field.value) : ''}
+                        onChange={e => field.onChange(parseCurrencyToNumber(e.target.value))}
+                        onBlur={() => field.onChange(field.value || 0)}
+                        disabled={isSubmitting}
+                      />
+                    )}
                   />
                   {form.formState.errors.virtualPrice && (
                     <p className="text-sm text-red-600">
@@ -614,8 +650,16 @@ export function SheetService({ service, trigger, open, onOpenChange }: SheetServ
               </Button>
               <Button
                 type="submit"
-                disabled={isSubmitting}
+                disabled={!canSubmit}
                 className="bg-green-500 hover:bg-green-600 text-white font-semibold shadow"
+                aria-disabled={!canSubmit}
+                title={
+                  !isAuthenticated
+                    ? 'Vui lòng đăng nhập để thực hiện'
+                    : !form.formState.isValid
+                      ? 'Vui lòng điền đầy đủ thông tin hợp lệ'
+                      : undefined
+                }
               >
                 {isSubmitting ? (
                   <>

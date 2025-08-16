@@ -364,6 +364,10 @@ export interface UserCompleteBookingRequest {
   bookingId: number;
 }
 
+export interface CancelServiceRequestResponse {
+  message: string;
+}
+
 // User service with profile-related API methods
 export const userService = {
   // Get current user profile
@@ -478,6 +482,14 @@ export const userService = {
       console.error('Update User Proposal Error:', error);
       throw error;
     }
+  },
+
+  cancelServiceRequest: async (serviceRequestId: number): Promise<CancelServiceRequestResponse> => {
+    const response = await apiService.patch<CancelServiceRequestResponse>(
+      `/users/cancel-service-request/${serviceRequestId}`,
+      {}
+    );
+    return response.data;
   },
 };
 

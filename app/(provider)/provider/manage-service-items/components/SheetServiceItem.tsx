@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
@@ -145,6 +145,16 @@ export function SheetServiceItem({
 
   const isSubmitting = isCreating || isUpdating || isLoading;
 
+  const formatCurrencyVi = (value: number): string => {
+    if (typeof value !== 'number' || Number.isNaN(value)) return '';
+    return new Intl.NumberFormat('vi-VN').format(value);
+  };
+
+  const parseCurrencyToNumber = (input: string): number => {
+    const digitsOnly = input.replace(/[^\d]/g, '');
+    return digitsOnly ? Number(digitsOnly) : 0;
+  };
+
   return (
     <Sheet open={isSheetOpen} onOpenChange={handleOpenChange}>
       {trigger && <SheetTrigger asChild>{trigger}</SheetTrigger>}
@@ -232,12 +242,20 @@ export function SheetServiceItem({
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="unitPrice">Giá đơn vị (VNĐ) *</Label>
-                <Input
-                  id="unitPrice"
-                  type="number"
-                  placeholder="0"
-                  {...form.register('unitPrice', { valueAsNumber: true })}
-                  disabled={isSubmitting}
+                <Controller
+                  name="unitPrice"
+                  control={form.control}
+                  render={({ field }) => (
+                    <Input
+                      id="unitPrice"
+                      inputMode="numeric"
+                      placeholder="0"
+                      value={field.value ? formatCurrencyVi(field.value) : ''}
+                      onChange={e => field.onChange(parseCurrencyToNumber(e.target.value))}
+                      onBlur={() => field.onChange(field.value || 0)}
+                      disabled={isSubmitting}
+                    />
+                  )}
                 />
                 {form.formState.errors.unitPrice && (
                   <p className="text-sm text-red-600">{form.formState.errors.unitPrice.message}</p>

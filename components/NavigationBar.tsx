@@ -17,28 +17,28 @@ import { cn } from '@/lib/utils';
 const serviceTypes = [
   {
     title: 'Dịch vụ',
-    href: '/services',
+    href: '/category',
     description: 'Tìm dịch vụ phù hợp với nhu cầu của bạn',
     icon: Home,
     color: 'text-blue-500',
   },
   {
     title: 'Dịch vụ sửa chữa',
-    href: '/services?serviceType=Repair',
+    href: '/category/1',
     description: 'Tìm dịch vụ sửa chữa phù hợp với nhu cầu của bạn',
     icon: Building2,
     color: 'text-green-500',
   },
   {
-    title: 'Dịch vụ vệ sinh',
-    href: '/services?serviceType=Cleaning',
+    title: 'Dịch vụ dọn dẹp',
+    href: '/category/2',
     description: 'Tìm dịch vụ vệ sinh phù hợp với nhu cầu của bạn',
     icon: Key,
     color: 'text-red-500',
   },
   {
     title: 'Dịch vụ khác',
-    href: '/services?serviceType=Other',
+    href: '/category  ',
     description: 'Tìm dịch vụ khác phù hợp với nhu cầu của bạn',
     icon: LandPlot,
     color: 'text-amber-500',

@@ -700,7 +700,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                                   </div>
                                   <div className="text-right">
                                     <p className="text-sm font-medium">
-                                      {service.service.basePrice.toLocaleString('vi-VN')}đ x{' '}
+                                      {service.service.virtualPrice.toLocaleString('vi-VN')}đ x{' '}
                                       {service.quantity}
                                     </p>
                                     <p className="text-xs text-gray-500">
@@ -717,7 +717,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                                     {proposalData.data.items
                                       .reduce(
                                         (total, service) =>
-                                          total + service.service.basePrice * service.quantity,
+                                          total + service.service.virtualPrice * service.quantity,
                                         0
                                       )
                                       .toLocaleString('vi-VN')}

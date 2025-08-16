@@ -7,6 +7,7 @@ import userService, {
   AddOrRemoveFavoriteResponse,
   UpdateUserProposalRequest,
   UpdateUserProposalResponse,
+  CancelServiceRequestResponse,
 } from '@/lib/api/services/fetchUser';
 import {
   UpdateUserProfileRequestType,
@@ -214,6 +215,31 @@ export const useUpdateUserProposal = () => {
     mutationFn: ({ id, data }) => userService.updateUserProposal(id, data),
     onSuccess: (data: UpdateUserProposalResponse) => {
       toast.success(data.message);
+    },
+    onError: (error: Error | ValidationError) => {
+      let errorMessage = 'An unexpected error occurred';
+      if (typeof error === 'object' && error !== null && 'message' in error) {
+        const errorObj = error as { message: string | ValidationError[] };
+        if (Array.isArray(errorObj.message)) {
+          errorMessage = errorObj.message[0]?.message || errorMessage;
+        } else if (typeof errorObj.message === 'string') {
+          errorMessage = errorObj.message;
+        }
+      }
+      toast.error(errorMessage);
+    },
+  });
+};
+
+export const useCancelServiceRequest = () => {
+  return useMutation<
+    CancelServiceRequestResponse,
+    Error | ValidationError,
+    { serviceRequestId: number }
+  >({
+    mutationFn: ({ serviceRequestId }) => userService.cancelServiceRequest(serviceRequestId),
+    onSuccess: data => {
+      toast.success(data.message || 'Đã hủy yêu cầu dịch vụ');
     },
     onError: (error: Error | ValidationError) => {
       let errorMessage = 'An unexpected error occurred';

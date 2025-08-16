@@ -311,10 +311,11 @@ export default function UserCreateModal({
                           <SelectValue placeholder="Chọn vai trò" />
                         </SelectTrigger>
                         <SelectContent>
-                          {/* <SelectItem value="USER">Người dùng</SelectItem>
-                          <SelectItem value="PROVIDER">Nhà cung cấp</SelectItem>
-                          <SelectItem value="ADMIN">Quản trị viên</SelectItem> */}
+                          <SelectItem value="CUSTOMER">Người dùng</SelectItem>
+                          <SelectItem value="SERVICE PROVIDER">Nhà cung cấp</SelectItem>
+                          <SelectItem value="ADMIN">Quản trị viên</SelectItem>
                           <SelectItem value="MANAGER">Người quản lý</SelectItem>
+                          <SelectItem value="STAFF">Nhân viên</SelectItem>
                         </SelectContent>
                       </Select>
                     )}

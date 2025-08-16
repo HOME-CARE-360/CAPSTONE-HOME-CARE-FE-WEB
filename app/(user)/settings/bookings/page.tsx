@@ -1,7 +1,12 @@
 'use client';
 
 import { useState, Fragment } from 'react';
-import { useCustomerBooking, useGetUserProposal, useUpdateUserProposal } from '@/hooks/useUser';
+import {
+  useCustomerBooking,
+  useGetUserProposal,
+  useUpdateUserProposal,
+  useCancelServiceRequest,
+} from '@/hooks/useUser';
 import { CustomerBooking } from '@/lib/api/services/fetchUser';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -63,6 +68,32 @@ const getTransactionStatusConfig = (status: string) => {
   return map[status.toUpperCase()] || status;
 };
 
+// Translate Service Request status to Vietnamese
+const getServiceRequestStatusVi = (status: string) => {
+  const key = status?.toUpperCase?.() || '';
+  const map: Record<string, string> = {
+    ESTIMATED: 'Đang ước lượng',
+    PENDING: 'Chờ xử lý',
+    CONFIRMED: 'Đã xác nhận',
+    ACCEPTED: 'Đã chấp nhận',
+    REJECTED: 'Từ chối',
+    IN_PROGRESS: 'Đang thực hiện',
+    COMPLETED: 'Hoàn thành',
+    CANCELLED: 'Đã hủy',
+  };
+  return map[key] || status;
+};
+
+// Translate payment method to Vietnamese
+const getPaymentMethodVi = (method: string) => {
+  const key = method?.toUpperCase?.() || '';
+  const map: Record<string, string> = {
+    BANK_TRANSFER: 'Chuyển khoản ngân hàng',
+    WALLET: 'Ví',
+  };
+  return map[key] || method;
+};
+
 // Strong types for bookings derived from API types
 type BookingItem = CustomerBooking['data']['bookings'][0];
 
@@ -114,10 +145,24 @@ const ProposalSection = ({
     return <div className="text-sm text-muted-foreground">Chưa có đề xuất dịch vụ.</div>;
   }
 
-  const totalAmount = proposal.items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
+  const normalizeQuantity = (q: unknown): number => {
+    return typeof q === 'number' ? q : typeof q === 'string' ? parseInt(q, 10) || 0 : 0;
+  };
+
+  const sortedItems = Array.isArray(proposal.ProposalItem)
+    ? [...proposal.ProposalItem].sort(
+        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      )
+    : [];
+
+  const lastProposalItem = sortedItems.length > 0 ? sortedItems[sortedItems.length - 1] : undefined;
+
+  const totalAmount = lastProposalItem
+    ? (lastProposalItem.Service?.virtualPrice ?? 0) * normalizeQuantity(lastProposalItem.quantity)
+    : 0;
 
   const isPaid = transactionStatus?.toUpperCase() === 'PAID';
-  const canShowActions = bookingStatus?.toUpperCase() === 'PENDING' && !isPaid;
+  const canShowActions = bookingStatus?.toUpperCase() === 'CONFIRMED' && !isPaid;
 
   return (
     <div className="space-y-3">
@@ -141,22 +186,44 @@ const ProposalSection = ({
 
         {proposal.notes && <p className="mt-2 text-sm text-muted-foreground">{proposal.notes}</p>}
 
-        <div className="mt-3 divide-y rounded-md border bg-background">
-          {proposal.items.map(item => (
-            <div
-              key={item.id}
-              className="flex items-center justify-between gap-3 px-3 py-2 text-sm"
-            >
-              <div className="flex-1 pr-2 truncate">
-                <span className="font-medium">{item.serviceName}</span>
-                <span className="text-muted-foreground"> × {item.quantity}</span>
+        {sortedItems && sortedItems.length > 0 ? (
+          <div className="mt-3 space-y-3">
+            {sortedItems.map((item, index) => (
+              <div key={item.id} className="rounded-md border bg-background p-3">
+                <div className="flex items-center justify-between gap-3 text-sm">
+                  <div className="flex-1 pr-2 truncate">
+                    <span className="font-medium">{item.Service?.name ?? 'Dịch vụ'}</span>
+                    <span className="text-muted-foreground">
+                      {' '}
+                      × {normalizeQuantity(item.quantity)}
+                    </span>
+                  </div>
+                  <div className="whitespace-nowrap font-medium">
+                    {formatCurrency(
+                      (item.Service?.virtualPrice ?? 0) * normalizeQuantity(item.quantity)
+                    )}
+                  </div>
+                </div>
+                <div className="mt-1 text-xs text-muted-foreground flex items-center gap-1">
+                  <ClockIcon className="h-3 w-3" />
+                  <span>
+                    {`Đề xuất ${index + 1}`} · {formatDate(item.createdAt)}
+                  </span>
+                </div>
               </div>
-              <div className="whitespace-nowrap font-medium">
-                {formatCurrency(item.unitPrice * item.quantity)}
+            ))}
+            {lastProposalItem && (
+              <div className="flex items-center justify-between text-xs text-muted-foreground border-t pt-2">
+                <span>Đề xuất gần nhất</span>
+                <span>{formatDate(lastProposalItem.createdAt)}</span>
               </div>
-            </div>
-          ))}
-        </div>
+            )}
+          </div>
+        ) : (
+          <div className="mt-3 p-3 text-center text-sm text-muted-foreground border rounded-md bg-muted/20">
+            Không có mục dịch vụ nào
+          </div>
+        )}
 
         <div className="mt-3 flex items-center justify-between text-sm">
           <span className="text-muted-foreground">Tổng cộng</span>
@@ -277,6 +344,7 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
   const imageUrls = watch('imageUrls');
   const { mutate: createReport, isPending: isReporting } = useCreateReport();
   const { mutateAsync: uploadImage, isPending: isUploading } = useUploadImage();
+  const { mutate: cancelServiceRequest, isPending: isCancelling } = useCancelServiceRequest();
 
   const handleUpload = async (file: File): Promise<string> => {
     const res = await uploadImage(file);
@@ -303,7 +371,7 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
   };
 
   return (
-    <Card className="overflow-hidden hover:shadow-md transition-shadow">
+    <Card className="overflow-hidden hover:shadow-md transition-shadow break-inside-avoid mb-4">
       <CardHeader className="pb-3">
         <div className="flex justify-between items-start">
           <div className="space-y-1">
@@ -323,6 +391,24 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
+            {booking.ServiceRequest?.status?.toUpperCase() === 'PENDING' && (
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={isCancelling}
+                onClick={() => cancelServiceRequest({ serviceRequestId: booking.serviceRequestId })}
+                aria-label="Hủy yêu cầu dịch vụ"
+              >
+                {isCancelling ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="animate-spin h-4 w-4" />
+                    Đang hủy...
+                  </span>
+                ) : (
+                  'Hủy yêu cầu'
+                )}
+              </Button>
+            )}
             {booking.status?.toUpperCase() === 'COMPLETED' && (
               <Button
                 variant="outline"
@@ -413,7 +499,7 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Phương thức:</span>
                 {booking.Transaction?.method ? (
-                  booking.Transaction.method
+                  getPaymentMethodVi(booking.Transaction.method)
                 ) : (
                   <span className="text-muted-foreground">N/A</span>
                 )}
@@ -448,7 +534,9 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
               <div>
                 <span className="text-muted-foreground">Trạng thái:</span>
-                <p className="font-medium">{booking.ServiceRequest.status}</p>
+                <p className="font-medium">
+                  {getServiceRequestStatusVi(booking.ServiceRequest.status)}
+                </p>
               </div>
               <div>
                 <span className="text-muted-foreground">Danh mục:</span>
@@ -539,7 +627,7 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
 };
 
 const BookingSkeleton = () => (
-  <Card className="overflow-hidden animate-pulse">
+  <Card className="overflow-hidden animate-pulse break-inside-avoid mb-4">
     <CardHeader className="pb-3">
       <div className="flex justify-between items-start">
         <div className="space-y-2">
@@ -636,13 +724,13 @@ export default function BookingsPage() {
         {statuses.map(s => (
           <TabsContent key={s.key} value={s.key}>
             {isLoading ? (
-              <div className="grid md:grid-cols-2 gap-4">
-                {Array.from({ length: 4 }).map((_, i) => (
+              <div className="columns-1 md:columns-2 gap-4 [column-fill:_balance]">
+                {Array.from({ length: 6 }).map((_, i) => (
                   <BookingSkeleton key={i} />
                 ))}
               </div>
             ) : bookings.filter(s.filter).length > 0 ? (
-              <div className="grid md:grid-cols-2 gap-4">
+              <div className="columns-1 md:columns-2 gap-4 [column-fill:_balance]">
                 {bookings.filter(s.filter).map((b: BookingItem) => (
                   <BookingCard key={b.id} booking={b} />
                 ))}

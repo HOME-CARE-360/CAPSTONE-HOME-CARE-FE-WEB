@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { UsersIcon, LayoutDashboardIcon } from 'lucide-react';
+import { UsersIcon, LayoutDashboardIcon, Drama, House } from 'lucide-react';
 import { NavMain } from '@/components/common/navMain';
 import { SiteSideFooter } from '@/app/(admin)/components/SiteSideFooter';
 import {
@@ -33,11 +33,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         url: '/admin/dashboard',
         icon: LayoutDashboardIcon,
       },
-      // {
-      //   title: 'Quản lý dịch vụ',
-      //   url: '/provider/manage-services',
-      //   icon: House,
-      // },
+      {
+        title: 'Quản lý quyền',
+        url: '/admin/manage-permissions',
+        icon: House,
+      },
       // {
       //   title: 'Quản lý nhân viên',
       //   url: '/provider/manage-staff',
@@ -48,11 +48,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         url: '/admin/manage-user',
         icon: UsersIcon,
       },
-      // {
-      //   title: 'Hòm thư',
-      //   url: '/provider/manage-feedback-review',
-      //   icon: UserRoundPen,
-      // },
+      {
+        title: 'Quản lí vai trò',
+        url: '/admin/manage-roles',
+        icon: Drama,
+      },
     ],
   };
 

@@ -1,13 +1,13 @@
 'use client';
 
 import { Suspense } from 'react';
-import ServicesListings from './components/ServicesListings';
+import CategoriesListings from './components/CategoriesListings';
 
 export default function ServicesPage() {
   return (
     <div className="font-mann">
-      <Suspense fallback={<div>Loading services...</div>}>
-        <ServicesListings />
+      <Suspense fallback={<div>Loading categories...</div>}>
+        <CategoriesListings />
       </Suspense>
     </div>
   );

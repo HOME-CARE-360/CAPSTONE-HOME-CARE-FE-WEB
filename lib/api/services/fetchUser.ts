@@ -309,15 +309,37 @@ export interface GetUserProposalResponse {
   message: string;
   data: {
     id: number;
+    bookingId: number;
     notes: string;
     status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | string;
-    createdAt: string; // ISO 8601
-    items: {
+    createdAt: string;
+    ProposalItem: {
       id: number;
+      proposalId: number;
       serviceId: number;
-      quantity: number;
-      serviceName: string;
-      unitPrice: number;
+      quantity: number | string;
+      createdAt: string;
+      Service: {
+        id: number;
+        basePrice: number;
+        virtualPrice: number;
+        images: string[];
+        durationMinutes: number;
+        providerId: number;
+        createdById: number;
+        updatedById: number;
+        deletedById: number | null;
+        deletedAt: string | null;
+        createdAt: string;
+        updatedAt: string;
+        name: string;
+        publishedAt: string;
+        description: string;
+        categoryId: number;
+        unit: 'PER_JOB' | 'PER_HOUR' | string;
+        status: 'ACCEPTED' | 'PENDING' | 'REJECTED' | string;
+        serviceItems?: string[];
+      };
     }[];
   };
   statusCode: number;
@@ -340,6 +362,10 @@ export interface UpdateUserProposalRequest {
 
 export interface UserCompleteBookingRequest {
   bookingId: number;
+}
+
+export interface CancelServiceRequestResponse {
+  message: string;
 }
 
 // User service with profile-related API methods
@@ -399,7 +425,7 @@ export const userService = {
       // Ensure the payload is a plain object for compatibility with apiService.patch
       const payload: Record<string, unknown> = { ...bankAccountData };
       const response = await apiService.patch<{ message: string }>(
-        '/users/link-bank-account',
+        '/publics/link-bank-account',
         payload
       );
       return response.data;
@@ -456,6 +482,14 @@ export const userService = {
       console.error('Update User Proposal Error:', error);
       throw error;
     }
+  },
+
+  cancelServiceRequest: async (serviceRequestId: number): Promise<CancelServiceRequestResponse> => {
+    const response = await apiService.patch<CancelServiceRequestResponse>(
+      `/users/cancel-service-request/${serviceRequestId}`,
+      {}
+    );
+    return response.data;
   },
 };
 

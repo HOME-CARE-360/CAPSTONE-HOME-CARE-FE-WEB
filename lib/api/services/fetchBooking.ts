@@ -15,7 +15,7 @@ export interface CreateBookingRequest {
   location: string;
   categoryId: number;
   phoneNumber: string;
-  paymentMethod: 'BANK_TRANSFER' | 'CREDIT_CARD';
+  paymentMethod: 'BANK_TRANSFER' | 'WALLET';
 }
 
 export interface CreateServiceRequestResponse {
@@ -27,7 +27,7 @@ export interface CreateServiceRequestResponse {
     bookingId: number;
     createdAt: string;
     createdById: number;
-    method: 'BANK_TRANSFER' | 'CREDIT_CARD' | string;
+    method: 'BANK_TRANSFER' | 'WALLET' | string;
     responseData: {
       accountNumber: string;
       accountName: string;
@@ -116,8 +116,8 @@ export interface DetailBookingResponse {
       deletedAt: string | null;
       createdAt: string;
       orderCode: string;
-    };
-    staff?: {
+    } | null;
+    staff: {
       id: number;
       user: {
         avatar: string | null;
@@ -125,15 +125,15 @@ export interface DetailBookingResponse {
         name: string;
         phone: string;
       };
-    };
-    inspectionReport?: {
+    } | null;
+    inspectionReport: {
       id: number;
       estimatedTime: number;
       note: string;
       images: string[];
       createdAt: string;
-    };
-    Proposal?: {
+    } | null;
+    Proposal: {
       id: number;
       notes: string;
       createdAt: string;
@@ -146,6 +146,7 @@ export interface DetailBookingResponse {
         createdAt: string;
         Service: {
           basePrice: number;
+          virtualPrice: number;
           description: string;
           name: string;
           images: string[];
@@ -165,7 +166,101 @@ export interface DetailBookingResponse {
           attachedItems: unknown[];
         };
       }>;
-    };
+    } | null;
+  };
+  customer: {
+    address: string | null;
+    gender: string | null;
+    avatar: string | null;
+    name: string;
+    phone: string;
+    email: string;
+  };
+}
+
+// API-aligned response type for manage-bookings/service-request-detail
+export interface GetDetailBookingResponse {
+  id: number;
+  customerId: number;
+  providerId: number;
+  note: string | null;
+  preferredDate: string;
+  status: StatusServiceRequest | string;
+  createdAt: string;
+  updatedAt: string;
+  location: string;
+  phoneNumber: string;
+  categoryId: number;
+  category: {
+    logo: string | null;
+    name: string;
+  };
+  booking: {
+    id: number;
+    status: StatusBooking | string;
+    transaction: {
+      id: number;
+      amount: number;
+      status: string;
+      method: string;
+      paidAt: string | null;
+      createdById: number;
+      updatedById: number | null;
+      deletedById: number | null;
+      deletedAt: string | null;
+      createdAt: string;
+      orderCode: string;
+    } | null;
+    staff: {
+      id: number;
+      user: {
+        avatar: string | null;
+        email: string;
+        name: string;
+        phone: string;
+      };
+    } | null;
+    inspectionReport: {
+      id: number;
+      estimatedTime: number;
+      note: string;
+      images: string[];
+      createdAt: string;
+    } | null;
+    Proposal: {
+      id: number;
+      notes: string;
+      createdAt: string;
+      status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | string;
+      ProposalItem: Array<{
+        id: number;
+        proposalId: number;
+        serviceId: number;
+        quantity: number;
+        createdAt: string;
+        Service: {
+          basePrice: number;
+          virtualPrice: number;
+          description: string;
+          name: string;
+          images: string[];
+          durationMinutes: number;
+          category: {
+            id: number;
+            name: string;
+            logo: string | null;
+            parentCategoryId: number;
+            createdById: number | null;
+            updatedById: number | null;
+            deletedById: number | null;
+            deletedAt: string | null;
+            createdAt: string;
+            updatedAt: string;
+          };
+          attachedItems: unknown[];
+        };
+      }>;
+    } | null;
   };
   customer: {
     address: string | null;

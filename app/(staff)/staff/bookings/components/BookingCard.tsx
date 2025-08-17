@@ -139,6 +139,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
   const statusConfig = getStatusConfig(booking.serviceRequest.status);
   const isInProgress = booking.serviceRequest.status === StatusServiceRequest.IN_PROGRESS;
   const isEstimated = booking.serviceRequest.status === StatusServiceRequest.ESTIMATED;
+  const isCancelled = booking.serviceRequest.status === StatusServiceRequest.CANCELLED;
 
   // Check if staff has already checked in for this booking
   // For IN_PROGRESS status, we assume they have checked in
@@ -146,9 +147,11 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
   const needsCheckIn = isInProgress && !hasCheckedIn;
 
   // Workflow validation
-  const canCheckIn = !hasCheckedIn && !isEstimated;
+  const canCheckIn = !hasCheckedIn && !isEstimated && !isCancelled;
   const canCreateReport = isInProgress && hasCheckedIn;
   const canViewProposals = isInProgress || isEstimated;
+
+  const isProposalAccepted = (proposalData?.data?.status || '').toUpperCase() === 'ACCEPTED';
 
   const handleCheckIn = () => {
     checkIn(booking.id, {
@@ -990,7 +993,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
               </Button>
             )}
 
-            {isEstimated && (
+            {isEstimated && isProposalAccepted && (
               <Button
                 onClick={() => setCheckoutOpen(true)}
                 size="sm"

@@ -37,21 +37,34 @@ export function CategoryCard({ category, size = 'md', onHover, onClick }: Catego
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : -1}
       aria-label={category.name}
+      onKeyDown={e => {
+        if (!onClick) return;
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick(category);
+        }
+      }}
     >
-      <div className="relative aspect-square size-full mb-2 group">
+      <div
+        className={cn(
+          'relative w-full mb-2 group',
+          size === 'sm' ? 'h-32 md:h-36' : 'h-40 md:h-44 lg:h-48'
+        )}
+      >
         {isImageLoading && (
-          <div className="absolute inset-0 bg-gray-200 animate-pulse rounded-xl" />
+          <div className="absolute inset-0 bg-muted animate-pulse rounded-2xl" aria-hidden="true" />
         )}
         {category.logo ? (
           <Image
             src={category.logo}
             alt={category.name}
             fill
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
             className={cn(
-              'object-contain rounded-2xl transition-opacity duration-300 p-6 bg-muted',
+              'object-cover rounded-2xl transition-opacity duration-300 bg-muted',
               isImageLoading ? 'opacity-0' : 'opacity-100'
             )}
+            loading="lazy"
             onLoad={() => setIsImageLoading(false)}
           />
         ) : (
@@ -63,7 +76,7 @@ export function CategoryCard({ category, size = 'md', onHover, onClick }: Catego
       <div className="px-1">
         <div className="flex justify-between items-center mb-1">
           <h3
-            className={cn('text-base font-medium truncate', size === 'sm' && 'text-sm')}
+            className={cn('font-medium truncate', size === 'sm' ? 'text-sm' : 'text-base')}
             title={category.name}
           >
             {category.name}

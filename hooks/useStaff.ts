@@ -11,6 +11,8 @@ import type {
 } from '@/lib/api/services/fetchStaff';
 import { toast } from 'sonner';
 import { ValidationError } from '@/lib/api/services/fetchAuth';
+import type { ApiErrorResponse } from '@/lib/api/core';
+import { getErrorMessage } from '@/lib/api/core';
 
 export function useGetAllStaffs(filters?: StaffSearchParams) {
   return useQuery({
@@ -160,7 +162,7 @@ export function useStaffCheckOut() {
   const queryClient = useQueryClient();
   return useMutation<
     StaffCheckoutResponse,
-    Error,
+    unknown,
     { bookingId: number; data: Record<string, unknown> }
   >({
     mutationFn: async ({ bookingId, data }) => {
@@ -172,17 +174,49 @@ export function useStaffCheckOut() {
       queryClient.invalidateQueries({ queryKey: ['staff-bookings'] });
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
     },
-    onError: (error: Error | ValidationError) => {
-      let errorMessage = 'Booking cần phải được accept trước khi checkout';
-      if (typeof error === 'object' && error !== null && 'message' in error) {
-        const errorObj = error as { message: string | ValidationError[] };
-        if (Array.isArray(errorObj.message)) {
-          errorMessage = errorObj.message[0]?.message || errorMessage;
-        } else if (typeof errorObj.message === 'string') {
-          errorMessage = errorObj.message;
+    onError: (error: unknown) => {
+      const parseMessage = (err: unknown): string => {
+        const isRecord = (v: unknown): v is Record<string, unknown> =>
+          typeof v === 'object' && v !== null;
+
+        if (!isRecord(err)) {
+          return 'Không thể check-out. Vui lòng thử lại.';
         }
-      }
-      toast.error(errorMessage);
+
+        const apiErr = err as Partial<ApiErrorResponse> & {
+          details?: { bookingId?: number; hoursPassed?: number };
+          message?: unknown;
+        };
+
+        const topError = typeof apiErr.error === 'string' ? apiErr.error : undefined;
+        const msgKey =
+          typeof apiErr.message === 'string'
+            ? apiErr.message
+            : isRecord(apiErr.message) && typeof apiErr.message.message === 'string'
+              ? apiErr.message.message
+              : undefined;
+        const hoursPassed =
+          typeof apiErr.details?.hoursPassed === 'number' ? apiErr.details?.hoursPassed : undefined;
+
+        if (msgKey === 'Error.CheckOutTooLate' || topError === 'Check-out expired') {
+          const approx = hoursPassed !== undefined ? ` (~${hoursPassed.toFixed(1)} giờ)` : '';
+          return `Không thể check-out: đã quá thời hạn${approx}.`;
+        }
+        if (msgKey === 'Error.CheckInRequired') {
+          return 'Cần check-in trước khi check-out.';
+        }
+        if (msgKey === 'Error.BookingNotAccepted') {
+          return 'Booking cần được chấp nhận trước khi check-out.';
+        }
+        if (msgKey === 'Error.WorkLogNotFound') {
+          return 'Không tìm thấy phiên làm việc để check-out.';
+        }
+
+        // Fallback to generic extractor
+        return getErrorMessage(err as unknown as ApiErrorResponse);
+      };
+
+      toast.error(parseMessage(error));
     },
   });
 }

@@ -52,6 +52,24 @@ export function ServiceCard({ service, priority = false, onHover, size = 'md' }:
 
   const isDiscounted = service.virtualPrice < service.basePrice;
 
+  // Category handling: support both object and array shapes at runtime
+  const isRecord = (v: unknown): v is Record<string, unknown> =>
+    typeof v === 'object' && v !== null;
+
+  const extractCategoryNames = (input: unknown): string[] => {
+    if (Array.isArray(input)) {
+      return input
+        .map(item => (isRecord(item) && typeof item.name === 'string' ? item.name : null))
+        .filter((n): n is string => typeof n === 'string');
+    }
+    if (isRecord(input) && typeof input.name === 'string') {
+      return [input.name];
+    }
+    return [];
+  };
+
+  const categoryNames = extractCategoryNames(service.Category as unknown);
+
   const handleMouseEnter = () => {
     setIsHovered(true);
     onHover?.(service.id.toString());
@@ -153,19 +171,18 @@ export function ServiceCard({ service, priority = false, onHover, size = 'md' }:
                 )
             )}
             <div className="absolute top-4 left-4 flex gap-2">
-              {Array.isArray(service.Category) &&
-                service.Category.slice(0, 2).map(category => (
-                  <Badge
-                    key={category.name}
-                    variant="outline"
-                    className={cn(
-                      'bg-white/90 backdrop-blur-sm hover:bg-white/90 z-10',
-                      size === 'sm' && 'text-[10px] px-2 py-0.5'
-                    )}
-                  >
-                    {category.name}
-                  </Badge>
-                ))}
+              {categoryNames.slice(0, 2).map(name => (
+                <Badge
+                  key={name}
+                  variant="outline"
+                  className={cn(
+                    'bg-white/90 backdrop-blur-sm hover:bg-white/90 z-10',
+                    size === 'sm' && 'text-[10px] px-2 py-0.5'
+                  )}
+                >
+                  {name}
+                </Badge>
+              ))}
             </div>
             {isHovered && service.images.length > 1 && (
               <>
@@ -270,11 +287,7 @@ export function ServiceCard({ service, priority = false, onHover, size = 'md' }:
                 className={cn('text-sm text-muted-foreground', size === 'sm' && 'text-xs')}
                 aria-label="Service category"
               >
-                {Array.isArray(service.Category) &&
-                service.Category.length > 0 &&
-                typeof service.Category[0]?.name === 'string'
-                  ? service.Category[0].name
-                  : 'Dịch vụ'}
+                {categoryNames[0] ?? 'Dịch vụ'}
               </div>
             </div>
             <div className="mb-2">

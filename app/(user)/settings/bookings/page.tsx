@@ -115,10 +115,12 @@ const ProposalSection = ({
   bookingId,
   bookingStatus,
   transactionStatus,
+  transactionAmount,
 }: {
   bookingId: number;
   bookingStatus: string;
   transactionStatus?: string;
+  transactionAmount?: number;
 }) => {
   const { data, isLoading, error } = useGetUserProposal(bookingId);
   const { mutate: updateProposal, isPending: isUpdating } = useUpdateUserProposal();
@@ -160,6 +162,13 @@ const ProposalSection = ({
   const totalAmount = lastProposalItem
     ? (lastProposalItem.Service?.virtualPrice ?? 0) * normalizeQuantity(lastProposalItem.quantity)
     : 0;
+
+  const hasDepositAmount =
+    typeof transactionAmount === 'number' && !Number.isNaN(transactionAmount);
+  const depositAmount = hasDepositAmount ? Math.max(transactionAmount as number, 0) : 0;
+  const remainingAfterDeposit = hasDepositAmount
+    ? Math.max(totalAmount - depositAmount, 0)
+    : totalAmount;
 
   const isPaid = transactionStatus?.toUpperCase() === 'PAID';
   const canShowActions = bookingStatus?.toUpperCase() === 'CONFIRMED' && !isPaid;
@@ -225,9 +234,24 @@ const ProposalSection = ({
           </div>
         )}
 
-        <div className="mt-3 flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">Tổng cộng</span>
-          <span className="font-semibold">{formatCurrency(totalAmount)}</span>
+        <div className="mt-3 space-y-1 text-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground">Tổng giá trị đề xuất</span>
+            <span className="font-semibold">{formatCurrency(totalAmount)}</span>
+          </div>
+          {hasDepositAmount && (
+            <>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Số tiền đặt cọc</span>
+                <span className="font-medium">- {formatCurrency(depositAmount)}</span>
+              </div>
+              <Separator />
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Tổng Cộng:</span>
+                <span className="font-semibold">{formatCurrency(remainingAfterDeposit)}</span>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -565,6 +589,7 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
                 bookingId={booking.id}
                 bookingStatus={booking.status}
                 transactionStatus={booking.Transaction?.status}
+                transactionAmount={booking.Transaction?.amount}
               />
             </div>
           </div>

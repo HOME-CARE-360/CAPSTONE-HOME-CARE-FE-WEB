@@ -5,6 +5,18 @@ import {
   GetUserByIdResponseType,
   GetStatisticsUsersResponseType,
   GetStatisticsRolesUserResponseType,
+  AssginRoleToUserRequestType,
+  AssignRoleToUserResponseType,
+  ResetPasswordUserRequestType,
+  ResetPasswordUserResponseType,
+  GetAllRoleResponseType,
+  CreateRoleResponseType,
+  CreateRoleRequestType,
+  GetRoleByIdResponseType,
+  GetPermissionByRoleIdType,
+  AssignPermissionToRoleRequestType,
+  AssignPermissionToRoleResponseType,
+  GetAllPermissionResponseType,
 } from '@/schemaValidations/admin.schema';
 import { ResponseMessageType } from '@/schemaValidations/response.schema';
 
@@ -58,6 +70,78 @@ export const AdminService = {
   getStatisticsRolesUser: async () => {
     const url = `/admin/statistics/roles`;
     const response = await apiService.get<GetStatisticsRolesUserResponseType>(url);
+    return response.data;
+  },
+
+  assignRoleToUser: async (data: AssginRoleToUserRequestType, userId: number) => {
+    const url = `/admin/users/${userId}/roles`;
+    const response = await apiService.post<AssignRoleToUserResponseType>(url, data);
+    return response.data;
+  },
+
+  resetPasswordUser: async (data: ResetPasswordUserRequestType, userId: number) => {
+    const url = `/admin/users/${userId}/reset-password`;
+    const response = await apiService.post<ResetPasswordUserResponseType>(url, data);
+    return response.data;
+  },
+
+  getAllRole: async (params?: { page?: number; limit?: number }) => {
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+
+    const url = `/admin/roles${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    const response = await apiService.get<GetAllRoleResponseType>(url);
+    return response.data;
+  },
+
+  createRole: async (data: CreateRoleRequestType) => {
+    const url = `/admin/roles`;
+    const response = await apiService.post<CreateRoleResponseType>(url, data);
+    return response.data;
+  },
+
+  getRoleById: async (id: string | number) => {
+    const url = `/admin/roles/${id}`;
+    const response = await apiService.get<GetRoleByIdResponseType>(url);
+    return response.data;
+  },
+
+  updateRole: async (id: number, data: CreateRoleRequestType) => {
+    const url = `/admin/roles/${id}`;
+    const response = await apiService.patch<CreateRoleResponseType>(url, data);
+    return response.data;
+  },
+
+  deleteRole: async (id: number) => {
+    const url = `/admin/roles/${id}`;
+    const response = await apiService.delete<ResponseMessageType>(url);
+    return response.data;
+  },
+
+  getPremissionByRoleId: async (roleId: number, params?: { page?: number; limit?: number }) => {
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+
+    const url = `/admin/roles/${roleId}/permissions${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    const response = await apiService.get<GetPermissionByRoleIdType>(url);
+    return response.data;
+  },
+
+  assignPermissionToRole: async (roleId: number, data: AssignPermissionToRoleRequestType) => {
+    const url = `/admin/roles/${roleId}/permissions`;
+    const response = await apiService.post<AssignPermissionToRoleResponseType>(url, data);
+    return response.data;
+  },
+
+  getAllPermission: async (params?: { page?: number; limit?: number }) => {
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+
+    const url = `/admin/permissions${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    const response = await apiService.get<GetAllPermissionResponseType>(url);
     return response.data;
   },
 };

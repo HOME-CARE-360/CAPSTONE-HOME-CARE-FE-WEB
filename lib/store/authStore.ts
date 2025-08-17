@@ -1,9 +1,10 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { getCookie, setCookie, deleteCookie } from 'cookies-next';
-import apiService, { setAuthErrorHandler } from '@/lib/api/core';
+import apiService from '@/lib/api/core';
 import { jwtDecode, JwtPayload } from 'jwt-decode';
 import fetchAuth from '@/lib/api/services/fetchAuth';
+import router from 'next/router';
 
 // Define the structure of the decoded token
 interface DecodedToken extends JwtPayload {
@@ -71,11 +72,6 @@ const getUserFromToken = (token: string): User | null => {
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => {
-      // Set up the auth error handler
-      setAuthErrorHandler(async () => {
-        return get().refreshAccessToken();
-      });
-
       return {
         token: null,
         refreshToken: null,
@@ -104,11 +100,14 @@ export const useAuthStore = create<AuthState>()(
           try {
             const currentRefreshToken = get().refreshToken;
             if (!currentRefreshToken) {
-              console.log('No refresh token available, logging out');
-              get().logout();
+              const response = await fetchAuth.refreshToken(currentRefreshToken as string);
+              if (response.data?.accessToken && response.data?.refreshToken) {
+                get().setToken(response.data.accessToken, response.data.refreshToken);
+                return true;
+              }
+
               return false;
             }
-
             // Avoid sending stale Authorization header on refresh request
             apiService.setAuthToken(null);
 
@@ -127,7 +126,10 @@ export const useAuthStore = create<AuthState>()(
             // Check if it's a 401 error specifically
             type ErrorWithStatus = { status?: number; response?: { status?: number } };
             const err = error as ErrorWithStatus;
+            // router.push('/login');
+            console.log('err: ', err);
             if (err?.response?.status === 401 || err?.status === 401) {
+              router.push('/login');
               console.log('Refresh token expired (401), logging out');
             }
 

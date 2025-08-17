@@ -15,6 +15,7 @@ import fetchAuth, {
   OTPVerifyResponse,
 } from '@/lib/api/services/fetchAuth';
 import { toast } from 'sonner';
+import { decodeJwt, isServiceProvider, isStaff, isManager, isAdmin } from '@/utils/jwt';
 
 // OTP verification hook
 export function useRequestOTP() {
@@ -173,12 +174,12 @@ export function useRegisterProvider() {
   };
 }
 
-// Login hook
+// Login hook với redirect logic
 export function useLogin() {
-  const queryClient = useQueryClient();
   const { setToken } = useAuthStore();
   const [error, setError] = useState<ValidationError | null>(null);
   const router = useRouter();
+
   const { mutate: login, isPending: isLoading } = useMutation({
     mutationFn: async (credentials: LoginCredentials): Promise<LoginResponse> => {
       const response = await fetchAuth.login(credentials);
@@ -192,13 +193,33 @@ export function useLogin() {
     },
     onSuccess: (response: LoginResponse) => {
       try {
-        // save token to zustand and cookie
         const token = response.data?.accessToken || null;
         const refreshToken = response.data?.refreshToken || null;
+
+        // Set token first
         setToken(token, refreshToken);
-        router.push('/');
-        // refresh queries related to auth
-        queryClient.invalidateQueries({ queryKey: ['auth', 'login'] });
+
+        // Decode and redirect based on role
+        if (token) {
+          const decoded = decodeJwt(token);
+          if (decoded) {
+            // Use setTimeout to ensure token is set before redirect
+            setTimeout(() => {
+              if (isServiceProvider(decoded)) {
+                router.push('/provider/manage-services');
+              } else if (isStaff(decoded)) {
+                router.push('/staff/dashboard');
+              } else if (isManager(decoded)) {
+                router.push('/manager/manage-company');
+              } else if (isAdmin(decoded)) {
+                router.push('/admin/dashboard');
+              } else {
+                router.push('/');
+              }
+            }, 100);
+          }
+        }
+
         setError(null);
       } catch (err) {
         setError({ message: 'Error storing token', code: 'TOKEN_ERROR' } as ValidationError);
@@ -218,6 +239,7 @@ export function useLogin() {
       toast.error(errorMessage);
     },
   });
+
   return {
     login,
     isLoading,

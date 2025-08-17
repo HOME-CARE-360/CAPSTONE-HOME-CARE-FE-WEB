@@ -45,6 +45,8 @@ interface UserTableProps {
   searchFilters?: UserSearchParams;
   onEdit?: (user: UserResponseType) => void;
   onDelete?: (user: UserResponseType) => void;
+  onResetPassword?: (user: UserResponseType) => void;
+  onAssignRole?: (user: UserResponseType) => void;
 }
 
 export function UserTable({
@@ -102,9 +104,9 @@ export function UserTable({
     return (
       <div className="flex items-center justify-center h-64 border rounded-lg border-destructive bg-destructive/10">
         <div className="flex flex-col items-center gap-2 text-center max-w-md p-6">
-          <div className="text-lg font-medium text-destructive">Error Loading Users</div>
+          <div className="text-lg font-medium text-destructive">Lỗi khi tải</div>
           <p className="text-sm text-muted-foreground">
-            {error.message || 'Failed to load user data. Please try again later.'}
+            {error.message || 'Không tải được dữ liệu người dùng. Vui lòng thử lại sau.'}
           </p>
         </div>
       </div>

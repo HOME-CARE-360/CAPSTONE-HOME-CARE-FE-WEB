@@ -133,17 +133,3 @@ jobs:
             echo "❌ Health check failed"
             exit 1
           }
-
-  notify:
-    needs: [deploy]
-    runs-on: ubuntu-latest
-    if: always()
-
-    steps:
-      - run: |
-          if [ "${{ needs.deploy.result }}" == "success" ]; then
-            echo "✅ Deployment succeeded!"
-          else
-            echo "❌ Deployment failed!"
-            exit 1
-          }

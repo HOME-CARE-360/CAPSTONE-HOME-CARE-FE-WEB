@@ -634,10 +634,8 @@ export default function NewBookingPage() {
           <div className="max-w-6xl mx-auto">
             {/* Page Header */}
             <div className="text-center mb-12">
-              <h1 className="text-4xl font-bold mb-4">Đặt lịch dịch vụ</h1>
-              <p className="text-muted-foreground text-lg">
-                Hoàn tất thông tin để đặt lịch dịch vụ của bạn
-              </p>
+              <h1 className="text-4xl font-bold mb-4">Gửi yêu cầu dịch vụ</h1>
+              <p className="text-muted-foreground text-lg">Hoàn tất thông tin để gửi yêu cầu</p>
             </div>
 
             <div className="grid lg:grid-cols-3 gap-8">
@@ -667,9 +665,9 @@ export default function NewBookingPage() {
         <div className="max-w-6xl mx-auto">
           {/* Page Header */}
           <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold mb-4">Đặt lịch dịch vụ</h1>
+            <h1 className="text-4xl font-bold mb-4">Gửi yêu cầu dịch vụ</h1>
             <p className="text-muted-foreground text-lg">
-              Hoàn tất thông tin để đặt lịch dịch vụ của bạn
+              Hoàn tất thông tin để gửi yêu cầu dịch vụ của bạn
             </p>
           </div>
 
@@ -684,7 +682,7 @@ export default function NewBookingPage() {
                       <div className="p-2 rounded-lg bg-primary/10">
                         <Wrench className="h-6 w-6 text-primary" />
                       </div>
-                      <span>Danh mục dịch vụ</span>
+                      <span>Danh mục yêu cầu dịch vụ</span>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -963,6 +961,16 @@ export default function NewBookingPage() {
                         ))}
                       </div>
                     </RadioGroup>
+                    <div className="mt-4 p-4 rounded-lg bg-muted/30 border">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">Số tiền khảo sát</span>
+                        <span className="font-semibold">{formatCurrency(100000)}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Số tiền này dùng để xác nhận yêu cầu. Giá cuối cùng sẽ hiển thị sau khi khảo
+                        sát.
+                      </p>
+                    </div>
                   </CardContent>
                 </Card>
 
@@ -1002,7 +1010,7 @@ export default function NewBookingPage() {
                       <div className="p-2 rounded-lg bg-primary/10">
                         <CheckCircle className="h-6 w-6 text-primary" />
                       </div>
-                      <span>Tóm tắt đặt lịch</span>
+                      <span>Tóm tắt yêu cầu đặt dịch vụ</span>
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-6">
@@ -1098,14 +1106,18 @@ export default function NewBookingPage() {
 
                     {/* Price Information */}
                     {serviceData?.service?.basePrice && (
-                      <div className="pt-6 border-t">
+                      <div className="pt-6 border-t space-y-2">
                         <div className="flex justify-between items-center text-2xl font-bold">
-                          <span>Tổng cộng:</span>
+                          <span>Giá khởi điểm (dự kiến):</span>
                           <span className="text-primary">
                             {formatCurrency(serviceData.service.virtualPrice)}
                           </span>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-2">
+                        <div className="flex justify-between items-center text-sm">
+                          <span className="text-muted-foreground">Tiền khảo sát</span>
+                          <span className="font-semibold">{formatCurrency(100000)}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
                           *Giá cuối cùng sẽ được xác nhận sau khi khảo sát
                         </p>
                       </div>
@@ -1122,7 +1134,7 @@ export default function NewBookingPage() {
                         ? 'Vui lòng chọn giờ hợp lệ'
                         : !formData.preferredDate
                           ? 'Vui lòng chọn ngày và giờ'
-                          : 'Đặt lịch ngay'}
+                          : 'Gửi yêu cầu'}
                     </Button>
 
                     <p className="text-xs text-muted-foreground text-center">
@@ -1147,14 +1159,12 @@ export default function NewBookingPage() {
               className="h-10 w-10 text-green-600 mb-2 animate-bounce"
               aria-hidden="true"
             />
-            <h2 className="text-2xl font-bold text-green-700 mb-1">Đặt lịch thành công?</h2>
-            <p className="text-sm text-green-800">
-              Vui lòng kiểm tra lại thông tin trước khi xác nhận
-            </p>
+            <h2 className="text-2xl font-bold text-green-700 mb-1">Xác nhận gửi yêu cầu?</h2>
+            <p className="text-sm text-green-800">Kiểm tra thông tin trước khi xác nhận</p>
           </div>
           <div className="p-6 space-y-6">
             <div>
-              <h4 className="font-semibold text-lg mb-3">Thông tin đặt lịch</h4>
+              <h4 className="font-semibold text-lg mb-3">Thông tin yêu cầu</h4>
               <div className="grid grid-cols-1 gap-3 text-sm">
                 <div className="flex items-center gap-2">
                   <Phone className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
@@ -1217,15 +1227,19 @@ export default function NewBookingPage() {
                     {paymentMethods.find(m => m.value === formData.paymentMethod)?.label}
                   </span>
                 </div>
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                  <span className="text-muted-foreground flex-1">Đặt cọc:</span>
+                  <span className="font-medium">{formatCurrency(100000)}</span>
+                </div>
               </div>
             </div>
 
             <Alert className="bg-yellow-50 border-yellow-200">
               <AlertCircle className="h-4 w-4 text-yellow-600" aria-hidden="true" />
               <AlertDescription className="text-yellow-800">
-                Chúng tôi sẽ liên hệ với bạn trong vòng{' '}
-                <span className="font-semibold">15 phút</span> để xác nhận lịch hẹn và báo giá chi
-                tiết.
+                Sau khi xác nhận, bạn sẽ thanh toán đặt cọc {formatCurrency(100000)} để giữ lịch.
+                Giá thực tế sẽ được thông báo sau khi khảo sát.
               </AlertDescription>
             </Alert>
 
@@ -1242,7 +1256,7 @@ export default function NewBookingPage() {
                     Đang xử lý...
                   </span>
                 ) : (
-                  'Xác nhận đặt lịch'
+                  'Xác nhận gửi yêu cầu'
                 )}
               </Button>
               <Button

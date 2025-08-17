@@ -293,6 +293,24 @@ export function useAuth() {
     },
   });
 
+  // Listen for global logout events (from store/logout or token refresh failure)
+  useEffect(() => {
+    const handler = () => {
+      try {
+        queryClient.clear();
+        router.push('/login');
+      } catch {}
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('logout', handler);
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('logout', handler);
+      }
+    };
+  }, [queryClient, router]);
+
   // Combine errors from all hooks
   const error =
     loginHook.error || registerHook.error || otpHook.error || registerProviderHook.error;

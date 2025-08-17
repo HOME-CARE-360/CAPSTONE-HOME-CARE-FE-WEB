@@ -6,7 +6,7 @@ import { useCategories } from '@/hooks/useCategory';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, Search, RefreshCw } from 'lucide-react';
+import { AlertTriangle, Search, RefreshCw, Loader2 } from 'lucide-react';
 import { CategoryCard, CategoryCardSkeleton } from '@/components/CategoryCard';
 
 export default function CategoriesListings() {
@@ -15,11 +15,13 @@ export default function CategoriesListings() {
 
   const [searchTerm, setSearchTerm] = useState(searchParams.get('name') || '');
 
+  // Only apply filters when search params are present (after form submission)
   const filters = useMemo(() => {
+    const nameParam = searchParams.get('name');
     const nextFilters: { name?: string } = {};
-    if (searchTerm.trim()) nextFilters.name = searchTerm.trim();
+    if (nameParam?.trim()) nextFilters.name = nameParam.trim();
     return nextFilters;
-  }, [searchTerm]);
+  }, [searchParams]);
 
   const { data, isLoading, isError, error, isFetching } = useCategories(filters);
 
@@ -50,7 +52,7 @@ export default function CategoriesListings() {
             <Skeleton className="h-5 w-80" />
           </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5">
           {Array.from({ length: 9 }).map((_, i) => (
             <CategoryCardSkeleton key={i} />
           ))}
@@ -86,27 +88,67 @@ export default function CategoriesListings() {
         <p className="text-muted-foreground">Khám phá các danh mục dịch vụ</p>
       </div>
 
-      <div className="mb-6">
-        <form onSubmit={onSubmitSearch} className="relative max-w-xl">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            placeholder="Tìm kiếm danh mục..."
-            className="pl-10 pr-24"
-            aria-label="Tìm kiếm danh mục"
-          />
-          <div className="absolute right-1 top-1/2 -translate-y-1/2 flex gap-1">
-            <Button type="submit" size="sm" disabled={isFetching}>
-              Tìm
+      <div className="mb-8">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+          <div className="flex-1 max-w-2xl">
+            <form onSubmit={onSubmitSearch} className="relative group">
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors duration-200" />
+                <Input
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  placeholder="Tìm kiếm danh mục dịch vụ..."
+                  className="pl-12 pr-4 h-12 text-base border-2 border-border focus:border-primary transition-colors duration-200 rounded-xl shadow-sm"
+                  aria-label="Tìm kiếm danh mục"
+                />
+              </div>
+            </form>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              type="submit"
+              size="lg"
+              disabled={isFetching}
+              onClick={onSubmitSearch}
+              className="px-6 h-12 rounded-xl font-medium shadow-sm hover:shadow-md transition-all duration-200"
+            >
+              {isFetching ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Đang tìm...
+                </>
+              ) : (
+                <>
+                  <Search className="h-4 w-4 mr-2" />
+                  Tìm kiếm
+                </>
+              )}
             </Button>
             {searchTerm && (
-              <Button type="button" variant="outline" size="sm" onClick={onClear}>
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                onClick={onClear}
+                className="px-4 h-12 rounded-xl font-medium shadow-sm hover:shadow-md transition-all duration-200"
+                aria-label="Xóa tìm kiếm"
+              >
                 <RefreshCw className="h-4 w-4" />
               </Button>
             )}
           </div>
-        </form>
+        </div>
+        {searchTerm && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span>Kết quả tìm kiếm cho:</span>
+            <span className="font-medium text-foreground">{searchTerm}</span>
+            {categories.length > 0 && (
+              <span className="ml-2 px-2 py-1 bg-primary/10 text-primary rounded-md font-medium">
+                {categories.length} danh mục
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {isFetching && <div className="mb-4 text-sm text-muted-foreground">Đang cập nhật...</div>}
@@ -116,11 +158,12 @@ export default function CategoriesListings() {
           <div className="text-center text-muted-foreground">Không có danh mục nào</div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5">
           {categories.map(category => (
             <CategoryCard
               key={category.id}
               category={category}
+              size="sm"
               onClick={c => router.push(`/category/${c.id}`)}
             />
           ))}

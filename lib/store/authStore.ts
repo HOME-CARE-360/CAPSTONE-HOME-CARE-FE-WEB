@@ -8,10 +8,10 @@ import router from 'next/router';
 
 // Define the structure of the decoded token
 interface DecodedToken extends JwtPayload {
-  id?: string; // User ID might be in 'id'
-  userId?: string; // or 'userId'
-  user_id?: string; // or 'user_id'
-  uid?: string; // or 'uid'
+  id?: string;
+  userId?: string;
+  user_id?: string;
+  uid?: string;
   name: string;
   email: string;
   role: string;
@@ -108,9 +108,17 @@ export const useAuthStore = create<AuthState>()(
 
               return false;
             }
-            // console.error('Invalid refresh token response:', response);
-            // get().logout();
-            // router.push('/login');
+            // Avoid sending stale Authorization header on refresh request
+            apiService.setAuthToken(null);
+
+            const response = await fetchAuth.refreshToken(currentRefreshToken);
+            if (response.data?.accessToken && response.data?.refreshToken) {
+              get().setToken(response.data.accessToken, response.data.refreshToken);
+              return true;
+            }
+
+            console.error('Invalid refresh token response:', response);
+            get().logout();
             return false;
           } catch (error: unknown) {
             console.error('Failed to refresh token:', error);
@@ -124,15 +132,6 @@ export const useAuthStore = create<AuthState>()(
               router.push('/login');
               console.log('Refresh token expired (401), logging out');
             }
-
-            // Immediately clear the store state to prevent any race conditions
-            set({
-              token: null,
-              refreshToken: null,
-              user: null,
-              isAuthenticated: false,
-              isLoading: false,
-            });
 
             // Force logout regardless of error type
             get().logout();
@@ -153,6 +152,13 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: false,
             isLoading: false,
           });
+          if (typeof window !== 'undefined') {
+            try {
+              window.dispatchEvent(new Event('logout'));
+            } catch (error: unknown) {
+              console.error('Failed to dispatch logout event:', error);
+            }
+          }
           console.log('Logout completed - all auth data cleared');
         },
 

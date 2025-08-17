@@ -94,6 +94,7 @@ export function LoginForm() {
                     <Link
                       href="/forgot-password"
                       className="text-sm font-medium text-primary hover:underline"
+                      tabIndex={-1}
                     >
                       Quên mật khẩu?
                     </Link>

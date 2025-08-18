@@ -26,6 +26,7 @@ import {
   Loader2,
   LucideIcon,
   Flag,
+  Star,
 } from 'lucide-react';
 import Image from 'next/image';
 import { formatDate } from '@/utils/numbers/formatDate';
@@ -44,8 +45,9 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { useForm } from 'react-hook-form';
-import { useCreateReport } from '@/hooks/useBooking';
+import { useCreateReport, useCreateReview } from '@/hooks/useBooking';
 import { useUploadImage } from '@/hooks/useImage';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 const getStatusConfig = (status: string) => {
   const map: Record<string, { label: string; icon: LucideIcon }> = {
@@ -72,13 +74,14 @@ const getTransactionStatusConfig = (status: string) => {
 const getServiceRequestStatusVi = (status: string) => {
   const key = status?.toUpperCase?.() || '';
   const map: Record<string, string> = {
+    WAIT_FOR_PAYMENT: 'Đang chờ thanh toán',
     ESTIMATED: 'Đang ước lượng',
     PENDING: 'Chờ xử lý',
-    CONFIRMED: 'Đã xác nhận',
-    ACCEPTED: 'Đã chấp nhận',
-    REJECTED: 'Từ chối',
-    IN_PROGRESS: 'Đang thực hiện',
-    COMPLETED: 'Hoàn thành',
+    // CONFIRMED: 'Đã xác nhận',
+    // ACCEPTED: 'Đã chấp nhận',
+    // REJECTED: 'Từ chối',
+    // IN_PROGRESS: 'Đang thực hiện',
+    // COMPLETED: 'Hoàn thành',
     CANCELLED: 'Đã hủy',
   };
   return map[key] || status;
@@ -343,6 +346,7 @@ const ProposalSection = ({
 const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings'][0] }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
+  const [isReviewOpen, setIsReviewOpen] = useState(false);
   const statusConfig = getStatusConfig(booking.status);
   const transactionStatusLabel = getTransactionStatusConfig(
     booking.Transaction?.status || 'PENDING'
@@ -394,6 +398,24 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
     );
   };
 
+  // Review
+  const { mutate: createReview, isPending: isReviewing } = useCreateReview();
+  const [rating, setRating] = useState<string>('5');
+  const [comment, setComment] = useState<string>('');
+
+  const submitReview = () => {
+    createReview(
+      { bookingId: booking.id, data: { rating: parseInt(rating, 10), comment } },
+      {
+        onSuccess: () => {
+          setIsReviewOpen(false);
+          setRating('5');
+          setComment('');
+        },
+      }
+    );
+  };
+
   return (
     <Card className="overflow-hidden hover:shadow-md transition-shadow break-inside-avoid mb-4">
       <CardHeader className="pb-3">
@@ -434,14 +456,24 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
               </Button>
             )}
             {booking.status?.toUpperCase() === 'COMPLETED' && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsReportOpen(true)}
-                aria-label="Báo cáo sự cố cho đơn đặt này"
-              >
-                <Flag className="h-4 w-4 mr-1" /> Báo cáo
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsReportOpen(true)}
+                  aria-label="Báo cáo sự cố cho đơn đặt này"
+                >
+                  <Flag className="h-4 w-4 mr-1" /> Báo cáo
+                </Button>
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() => setIsReviewOpen(true)}
+                  aria-label="Đánh giá dịch vụ cho đơn đặt này"
+                >
+                  <Star className="h-4 w-4 mr-1" /> Đánh giá
+                </Button>
+              </>
             )}
             <Button
               variant="ghost"
@@ -596,6 +628,7 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
         )}
       </CardContent>
 
+      {/* Report Dialog */}
       <Dialog open={isReportOpen} onOpenChange={setIsReportOpen}>
         <DialogContent>
           <DialogHeader>
@@ -645,6 +678,70 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Review Dialog */}
+      <Dialog open={isReviewOpen} onOpenChange={setIsReviewOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Đánh giá dịch vụ</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-sm">Chấm điểm</Label>
+              <RadioGroup
+                value={rating}
+                onValueChange={setRating}
+                className="flex items-center gap-3"
+              >
+                {[1, 2, 3, 4, 5].map(n => (
+                  <div key={n} className="flex items-center gap-1">
+                    <RadioGroupItem id={`rating-${booking.id}-${n}`} value={String(n)} />
+                    <Label
+                      htmlFor={`rating-${booking.id}-${n}`}
+                      className="flex items-center gap-1"
+                    >
+                      <Star
+                        className={
+                          n <= parseInt(rating, 10)
+                            ? 'h-4 w-4 text-yellow-500'
+                            : 'h-4 w-4 text-muted-foreground'
+                        }
+                      />
+                      {n}
+                    </Label>
+                  </div>
+                ))}
+              </RadioGroup>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor={`comment-${booking.id}`} className="text-sm">
+                Nhận xét
+              </Label>
+              <Textarea
+                id={`comment-${booking.id}`}
+                placeholder="Chia sẻ trải nghiệm của bạn"
+                value={comment}
+                onChange={e => setComment(e.target.value)}
+              />
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setIsReviewOpen(false)}>
+                Hủy
+              </Button>
+              <Button onClick={submitReview} disabled={isReviewing || !rating} className="min-w-24">
+                {isReviewing ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="animate-spin h-4 w-4" />
+                    Đang gửi
+                  </span>
+                ) : (
+                  'Gửi đánh giá'
+                )}
+              </Button>
+            </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
     </Card>

@@ -46,7 +46,7 @@ export interface ServiceSearchParams {
   page?: number;
   limit?: number;
   name?: string;
-  categories?: number[];
+  categoryId?: number[];
   minPrice?: number;
   maxPrice?: number;
   providerId?: number;
@@ -63,7 +63,7 @@ const convertServiceFilters = (filters?: ServiceSearchParams): RequestParams => 
   if (filters.name) params.name = filters.name;
   if (filters.page !== undefined) params.page = filters.page;
   if (filters.limit !== undefined) params.limit = filters.limit;
-  if (filters.categories) params.categories = filters.categories;
+  if (filters.categoryId) params.categoryId = filters.categoryId;
   if (filters.minPrice !== undefined) params.minPrice = filters.minPrice;
   if (filters.maxPrice !== undefined) params.maxPrice = filters.maxPrice;
   if (filters.providerId !== undefined) params.providerId = filters.providerId;

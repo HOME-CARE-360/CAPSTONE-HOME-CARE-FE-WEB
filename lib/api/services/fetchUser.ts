@@ -265,6 +265,56 @@ export interface AddOrRemoveFavoriteResponse {
   timestamp: string;
 }
 
+// Reviews
+export interface ReviewBookingMeta {
+  id: number;
+  status: string;
+}
+
+export interface ReviewProviderMeta {
+  id: number;
+  name: string;
+  phone: string;
+  email: string;
+}
+
+export interface UserReview {
+  id: number;
+  rating: number;
+  comment: string;
+  createdAt: string;
+  booking: ReviewBookingMeta;
+  provider: ReviewProviderMeta;
+}
+
+export interface GetUserReviewsResponse {
+  success: boolean;
+  message: string;
+  data: {
+    success: boolean;
+    code: string;
+    message: string;
+    data: {
+      reviews: UserReview[];
+      totalItems: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+      sortBy?: string;
+      sortOrder?: string;
+    };
+    statusCode: number;
+    timestamp: string;
+  };
+}
+
+export interface UserReviewsSearchParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  rating?: number;
+}
+
 export interface GetServiceProviderResponse {
   success: boolean;
   code: string;
@@ -458,6 +508,19 @@ export const userService = {
     const response = await apiService.get<GetServiceProviderResponse>(
       `/publics/get-service-provider-information/${providerId}`
     );
+    return response.data;
+  },
+
+  getUserReviews: async (filters?: UserReviewsSearchParams): Promise<GetUserReviewsResponse> => {
+    const response = await apiService.get<GetUserReviewsResponse>(
+      `/users/reviews`,
+      filters as never
+    );
+    return response.data;
+  },
+
+  deleteUserReview: async (reviewId: number): Promise<{ message: string }> => {
+    const response = await apiService.delete<{ message: string }>(`/users/reviews/${reviewId}`);
     return response.data;
   },
 

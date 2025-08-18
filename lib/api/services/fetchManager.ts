@@ -100,6 +100,82 @@ export interface ServiceSearchParams {
   limit: number;
 }
 
+// Reports
+export interface Report {
+  id: number;
+  customerId: number;
+  providerId: number;
+  bookingId: number;
+  reason: string;
+  description: string;
+  imageUrls: string[];
+  status: string;
+  createdAt: string;
+  reviewedAt: string | null;
+  reviewedById: number | null;
+  note: string | null;
+}
+
+export interface ReportListResponse {
+  data: Report[];
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface ReportSearchParams {
+  page?: number;
+  limit?: number;
+  status?: string;
+  query?: string;
+}
+
+// Withdraws
+export interface WithdrawItemUser {
+  id?: number;
+  name?: string | null;
+  email?: string | null;
+}
+
+export interface WithdrawItem {
+  id: number;
+  amount: number;
+  status: string;
+  createdAt: string;
+  processedAt: string | null;
+  processedById: number | null;
+  note: string | null;
+  userId: number;
+  User: WithdrawItemUser | null;
+}
+
+export interface WithdrawListResponse {
+  data: WithdrawItem[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    pages: number;
+  };
+}
+
+export interface WithdrawSearchParams {
+  page?: number;
+  limit?: number;
+  status?: string;
+}
+
+export interface UpdateWithdrawRequest {
+  id: number;
+  status: 'APPROVED' | 'REJECTED' | 'PENDING';
+  note?: string | null;
+}
+
+export interface UpdateWithdrawResponse {
+  message: string;
+}
+
 export interface ChangeStatusServiceRequest {
   id: number;
   status: 'ACCEPTED' | 'REJECTED';
@@ -134,6 +210,31 @@ const convertServiceFilters = (filters?: ServiceSearchParams): RequestParams => 
   if (filters.status) params.status = filters.status;
   if (filters.categoryId) params.categoryId = filters.categoryId;
   if (filters.providerIds) params.providerIds = filters.providerIds;
+
+  return params;
+};
+
+const convertReportFilters = (filters?: ReportSearchParams): RequestParams => {
+  if (!filters) return {};
+
+  const params: RequestParams = {};
+
+  if (filters.page !== undefined) params.page = filters.page;
+  if (filters.limit !== undefined) params.limit = filters.limit;
+  if (filters.status) params.status = filters.status;
+  if (filters.query) params.query = filters.query;
+
+  return params;
+};
+
+const convertWithdrawFilters = (filters?: WithdrawSearchParams): RequestParams => {
+  if (!filters) return {};
+
+  const params: RequestParams = {};
+
+  if (filters.page !== undefined) params.page = filters.page;
+  if (filters.limit !== undefined) params.limit = filters.limit;
+  if (filters.status) params.status = filters.status;
 
   return params;
 };
@@ -174,6 +275,34 @@ export const managerSerivce = {
       ChangeStatusServiceResponse,
       ChangeStatusServiceRequest
     >('/managers/change-status-service', data);
+    return response.data;
+  },
+
+  getListReport: async (filters?: ReportSearchParams): Promise<ReportListResponse> => {
+    const params = convertReportFilters(filters);
+    const response = await apiService.get<ReportListResponse>('/managers/get-list-report', params);
+    return response.data;
+  },
+
+  getListWithdraw: async (filters?: WithdrawSearchParams): Promise<WithdrawListResponse> => {
+    const params = convertWithdrawFilters(filters);
+    const response = await apiService.get<WithdrawListResponse>(
+      '/managers/get-list-withdraw',
+      params
+    );
+    return response.data;
+  },
+
+  getWithdrawDetail: async (id: number): Promise<WithdrawItem> => {
+    const response = await apiService.get<WithdrawItem>(`/managers/get-withdraw-detail/${id}`);
+    return response.data as unknown as WithdrawItem;
+  },
+
+  updateWithdraw: async (payload: UpdateWithdrawRequest): Promise<UpdateWithdrawResponse> => {
+    const response = await apiService.patch<UpdateWithdrawResponse, UpdateWithdrawRequest>(
+      '/managers/update-withdraw',
+      payload
+    );
     return response.data;
   },
 };

@@ -16,6 +16,7 @@ const serviceItems = [
   { label: 'Dịch vụ đã đặt', value: 'booking', href: '/settings/bookings' },
   { label: 'Dịch vụ yêu thích', value: 'favorites', href: '/settings/favorites' },
   { label: 'Báo cáo của bạn', value: 'report', href: '/settings/report' },
+  { label: 'Đánh giá của bạn', value: 'review', href: '/settings/review' },
 ];
 
 // const notificationItems = [

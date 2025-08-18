@@ -342,6 +342,26 @@ export interface GetReportResponse {
   timestamp: string;
 }
 
+// Reviews
+export interface CreateReviewRequest {
+  rating: number;
+  comment: string;
+}
+
+export interface CreateReviewResponse {
+  success: boolean;
+  code: string;
+  message: string;
+  data?: {
+    id: number;
+    rating: number;
+    comment: string;
+    createdAt: string;
+  };
+  statusCode: number;
+  timestamp: string;
+}
+
 export const serviceBooking = {
   createBooking: async (data: CreateBookingRequest): Promise<CreateServiceRequestResponse> => {
     try {
@@ -411,6 +431,16 @@ export const serviceBooking = {
       return response.data as GetReportResponse;
     } catch (error) {
       console.error('Get Report Error:', error);
+      throw error;
+    }
+  },
+
+  createReview: async (bookingId: number, data: CreateReviewRequest) => {
+    try {
+      const response = await apiService.post(`/users/create-review/${bookingId}`, data);
+      return response.data as CreateReviewResponse;
+    } catch (error) {
+      console.error('Create Review Error:', error);
       throw error;
     }
   },

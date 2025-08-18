@@ -7,8 +7,11 @@ import {
   CreateReportRequest,
   CreateReportResponse,
   GetReportResponse,
+  CreateReviewRequest,
+  CreateReviewResponse,
 } from '@/lib/api/services/fetchBooking';
 import { toast } from 'sonner';
+import { getErrorMessage } from '@/lib/api/core';
 import { useRouter } from 'next/navigation';
 import { ValidationError } from '@/lib/api/services/fetchAuth';
 
@@ -139,4 +142,57 @@ export const useGetReport = () => {
   });
 
   return { data, isLoading, error };
+};
+
+export const useCreateReview = () => {
+  const { data, isPending, error, mutate, mutateAsync } = useMutation<
+    CreateReviewResponse,
+    unknown,
+    { bookingId: number; data: CreateReviewRequest }
+  >({
+    mutationFn: ({ bookingId, data }) => serviceBooking.createReview(bookingId, data),
+    onSuccess: () => {
+      toast.success('Gửi đánh giá thành công!');
+    },
+    onError: (err: unknown) => {
+      // Shape may come from ApiService interceptor
+      // Duplicate review patterns:
+      // - error.error === 'This booking has already been reviewed.'
+      // - error.message.message === 'Error.DuplicateReview'
+      let userMessage = 'Đã xảy ra lỗi không mong muốn';
+
+      if (typeof err === 'object' && err !== null) {
+        type ApiErrMessage = string | { message?: string; path?: unknown };
+        interface ApiErrShape {
+          statusCode?: number;
+          error?: string;
+          message?: ApiErrMessage;
+          details?: unknown;
+        }
+        const anyErr = err as ApiErrShape;
+
+        const duplicateByError =
+          typeof anyErr.error === 'string' && anyErr.error.includes('already been reviewed');
+        const duplicateByCode =
+          typeof anyErr.message === 'object' && anyErr.message?.message === 'Error.DuplicateReview';
+
+        if (duplicateByError || duplicateByCode) {
+          userMessage = 'Đã đánh giá dịch vụ này trước đó';
+          toast.error(userMessage);
+          return;
+        }
+
+        // Generic API error extraction
+        if (typeof anyErr.message === 'string' || Array.isArray(anyErr.message as never)) {
+          userMessage = getErrorMessage(anyErr as never);
+          toast.error(userMessage);
+          return;
+        }
+      }
+
+      toast.error(userMessage);
+    },
+  });
+
+  return { data, isPending, error, mutate, mutateAsync };
 };

@@ -43,6 +43,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         url: '/manager/manage-category',
         icon: LayoutDashboardIcon,
       },
+      {
+        title: 'Quản lý báo cáo',
+        url: '/manager/manage-report',
+        icon: LayoutDashboardIcon,
+      },
+      {
+        title: 'Quản lý rút tiền',
+        url: '/manager/manage-withdraw',
+        icon: LayoutDashboardIcon,
+      },
     ],
   };
 

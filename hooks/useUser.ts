@@ -8,6 +8,8 @@ import userService, {
   UpdateUserProposalRequest,
   UpdateUserProposalResponse,
   CancelServiceRequestResponse,
+  GetUserReviewsResponse,
+  UserReviewsSearchParams,
 } from '@/lib/api/services/fetchUser';
 import {
   UpdateUserProfileRequestType,
@@ -225,6 +227,35 @@ export const useUpdateUserProposal = () => {
         } else if (typeof errorObj.message === 'string') {
           errorMessage = errorObj.message;
         }
+      }
+      toast.error(errorMessage);
+    },
+  });
+};
+
+export const useGetUserReviews = (filters?: Partial<UserReviewsSearchParams>) => {
+  const isAuthenticated = useAuthStore(state => state.isAuthenticated);
+  return useQuery<GetUserReviewsResponse>({
+    queryKey: ['users', 'reviews', filters],
+    queryFn: () => userService.getUserReviews(filters as UserReviewsSearchParams | undefined),
+    enabled: isAuthenticated,
+    select: data => data, // preserve new nested structure
+  });
+};
+
+export const useDeleteUserReview = () => {
+  const queryClient = useQueryClient();
+  return useMutation<{ message: string }, Error, { reviewId: number }>({
+    mutationFn: ({ reviewId }) => userService.deleteUserReview(reviewId),
+    onSuccess: res => {
+      queryClient.invalidateQueries({ queryKey: ['users', 'reviews'] });
+      toast.success(res.message || 'Xóa đánh giá thành công');
+    },
+    onError: (error: Error) => {
+      let errorMessage = 'An unexpected error occurred';
+      if (typeof error === 'object' && error !== null && 'message' in error) {
+        const errorObj = error as { message: string };
+        errorMessage = errorObj.message || errorMessage;
       }
       toast.error(errorMessage);
     },

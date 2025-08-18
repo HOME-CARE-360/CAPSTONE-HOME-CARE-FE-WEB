@@ -296,6 +296,14 @@ export function SheetService({ service, trigger, open, onOpenChange }: SheetServ
     return digitsOnly ? Number(digitsOnly) : 0;
   };
 
+  // Helper function to calculate total cost of selected service items
+  const calculateServiceItemsTotal = (): number => {
+    return (form.watch('serviceItemsId') || []).reduce((total, serviceItemId) => {
+      const serviceItem = serviceItems?.data?.data?.find(item => item.id === serviceItemId);
+      return total + (serviceItem?.unitPrice || 0);
+    }, 0);
+  };
+
   return (
     <Sheet open={isSheetOpen} onOpenChange={handleOpenChange}>
       {trigger && <SheetTrigger asChild>{trigger}</SheetTrigger>}
@@ -435,9 +443,14 @@ export function SheetService({ service, trigger, open, onOpenChange }: SheetServ
                         return (
                           <div
                             key={serviceItemId}
-                            className="flex items-center gap-2 bg-blue-100 text-blue-800 px-2 py-1 rounded-md text-sm"
+                            className="flex items-center gap-2 bg-blue-100 text-blue-800 px-3 py-2 rounded-md text-sm"
                           >
-                            <span>{serviceItem?.name || `Service ${serviceItemId}`}</span>
+                            <span className="font-medium">
+                              {serviceItem?.name || `Service ${serviceItemId}`}
+                            </span>
+                            <span className="text-blue-600">
+                              ({formatCurrencyVi(serviceItem?.unitPrice || 0)})
+                            </span>
                             <button
                               type="button"
                               onClick={() => {
@@ -447,13 +460,79 @@ export function SheetService({ service, trigger, open, onOpenChange }: SheetServ
                                 );
                                 form.setValue('serviceItemsId', updatedItems);
                               }}
-                              className="text-blue-600 hover:text-blue-800"
+                              className="text-blue-600 hover:text-blue-800 ml-1"
                             >
                               ×
                             </button>
                           </div>
                         );
                       })}
+                    </div>
+
+                    {/* Price Suggestion */}
+                    <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-sm font-medium text-green-800">💡 Gợi ý giá</span>
+                      </div>
+
+                      {/* Service Items Total */}
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Tổng giá vật tư:</span>
+                          <span className="font-medium text-gray-800">
+                            {formatCurrencyVi(calculateServiceItemsTotal())} VNĐ
+                          </span>
+                        </div>
+
+                        {/* Suggested Service Fee */}
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Phí dịch vụ (30%):</span>
+                          <span className="font-medium text-green-600">
+                            {formatCurrencyVi(Math.round(calculateServiceItemsTotal() * 0.3))} VNĐ
+                          </span>
+                        </div>
+
+                        {/* Total Suggested Price */}
+                        <div className="pt-2 border-t border-green-200">
+                          <div className="flex justify-between">
+                            <span className="font-medium text-green-800">Giá đề xuất:</span>
+                            <span className="font-bold text-green-800 text-lg">
+                              {formatCurrencyVi(Math.round(calculateServiceItemsTotal() * 1.3))} VNĐ
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Quick Price Set Buttons */}
+                        <div className="flex gap-2 pt-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="text-xs h-7 px-2 bg-white hover:bg-green-50 border-green-300 text-green-700"
+                            onClick={() => {
+                              const suggestedPrice = Math.round(calculateServiceItemsTotal() * 1.3);
+                              form.setValue('virtualPrice', suggestedPrice);
+                              form.setValue('basePrice', suggestedPrice);
+                            }}
+                          >
+                            Áp dụng giá đề xuất
+                          </Button>
+
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="text-xs h-7 px-2 bg-white hover:bg-green-50 border-green-300 text-green-700"
+                            onClick={() => {
+                              const materialsCost = calculateServiceItemsTotal();
+                              form.setValue('virtualPrice', materialsCost);
+                              form.setValue('basePrice', materialsCost);
+                            }}
+                          >
+                            Chỉ tính vật tư
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}

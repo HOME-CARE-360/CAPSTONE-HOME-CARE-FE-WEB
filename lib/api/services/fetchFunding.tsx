@@ -25,7 +25,7 @@ export interface GetDetailWithDrawResponse {
 export const fundingService = {
   createWithDraw: async (data: CreateWithDrawRequest): Promise<CreateWithDrawResponse> => {
     const response = await apiService.post<CreateWithDrawResponse>(
-      '/manage-funding/create-withdraw-request',
+      '/publics/create-withdraw-request',
       {
         amount: data.amount,
       }
@@ -34,9 +34,7 @@ export const fundingService = {
   },
 
   getListWithDraw: async (): Promise<GetListWithDrawResponse> => {
-    const response = await apiService.get<GetListWithDrawResponse>(
-      '/manage-funding/get-list-withdraw'
-    );
+    const response = await apiService.get<GetListWithDrawResponse>('/publics/get-list-withdraw');
     return response.data;
   },
 

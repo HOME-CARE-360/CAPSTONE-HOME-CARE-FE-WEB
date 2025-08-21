@@ -45,11 +45,28 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useAuthStore } from '@/lib/store/authStore';
 
 const serviceFormSchema = z.object({
-  name: z.string().min(1, 'Tên dịch vụ là bắt buộc'),
-  description: z.string().min(4, 'Mô tả dịch vụ phải có ít nhất 4 từ'),
-  basePrice: z.number().min(0, 'Giá cơ bản phải lớn hơn 0'),
-  virtualPrice: z.number().min(0, 'Giá ảo phải lớn hơn 0'),
-  durationMinutes: z.number().min(1, 'Thời gian phải lớn hơn 0'),
+  name: z
+    .string()
+    .min(1, 'Tên dịch vụ là bắt buộc')
+    .max(100, 'Tên dịch vụ không được quá 100 ký tự')
+    .refine(val => val.trim().length > 0, 'Tên dịch vụ không được chỉ chứa khoảng trắng'),
+  description: z
+    .string()
+    .min(10, 'Mô tả dịch vụ phải có ít nhất 10 ký tự')
+    .max(500, 'Mô tả dịch vụ không được quá 500 ký tự')
+    .refine(val => val.trim().length >= 10, 'Mô tả dịch vụ không được chỉ chứa khoảng trắng'),
+  basePrice: z
+    .number()
+    .min(100000, 'Giá cơ bản không được dưới 100k')
+    .max(10000000, 'Giá cơ bản không được quá 10 triệu'),
+  virtualPrice: z
+    .number()
+    .min(100000, 'Giá ảo không được dưới 100k')
+    .max(10000000, 'Giá ảo không được quá 10 triệu'),
+  durationMinutes: z
+    .number()
+    .min(5, 'Thời gian phải ít nhất 5 phút')
+    .max(480, 'Thời gian không được quá 8 giờ (480 phút)'),
   categoryId: z.number().min(1, 'Vui lòng chọn loại dịch vụ'),
   serviceItemsId: z.array(z.number()).optional(),
 });
@@ -241,6 +258,11 @@ export function SheetService({ service, trigger, open, onOpenChange }: SheetServ
     }
     setIsLoading(true);
     try {
+      // Ensure basePrice and virtualPrice are not below 100,000
+      if (data.basePrice < 100000 || data.virtualPrice < 100000) {
+        toast.error('Giá không được dưới 100k');
+        return;
+      }
       // Get all successfully uploaded image URLs
       const imageUrls = uploadedImages
         .filter(img => img.status === 'success')
@@ -285,6 +307,8 @@ export function SheetService({ service, trigger, open, onOpenChange }: SheetServ
   const isSubmitting = isCreating || isUpdating || isLoading;
   const { isAuthenticated } = useAuthStore();
   const canSubmit = isAuthenticated && form.formState.isValid && !isSubmitting;
+  const isPriceValid =
+    (form.watch('basePrice') ?? 0) >= 100000 && (form.watch('virtualPrice') ?? 0) >= 100000;
 
   const formatCurrencyVi = (value: number): string => {
     if (typeof value !== 'number' || Number.isNaN(value)) return '';
@@ -292,8 +316,9 @@ export function SheetService({ service, trigger, open, onOpenChange }: SheetServ
   };
 
   const parseCurrencyToNumber = (input: string): number => {
-    const digitsOnly = input.replace(/[^\d]/g, '');
-    return digitsOnly ? Number(digitsOnly) : 0;
+    const digitsOnly = input.replace(/[\D]/g, '');
+    const parsedValue = digitsOnly ? Number(digitsOnly) : 0;
+    return parsedValue < 100000 ? 100000 : parsedValue;
   };
 
   // Helper function to calculate total cost of selected service items
@@ -580,7 +605,11 @@ export function SheetService({ service, trigger, open, onOpenChange }: SheetServ
                         placeholder="0"
                         value={field.value ? formatCurrencyVi(field.value) : ''}
                         onChange={e => field.onChange(parseCurrencyToNumber(e.target.value))}
-                        onBlur={() => field.onChange(field.value || 0)}
+                        onBlur={() =>
+                          field.onChange(
+                            !field.value || field.value < 100000 ? 100000 : field.value
+                          )
+                        }
                         disabled={isSubmitting}
                       />
                     )}
@@ -604,7 +633,11 @@ export function SheetService({ service, trigger, open, onOpenChange }: SheetServ
                         placeholder="0"
                         value={field.value ? formatCurrencyVi(field.value) : ''}
                         onChange={e => field.onChange(parseCurrencyToNumber(e.target.value))}
-                        onBlur={() => field.onChange(field.value || 0)}
+                        onBlur={() =>
+                          field.onChange(
+                            !field.value || field.value < 100000 ? 100000 : field.value
+                          )
+                        }
                         disabled={isSubmitting}
                       />
                     )}
@@ -729,15 +762,17 @@ export function SheetService({ service, trigger, open, onOpenChange }: SheetServ
               </Button>
               <Button
                 type="submit"
-                disabled={!canSubmit}
+                disabled={!canSubmit || !isPriceValid}
                 className="bg-green-500 hover:bg-green-600 text-white font-semibold shadow"
-                aria-disabled={!canSubmit}
+                aria-disabled={!canSubmit || !isPriceValid}
                 title={
                   !isAuthenticated
                     ? 'Vui lòng đăng nhập để thực hiện'
                     : !form.formState.isValid
                       ? 'Vui lòng điền đầy đủ thông tin hợp lệ'
-                      : undefined
+                      : !isPriceValid
+                        ? 'Giá không được dưới 100k'
+                        : undefined
                 }
               >
                 {isSubmitting ? (

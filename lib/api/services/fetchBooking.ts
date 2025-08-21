@@ -18,36 +18,73 @@ export interface CreateBookingRequest {
   paymentMethod: 'BANK_TRANSFER' | 'WALLET';
 }
 
-export interface CreateServiceRequestResponse {
-  code: string;
-  data: {
-    message: string;
-    amount: number;
-    transactionId: number;
-    bookingId: number;
-    createdAt: string;
-    createdById: number;
-    method: 'BANK_TRANSFER' | 'WALLET' | string;
-    responseData: {
-      accountNumber: string;
-      accountName: string;
-      amount: number;
-      bin: string;
-      checkoutUrl: string;
-      currency: string;
-      description: string;
-      orderCode: string;
-      paymentLinkId: string;
-      qrCode: string;
-      status: string;
-    };
-    status: 'PENDING' | 'SUCCESS' | 'FAILED' | string;
-  };
+// Payment response variants
+export interface BankTransferPaymentData {
   message: string;
-  statusCode: number;
+  paymentTransactionId: number;
+  referenceNumber: string | number;
+  status: 'PENDING' | 'SUCCESS' | 'FAILED' | string;
+  amountOut: number;
+  gateway: 'PAYOS' | string;
+  transactionDate?: string;
+  userId: number;
+  serviceRequestId: number;
+  responseData?: {
+    bin?: string;
+    accountNumber?: string;
+    accountName?: string;
+    amount?: number;
+    description?: string;
+    orderCode?: string | number;
+    currency?: string;
+    paymentLinkId?: string;
+    status?: string;
+    checkoutUrl?: string;
+    qrCode?: string;
+  };
+  checkoutUrl?: string; // some backends duplicate this at top-level
+  requiresPayment?: boolean;
+}
+
+export interface WalletPaymentData {
+  message: string;
+  paymentTransactionId: number;
+  referenceNumber: string;
+  status: 'PENDING' | 'SUCCESS' | 'FAILED' | string;
+  amountOut: number;
+  gateway: 'INTERNAL_WALLET' | string;
+  transactionDate: string;
+  userId: number;
+  serviceRequestId: number;
+  paidViaWallet?: boolean;
+  walletBalanceAfter?: number;
+}
+
+export type CreateServiceRequestData = BankTransferPaymentData | WalletPaymentData;
+
+export interface CreateServiceRequestResponse {
   success: boolean;
+  code: string;
+  message: string;
+  data: CreateServiceRequestData;
+  statusCode: number;
   timestamp: string;
 }
+
+// Type guards for runtime checks
+export const isBankTransferData = (data: unknown): data is BankTransferPaymentData => {
+  if (!data || typeof data !== 'object') return false;
+  const d = data as Record<string, unknown>;
+  return (
+    d['gateway'] === 'PAYOS' || 'responseData' in d || 'checkoutUrl' in d || 'requiresPayment' in d
+  );
+};
+
+export const isWalletPaymentData = (data: unknown): data is WalletPaymentData => {
+  if (!data || typeof data !== 'object') return false;
+  const d = data as Record<string, unknown>;
+  return d['gateway'] === 'INTERNAL_WALLET' || d['paidViaWallet'] === true;
+};
 
 export enum StatusBooking {
   PENDING = 'PENDING',
@@ -287,6 +324,37 @@ export interface StaffBookingResponse {
   timestamp: string;
 }
 
+export interface StaffBookingDetailResponse {
+  success: boolean;
+  code: string;
+  message: string;
+  data: {
+    id: number;
+    status: StatusBooking;
+    createdAt: string;
+    customer: {
+      id: number;
+      name: string;
+      phone: string;
+      address: string;
+    };
+    serviceRequest: {
+      id: number;
+      preferredDate: string;
+      note: string;
+      location: string;
+      phoneNumber: string;
+      status: StatusServiceRequest;
+      category: {
+        id: number;
+        name: string;
+      };
+    };
+  };
+  statusCode: number;
+  timestamp: string;
+}
+
 export interface CreateReportRequest {
   reason: string;
   description: string;
@@ -399,6 +467,16 @@ export const serviceBooking = {
       return response.data as StaffBookingResponse;
     } catch (error) {
       console.error('Get List Booking Error:', error);
+      throw error;
+    }
+  },
+
+  getStaffBookingDetail: async (bookingId: number): Promise<StaffBookingDetailResponse> => {
+    try {
+      const response = await apiService.get(`/staffs/get-booking-detail/${bookingId}`);
+      return response.data as StaffBookingDetailResponse;
+    } catch (error) {
+      console.error('Get Staff Booking Detail Error:', error);
       throw error;
     }
   },

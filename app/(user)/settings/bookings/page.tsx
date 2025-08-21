@@ -27,8 +27,11 @@ import {
   LucideIcon,
   Flag,
   Star,
+  Wallet,
+  CreditCard,
 } from 'lucide-react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { formatDate } from '@/utils/numbers/formatDate';
 import { formatCurrency } from '@/utils/numbers/formatCurrency';
 import { useQueryClient } from '@tanstack/react-query';
@@ -48,10 +51,11 @@ import { useForm } from 'react-hook-form';
 import { useCreateReport, useCreateReview } from '@/hooks/useBooking';
 import { useUploadImage } from '@/hooks/useImage';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { useGetOrCreateConversation } from '@/hooks/useConversation';
 
 const getStatusConfig = (status: string) => {
   const map: Record<string, { label: string; icon: LucideIcon }> = {
-    PENDING: { label: 'Chờ xác nhận', icon: ClockIcon },
+    PENDING: { label: 'Chờ nhà cung cấp xác nhận', icon: ClockIcon },
     CONFIRMED: { label: 'Đã xác nhận', icon: CheckCircle },
     IN_PROGRESS: { label: 'Đang thực hiện', icon: ClockIcon },
     COMPLETED: { label: 'Hoàn thành', icon: CheckCircle },
@@ -76,7 +80,7 @@ const getServiceRequestStatusVi = (status: string) => {
   const map: Record<string, string> = {
     WAIT_FOR_PAYMENT: 'Đang chờ thanh toán',
     ESTIMATED: 'Đang ước lượng',
-    PENDING: 'Chờ xử lý',
+    PENDING: 'Chờ nhà cung cấp tìm kiếm nhân viên cho bạn',
     // CONFIRMED: 'Đã xác nhận',
     // ACCEPTED: 'Đã chấp nhận',
     // REJECTED: 'Từ chối',
@@ -116,20 +120,31 @@ function isBookingArray(value: unknown): value is BookingItem[] {
 
 const ProposalSection = ({
   bookingId,
-  bookingStatus,
+  serviceRequestStatus,
   transactionStatus,
-  transactionAmount,
+  paymentTransactionStatus,
+  paymentTransactionAmountOut,
+  hasTransaction,
 }: {
   bookingId: number;
   bookingStatus: string;
+  serviceRequestStatus?: string;
   transactionStatus?: string;
   transactionAmount?: number;
+  paymentTransactionStatus?: string;
+  paymentTransactionAmountOut?: number;
+  hasTransaction: boolean;
 }) => {
   const { data, isLoading, error } = useGetUserProposal(bookingId);
   const { mutate: updateProposal, isPending: isUpdating } = useUpdateUserProposal();
   const { mutate: createTransaction, isPending: isCreatingPayment } =
     useCreateProposalTransaction();
   const queryClient = useQueryClient();
+  const router = useRouter();
+
+  // Payment error dialog state
+  const [isPaymentErrorOpen, setIsPaymentErrorOpen] = useState(false);
+  const [paymentErrorMsg, setPaymentErrorMsg] = useState<string>('Đã xảy ra lỗi khi thanh toán.');
 
   if (isLoading) {
     return (
@@ -166,15 +181,23 @@ const ProposalSection = ({
     ? (lastProposalItem.Service?.virtualPrice ?? 0) * normalizeQuantity(lastProposalItem.quantity)
     : 0;
 
+  const computedPaidStatus = (paymentTransactionStatus || transactionStatus || '').toUpperCase();
+  const isPaid = computedPaidStatus === 'PAID' || computedPaidStatus === 'SUCCESS';
   const hasDepositAmount =
-    typeof transactionAmount === 'number' && !Number.isNaN(transactionAmount);
-  const depositAmount = hasDepositAmount ? Math.max(transactionAmount as number, 0) : 0;
+    isPaid &&
+    typeof paymentTransactionAmountOut === 'number' &&
+    !Number.isNaN(paymentTransactionAmountOut);
+  const depositAmount = hasDepositAmount ? Math.max(paymentTransactionAmountOut as number, 0) : 0;
   const remainingAfterDeposit = hasDepositAmount
     ? Math.max(totalAmount - depositAmount, 0)
     : totalAmount;
 
-  const isPaid = transactionStatus?.toUpperCase() === 'PAID';
-  const canShowActions = bookingStatus?.toUpperCase() === 'CONFIRMED' && !isPaid;
+  const isEstimate =
+    (serviceRequestStatus || '').toUpperCase() === 'ESTIMATE' ||
+    (serviceRequestStatus || '').toUpperCase() === 'ESTIMATED';
+  const hasProposalItems = sortedItems.length > 0;
+  const isRejected = (proposal.status || '').toUpperCase() === 'REJECTED';
+  const canShowActions = isEstimate && hasProposalItems && !isRejected && !hasTransaction;
 
   return (
     <div className="space-y-3">
@@ -191,8 +214,10 @@ const ProposalSection = ({
             {proposal.status === 'ACCEPTED'
               ? 'Đã được thêm'
               : proposal.status === 'PENDING'
-                ? 'Chờ xử lý'
-                : proposal.status}
+                ? 'Chờ bạn chấp nhận dịch vụ'
+                : proposal.status === 'REJECTED'
+                  ? 'Chờ nhà cung cấp đưa ra dịch vụ phù hợp với bạn'
+                  : proposal.status}
           </Badge>
         </div>
 
@@ -263,37 +288,95 @@ const ProposalSection = ({
           className="flex flex-col sm:flex-row items-stretch justify-end gap-2 pt-1"
           aria-live="polite"
         >
-          <Button
-            size="sm"
-            className="flex-1 sm:flex-initial bg-green-600 hover:bg-green-700 text-white transition-colors duration-150"
-            disabled={isCreatingPayment}
-            aria-label="Thanh toán đề xuất"
-            onClick={() =>
-              createTransaction(
-                { bookingId, method: 'BANK_TRANSFER' },
-                {
-                  onSuccess: response => {
-                    const url = response?.data?.responseData?.checkoutUrl;
-                    if (typeof window !== 'undefined' && url) {
-                      window.open(url, '_blank', 'noopener,noreferrer');
-                    }
-                  },
-                }
-              )
-            }
-          >
-            {isCreatingPayment ? (
-              <span className="flex items-center gap-2">
-                <Loader2 className="animate-spin h-4 w-4 mr-1 text-white" aria-label="Loading" />
-                Đang chuyển đến thanh toán...
-              </span>
-            ) : (
-              <span className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4" />
-                Thanh toán
-              </span>
-            )}
-          </Button>
+          <div className="flex-1 flex flex-col sm:flex-row gap-2">
+            {/* Pay with Wallet */}
+            <Button
+              size="sm"
+              className="flex-1 sm:flex-initial bg-emerald-600 hover:bg-emerald-700 text-white transition-colors duration-150"
+              disabled={isCreatingPayment}
+              aria-label="Thanh toán bằng ví"
+              onClick={() =>
+                createTransaction(
+                  { bookingId, method: 'WALLET' },
+                  {
+                    onSuccess: () => {
+                      // Reload page to reflect updated payment state
+                      router.refresh();
+                    },
+                    onError: (err: unknown) => {
+                      const message =
+                        typeof err === 'object' && err !== null && 'message' in err
+                          ? String((err as { message?: string }).message || '')
+                          : '';
+                      setPaymentErrorMsg(
+                        message || 'Không thể thanh toán bằng ví. Vui lòng thử lại sau.'
+                      );
+                      setIsPaymentErrorOpen(true);
+                    },
+                  }
+                )
+              }
+            >
+              {isCreatingPayment ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="animate-spin h-4 w-4 mr-1 text-white" aria-label="Loading" />
+                  Đang xử lý...
+                </span>
+              ) : (
+                <span className="flex items-center gap-2">
+                  <Wallet className="h-4 w-4" />
+                  Thanh toán bằng ví
+                </span>
+              )}
+            </Button>
+
+            {/* Pay with Bank Transfer */}
+            <Button
+              size="sm"
+              className="flex-1 sm:flex-initial bg-green-600 hover:bg-green-700 text-white transition-colors duration-150"
+              disabled={isCreatingPayment}
+              aria-label="Thanh toán bằng chuyển khoản ngân hàng"
+              onClick={() =>
+                createTransaction(
+                  { bookingId, method: 'BANK_TRANSFER' },
+                  {
+                    onSuccess: response => {
+                      const url = response?.data?.responseData?.checkoutUrl;
+                      if (typeof window !== 'undefined' && url) {
+                        window.open(url, '_blank', 'noopener,noreferrer');
+                      }
+                      // After opening checkout, we also refresh the page to update state
+                      router.refresh();
+                    },
+                    onError: (err: unknown) => {
+                      const message =
+                        typeof err === 'object' && err !== null && 'message' in err
+                          ? String((err as { message?: string }).message || '')
+                          : '';
+                      setPaymentErrorMsg(
+                        message ||
+                          'Không thể khởi tạo thanh toán chuyển khoản ngân hàng. Vui lòng thử lại sau.'
+                      );
+                      setIsPaymentErrorOpen(true);
+                    },
+                  }
+                )
+              }
+            >
+              {isCreatingPayment ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="animate-spin h-4 w-4 mr-1 text-white" aria-label="Loading" />
+                  Đang chuyển đến thanh toán...
+                </span>
+              ) : (
+                <span className="flex items-center gap-2">
+                  <CreditCard className="h-4 w-4" />
+                  Chuyển khoản
+                </span>
+              )}
+            </Button>
+          </div>
+
           <Button
             size="sm"
             variant="destructive"
@@ -339,6 +422,21 @@ const ProposalSection = ({
           </Button>
         </div>
       )}
+
+      {/* Payment Error Dialog */}
+      <Dialog open={isPaymentErrorOpen} onOpenChange={setIsPaymentErrorOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Lỗi thanh toán</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">{paymentErrorMsg}</p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsPaymentErrorOpen(false)}>
+              Đóng
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
@@ -415,6 +513,9 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
       }
     );
   };
+
+  const { mutate: getOrCreateConv } = useGetOrCreateConversation();
+  const router = useRouter();
 
   return (
     <Card className="overflow-hidden hover:shadow-md transition-shadow break-inside-avoid mb-4">
@@ -516,6 +617,31 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
               <MapPin className="h-3 w-3" />
               {booking.ServiceRequest.location}
             </div>
+            <div className="mt-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  const providerId =
+                    (
+                      booking as unknown as {
+                        ServiceProvider?: { providerId?: number; id?: number };
+                      }
+                    ).ServiceProvider?.providerId || booking.ServiceProvider?.id;
+                  if (!providerId) return;
+                  getOrCreateConv(
+                    { receiverId: Number(providerId) },
+                    {
+                      onSuccess: conversation => {
+                        router.push(`/settings/chat?conversationId=${conversation.id}`);
+                      },
+                    }
+                  );
+                }}
+              >
+                Liên hệ
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -541,7 +667,7 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
             <Separator />
             <div className="grid gap-2 text-sm">
               <div className="flex justify-between">
-                <span>Thanh toán</span>
+                <span>Thanh toán đặt dịch vụ</span>
                 <Badge variant="outline">{transactionStatusLabel}</Badge>
               </div>
               <div className="flex justify-between">
@@ -614,14 +740,95 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
               </div>
             </div>
 
+            {/* Payment Transaction */}
+            {booking.ServiceRequest.PaymentTransaction && (
+              <>
+                <Separator />
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold">Thanh toán tiền đặt cọc</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">Trạng thái:</span>
+                      <p className="font-medium">
+                        <Badge
+                          variant={
+                            booking.ServiceRequest.PaymentTransaction.status === 'PENDING'
+                              ? 'secondary'
+                              : booking.ServiceRequest.PaymentTransaction.status === 'SUCCESS'
+                                ? 'default'
+                                : 'destructive'
+                          }
+                        >
+                          {booking.ServiceRequest.PaymentTransaction.status === 'SUCCESS'
+                            ? 'Thành công'
+                            : booking.ServiceRequest.PaymentTransaction.status === 'PENDING'
+                              ? 'Đang chờ'
+                              : booking.ServiceRequest.PaymentTransaction.status === 'FAILED'
+                                ? 'Thất bại'
+                                : booking.ServiceRequest.PaymentTransaction.status}
+                        </Badge>
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Số tiền:</span>
+                      <p className="font-medium">
+                        {formatCurrency(booking.ServiceRequest.PaymentTransaction.amountOut)}
+                      </p>
+                    </div>
+
+                    <div>
+                      <span className="text-muted-foreground">Mã tham chiếu:</span>
+                      <p className="font-mono font-medium">
+                        {booking.ServiceRequest.PaymentTransaction.referenceNumber}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Ngày giao dịch:</span>
+                      <p className="font-medium">
+                        {formatDate(booking.ServiceRequest.PaymentTransaction.transactionDate)}
+                      </p>
+                    </div>
+                    {booking.ServiceRequest.PaymentTransaction.transactionContent && (
+                      <div className="sm:col-span-2">
+                        <span className="text-muted-foreground">Nội dung:</span>
+                        <p className="font-medium">
+                          {booking.ServiceRequest.PaymentTransaction.transactionContent}
+                        </p>
+                      </div>
+                    )}
+                    {booking.ServiceRequest.PaymentTransaction.accountNumber && (
+                      <div>
+                        <span className="text-muted-foreground">Số tài khoản:</span>
+                        <p className="font-mono font-medium">
+                          {booking.ServiceRequest.PaymentTransaction.accountNumber}
+                        </p>
+                      </div>
+                    )}
+                    {booking.ServiceRequest.PaymentTransaction.accumulated > 0 && (
+                      <div>
+                        <span className="text-muted-foreground">Tích lũy:</span>
+                        <p className="font-medium">
+                          {formatCurrency(booking.ServiceRequest.PaymentTransaction.accumulated)}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+
             <Separator />
             <div className="space-y-2">
               <h3 className="text-sm font-semibold">Đề xuất dịch vụ</h3>
               <ProposalSection
                 bookingId={booking.id}
                 bookingStatus={booking.status}
+                serviceRequestStatus={booking.ServiceRequest?.status}
                 transactionStatus={booking.Transaction?.status}
                 transactionAmount={booking.Transaction?.amount}
+                paymentTransactionStatus={booking.ServiceRequest?.PaymentTransaction?.status}
+                paymentTransactionAmountOut={booking.ServiceRequest?.PaymentTransaction?.amountOut}
+                hasTransaction={Boolean(booking.Transaction)}
               />
             </div>
           </div>

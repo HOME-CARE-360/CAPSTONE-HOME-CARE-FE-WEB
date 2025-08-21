@@ -12,7 +12,7 @@ export default function SettingsLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <div className="grid grid-cols-6 gap-10 container mx-auto mt-14 mb-14">
+    <div className="grid grid-cols-6 gap-10 container mx-auto">
       <div className="col-span-1">
         <UserSidebar />
       </div>

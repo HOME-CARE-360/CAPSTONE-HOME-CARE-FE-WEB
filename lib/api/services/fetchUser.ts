@@ -130,6 +130,21 @@ export interface CustomerBooking {
           createdAt: string;
           updatedAt: string;
         };
+        PaymentTransaction?: {
+          id: number;
+          gateway: string;
+          status: string;
+          transactionDate: string;
+          amountIn: number;
+          amountOut: number;
+          accumulated: number;
+          referenceNumber: string;
+          transactionContent: string;
+          body: string;
+          accountNumber: string | null;
+          subAccount: string | null;
+          createdAt: string;
+        };
       };
       ServiceProvider: {
         id: number;

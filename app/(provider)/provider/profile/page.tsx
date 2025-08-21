@@ -87,7 +87,47 @@ export default function ProfilePage() {
   const { data: bankData, isLoading: isBankLoading } = useBank();
   const { mutate: updateBankAccount } = useUpdateBankAccount();
   const { mutate: createWithdraw, isPending: isCreatingWithdraw } = useCreateWithDraw();
-  const { isLoading: isWithdrawLoading, error: withdrawError } = useGetListWithDraw();
+  const {
+    data: getListWithDraw,
+    isLoading: isGetListWithDrawLoading,
+    error: withdrawError,
+  } = useGetListWithDraw();
+
+  // Debug logs
+  console.log('getListWithDraw response:', getListWithDraw);
+  console.log('is loading:', isGetListWithDrawLoading);
+  console.log('error:', withdrawError);
+
+  // Status badge helper
+  const getStatusBadgeVariant = (status: string) => {
+    switch (status) {
+      case 'PENDING':
+        return 'secondary';
+      case 'APPROVED':
+        return 'default';
+      case 'COMPLETED':
+        return 'default';
+      case 'REJECTED':
+        return 'destructive';
+      default:
+        return 'secondary';
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'PENDING':
+        return 'Đang chờ';
+      case 'APPROVED':
+        return 'Đã duyệt';
+      case 'COMPLETED':
+        return 'Hoàn thành';
+      case 'REJECTED':
+        return 'Từ chối';
+      default:
+        return status;
+    }
+  };
 
   const bankForm = useForm<BankAccountFormData>({
     resolver: zodResolver(bankAccountSchema),
@@ -477,29 +517,95 @@ export default function ProfilePage() {
               </TabsContent>
 
               <TabsContent value="funding" className="mt-0">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-6">
                   <Card className="border border-border/30 shadow-sm hover:shadow-md transition-shadow">
                     <CardHeader className="bg-primary/5 rounded-t-lg pb-3">
-                      <CardTitle className="text-sm font-medium flex items-center">
-                        <CreditCard className="h-4 w-4 mr-2 text-primary" />
-                        Danh sách yêu cầu rút tiền
+                      <CardTitle className="text-sm font-medium flex items-center justify-between">
+                        <div className="flex items-center">
+                          <CreditCard className="h-4 w-4 mr-2 text-primary" />
+                          Danh sách yêu cầu rút tiền
+                        </div>
+                        <Badge variant="outline">{getListWithDraw?.length || 0} yêu cầu</Badge>
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="pt-4 text-sm text-muted-foreground space-y-2">
-                      {isWithdrawLoading ? (
-                        <div className="space-y-2">
-                          <Skeleton className="h-4 w-1/3" />
-                          <Skeleton className="h-4 w-2/3" />
-                          <Skeleton className="h-4 w-1/2" />
+                    <CardContent className="pt-4">
+                      {isGetListWithDrawLoading ? (
+                        <div className="space-y-4">
+                          {Array.from({ length: 3 }).map((_, i) => (
+                            <div
+                              key={i}
+                              className="flex items-center space-x-4 p-4 border rounded-lg"
+                            >
+                              <Skeleton className="h-12 w-12 rounded-full" />
+                              <div className="space-y-2 flex-1">
+                                <Skeleton className="h-4 w-1/4" />
+                                <Skeleton className="h-3 w-1/3" />
+                              </div>
+                              <Skeleton className="h-6 w-20" />
+                            </div>
+                          ))}
                         </div>
                       ) : withdrawError ? (
-                        <div>Lỗi tải danh sách rút tiền</div>
+                        <div className="text-center py-8 text-muted-foreground">
+                          <CreditCard className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+                          <p className="text-sm">Lỗi tải danh sách yêu cầu rút tiền</p>
+                          <p className="text-xs mt-1">Vui lòng thử lại sau</p>
+                        </div>
+                      ) : !getListWithDraw || getListWithDraw.length === 0 ? (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <CreditCard className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+                          <p className="text-sm">Chưa có yêu cầu rút tiền nào</p>
+                          <p className="text-xs mt-1">
+                            Các yêu cầu rút tiền của bạn sẽ hiển thị ở đây
+                          </p>
+                        </div>
                       ) : (
-                        <>
-                          <p>- TODO: Hiển thị danh sách yêu cầu rút tiền gần đây</p>
-                          <p>- TODO: Bộ lọc theo trạng thái và thời gian</p>
-                          <p>- TODO: Xem chi tiết yêu cầu rút tiền</p>
-                        </>
+                        <div className="space-y-3">
+                          {getListWithDraw?.map(withdraw => (
+                            <div
+                              key={withdraw.id}
+                              className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
+                            >
+                              <div className="flex items-center space-x-4">
+                                <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                                  <CreditCard className="h-5 w-5 text-primary" />
+                                </div>
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <p className="font-medium text-sm">
+                                      #{withdraw.id} - {formatCurrency(withdraw.amount)}
+                                    </p>
+                                    <Badge
+                                      variant={
+                                        getStatusBadgeVariant(withdraw.status) as
+                                          | 'default'
+                                          | 'secondary'
+                                          | 'destructive'
+                                          | 'outline'
+                                      }
+                                    >
+                                      {getStatusText(withdraw.status)}
+                                    </Badge>
+                                  </div>
+                                  <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
+                                    <span>Tạo: {formatDate(withdraw.createdAt)}</span>
+                                    {withdraw.processedAt && (
+                                      <span>Xử lý: {formatDate(withdraw.processedAt)}</span>
+                                    )}
+                                  </div>
+                                  {withdraw.note && (
+                                    <p className="text-xs text-muted-foreground mt-1 italic">
+                                      Ghi chú: {withdraw.note}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-xs text-muted-foreground">ID: {withdraw.id}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       )}
                     </CardContent>
                   </Card>

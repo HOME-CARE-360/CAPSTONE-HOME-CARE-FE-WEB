@@ -11,6 +11,7 @@ const accountItems = [
 ];
 
 const serviceItems = [
+  { label: 'Tin nhắn', value: 'chat', href: '/settings/chat' },
   { label: 'Ngân hàng', value: 'bank', href: '/settings/bank' },
   // { label: 'Địa chỉ', value: 'address', href: '/user/address' },
   { label: 'Dịch vụ đã đặt', value: 'booking', href: '/settings/bookings' },
@@ -18,11 +19,6 @@ const serviceItems = [
   { label: 'Báo cáo của bạn', value: 'report', href: '/settings/report' },
   { label: 'Đánh giá của bạn', value: 'review', href: '/settings/review' },
 ];
-
-// const notificationItems = [
-//   { label: 'Cập nhật ví', value: 'wallet', href: '/settings/notifications/wallet' },
-//   { label: 'Cập nhật đặt lịch', value: 'booking', href: '/settings/notifications/booking' },
-// ];
 
 export default function UserSidebar() {
   const pathname = usePathname();

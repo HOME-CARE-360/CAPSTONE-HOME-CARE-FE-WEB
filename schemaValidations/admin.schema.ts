@@ -379,6 +379,27 @@ export const getReportMutipleMonthExportPDFResponseSchema = z.object({
   data: z.string(),
 });
 
+export const getProfileAdminReponseSchema = z.object({
+  success: z.boolean(),
+  code: z.string(),
+  message: z.string(),
+  data: z.object({
+    id: z.number(),
+    email: z.string(),
+    name: z.string(),
+    phone: z.string(),
+    avatar: z.string(),
+    status: z.string(),
+    createdById: z.number(),
+    updatedById: z.number().nullable(),
+    createdAt: z.string(),
+    updatedAt: z.string(),
+  }),
+  statusCode: z.number(),
+});
+
+export type GetProfileAdminReponseType = z.infer<typeof getProfileAdminReponseSchema>;
+export type GetProfileManagerReponseType = GetProfileAdminReponseType;
 export type DataReportMonthResponseType = z.infer<typeof dataReportMonthResponseSchema>;
 
 export type GetReportMutipleMonthExportPDFResponseType = z.infer<

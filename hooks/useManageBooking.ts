@@ -149,10 +149,11 @@ export const useCreateProposedBooking = () => {
     mutationFn: (data: CreateProposedBookingRequest) => serviceManageBooking.createProposed(data),
     onSuccess: () => {
       toast.success('Tạo đề xuất dịch vụ thành công');
-      // Invalidate and refetch booking data
-      queryClient.invalidateQueries({ queryKey: ['manage-bookings'] });
-      queryClient.invalidateQueries({ queryKey: ['staff-bookings'] });
-      queryClient.invalidateQueries({ queryKey: ['bookings'] });
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['manage-bookings'] });
+        queryClient.invalidateQueries({ queryKey: ['staff-bookings'] });
+        queryClient.invalidateQueries({ queryKey: ['bookings'] });
+      }, 10000);
     },
     onError: (error: unknown) => {
       let errorMessage = 'Có lỗi xảy ra khi tạo đề xuất dịch vụ';

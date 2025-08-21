@@ -59,6 +59,8 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import Image from 'next/image';
+import { useGetOrCreateConversation } from '@/hooks/useConversation';
+import { useRouter } from 'next/navigation';
 
 interface BookingCardProps {
   booking: Booking;
@@ -149,6 +151,10 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
 
   // Check if this is a pending booking that needs immediate attention
   const needsStaffAssignment = isPending && !hasStaffAssigned;
+
+  // Conversation - provider contacts customer
+  const { mutate: getOrCreateConv, isPending: isCreatingConv } = useGetOrCreateConversation();
+  const router = useRouter();
 
   // Proposed services functions
   const addService = (service: ServiceManager) => {
@@ -1201,6 +1207,32 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
             <span className="text-sm text-gray-600 truncate" title={booking.location}>
               {booking.location}
             </span>
+          </div>
+          <div className="pt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={isCreatingConv}
+              onClick={() =>
+                getOrCreateConv(
+                  { receiverId: Number(booking.customerId) },
+                  {
+                    onSuccess: conversation => {
+                      router.push(`/provider/chat?conversationId=${conversation.id}`);
+                    },
+                  }
+                )
+              }
+            >
+              {isCreatingConv ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Liên hệ...
+                </span>
+              ) : (
+                'Liên hệ'
+              )}
+            </Button>
           </div>
         </div>
       </div>

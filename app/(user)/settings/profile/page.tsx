@@ -28,8 +28,8 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
+import { useRouter } from 'next/navigation';
 import { useWalletTopUp } from '@/hooks/usePayment';
 
 type UpdateProfileFormData = {
@@ -46,6 +46,7 @@ type UpdateProfileFormData = {
 };
 
 export default function ProfilePage() {
+  const router = useRouter();
   const { data: profile, refetch } = useUserProfile();
   const updateUserMutation = useUpdateProfile();
   const uploadImageMutation = useUploadImage();
@@ -195,6 +196,25 @@ export default function ProfilePage() {
 
   const currentAvatar = form.watch('user.avatar') || profile?.data?.user.avatar || '';
   const wallet = profile?.data?.user.wallet;
+
+  const getWalletBankAccount = (w: unknown): string | undefined => {
+    if (!w || typeof w !== 'object') return undefined;
+    const walletObj = w as { bankAccount?: unknown; bankAccountNumber?: unknown };
+    const bankAccount =
+      typeof walletObj.bankAccount === 'string' ? walletObj.bankAccount : undefined;
+    const bankAccountNumber =
+      typeof walletObj.bankAccountNumber === 'string' ? walletObj.bankAccountNumber : undefined;
+    return bankAccount || bankAccountNumber;
+  };
+
+  const handleOpenTopUp = () => {
+    const bankAcc = getWalletBankAccount(wallet);
+    if (!bankAcc) {
+      router.push('/settings/bank');
+      return;
+    }
+    setIsTopUpOpen(true);
+  };
 
   return (
     <div>
@@ -461,9 +481,9 @@ export default function ProfilePage() {
                   </div>
                   <div className="mt-4">
                     <Dialog open={isTopUpOpen} onOpenChange={setIsTopUpOpen}>
-                      <DialogTrigger asChild>
-                        <Button className="w-full">Nạp tiền vào ví</Button>
-                      </DialogTrigger>
+                      <Button className="w-full" type="button" onClick={handleOpenTopUp}>
+                        Nạp tiền vào ví
+                      </Button>
                       <DialogContent>
                         <DialogHeader>
                           <DialogTitle>Nạp tiền vào ví</DialogTitle>

@@ -586,16 +586,15 @@ export default function NewBookingPage() {
 
       // Show success message with booking ID
       toast.success('Đặt lịch thành công!', {
-        description: `Mã đặt lịch: BK${response.data.bookingId}`,
+        description: `Mã đặt lịch: BK${response.data}`,
         duration: 5000,
       });
-
-      // If checkout URL is available, open it in a new tab
-      if (response.data.responseData.checkoutUrl) {
-        window.open(response.data.responseData.checkoutUrl, '_blank');
+      // Check if response has checkout URL for payment
+      if (response.data && 'checkoutUrl' in response.data && response.data.checkoutUrl) {
+        window.open(response.data.checkoutUrl, '_blank');
         toast.info('Đang mở trang thanh toán...', {
           description: 'Vui lòng hoàn tất thanh toán để xác nhận đặt lịch',
-          duration: 3000,
+          duration: 5000,
         });
       }
 
@@ -835,12 +834,12 @@ export default function NewBookingPage() {
                       {selectedProvince && (
                         <div className="space-y-3">
                           <Label className="text-sm font-medium text-muted-foreground">
-                            Quận/Huyện
+                            Phường
                           </Label>
                           <div className="relative">
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input
-                              placeholder="Tìm kiếm quận/huyện..."
+                              placeholder="Tìm kiếm phường"
                               value={communeSearchTerm}
                               onChange={e => setCommuneSearchTerm(e.target.value)}
                               className="h-12 pl-10"
@@ -1107,10 +1106,14 @@ export default function NewBookingPage() {
                     {/* Price Information */}
                     {serviceData?.service?.basePrice && (
                       <div className="pt-6 border-t space-y-2">
-                        <div className="flex justify-between items-center text-2xl font-bold">
+                        <div className="flex justify-between items-center text-sm font-bold">
                           <span>Giá khởi điểm (dự kiến):</span>
                           <span className="text-primary">
-                            {formatCurrency(serviceData.service.virtualPrice)}
+                            {formatCurrency(
+                              (serviceData.service.virtualPrice ?? 0) > 0
+                                ? serviceData.service.virtualPrice
+                                : (serviceData.service.basePrice ?? 0)
+                            )}
                           </span>
                         </div>
                         <div className="flex justify-between items-center text-sm">

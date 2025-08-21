@@ -34,6 +34,11 @@ export interface Company {
   verificationStatus: VerificationStatus;
   verifiedAt: string | null;
   verifiedById: number | null;
+  user: {
+    name: string;
+    email: string;
+    phone: string;
+  };
 }
 
 export interface PaginationMeta {

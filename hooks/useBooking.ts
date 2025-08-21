@@ -3,12 +3,15 @@ import {
   CreateBookingRequest,
   serviceBooking,
   StaffBookingResponse,
+  StaffBookingDetailResponse,
   GetDetailBookingResponse,
   CreateReportRequest,
   CreateReportResponse,
   GetReportResponse,
   CreateReviewRequest,
   CreateReviewResponse,
+  isBankTransferData,
+  isWalletPaymentData,
 } from '@/lib/api/services/fetchBooking';
 import { toast } from 'sonner';
 import { getErrorMessage } from '@/lib/api/core';
@@ -47,13 +50,18 @@ export const useCreateBooking = () => {
     onSuccess: response => {
       toast.success('Đặt lịch thành công!');
 
-      // If checkout URL is available, open it in a new tab
-      if (response.data.responseData.checkoutUrl) {
-        window.open(response.data.responseData.checkoutUrl, '_blank');
-        toast.info('Đang mở trang thanh toán...', {
-          description: 'Vui lòng hoàn tất thanh toán để xác nhận đặt lịch',
-          duration: 3000,
-        });
+      const payload = response?.data;
+      if (isBankTransferData(payload)) {
+        const checkoutUrl = payload.checkoutUrl || payload.responseData?.checkoutUrl;
+        if (checkoutUrl) {
+          window.open(checkoutUrl, '_blank', 'noopener,noreferrer');
+          toast.info('Đang mở trang thanh toán...', {
+            description: 'Vui lòng hoàn tất thanh toán để xác nhận đặt lịch',
+            duration: 5000,
+          });
+        }
+      } else if (isWalletPaymentData(payload)) {
+        toast.success('Thanh toán bằng ví thành công');
       }
 
       router.push('/settings/bookings');
@@ -80,6 +88,16 @@ export const useStaffBooking = () => {
   const { data, isLoading, error } = useQuery<StaffBookingResponse>({
     queryKey: ['staff-bookings'],
     queryFn: () => serviceBooking.getStaffListBooking(),
+  });
+
+  return { data, isLoading, error };
+};
+
+export const useStaffBookingDetail = (bookingId: number, options?: { enabled?: boolean }) => {
+  const { data, isLoading, error } = useQuery<StaffBookingDetailResponse>({
+    queryKey: ['staff-booking-detail', bookingId],
+    queryFn: () => serviceBooking.getStaffBookingDetail(bookingId),
+    enabled: options?.enabled !== undefined ? options.enabled : !!bookingId,
   });
 
   return { data, isLoading, error };

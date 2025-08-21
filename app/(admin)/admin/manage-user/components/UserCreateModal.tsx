@@ -25,6 +25,8 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { User, Mail, Phone, Lock, Shield, Users } from 'lucide-react';
+import { ImageUpload } from '@/components/ui/image-upload';
+import { useUploadImage } from '@/hooks/useImage';
 
 interface UserCreateModalProps {
   isOpen: boolean;
@@ -61,6 +63,13 @@ export default function UserCreateModal({
     },
     mode: 'onChange',
   });
+
+  const { mutateAsync: uploadImage, isPending: isUploading } = useUploadImage();
+
+  const handleAvatarUpload = async (file: File): Promise<string> => {
+    const response = await uploadImage(file);
+    return response.url;
+  };
 
   useEffect(() => {
     if (initialData) {
@@ -196,17 +205,17 @@ export default function UserCreateModal({
 
               <div className="space-y-2">
                 <Label htmlFor="avatar" className="text-sm font-medium">
-                  URL Ảnh đại diện
+                  Ảnh đại diện
                 </Label>
                 <Controller
                   name="avatar"
                   control={control}
                   render={({ field }) => (
-                    <Input
-                      {...field}
-                      id="avatar"
-                      placeholder="https://example.com/avatar.jpg"
-                      disabled={isLoading}
+                    <ImageUpload
+                      disabled={isLoading || isUploading}
+                      value={field.value ? [field.value] : []}
+                      onChange={urls => field.onChange(urls[0] ?? '')}
+                      onUpload={handleAvatarUpload}
                     />
                   )}
                 />

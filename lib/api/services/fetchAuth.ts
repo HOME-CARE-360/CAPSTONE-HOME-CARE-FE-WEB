@@ -172,28 +172,35 @@ export const fetchAuth = {
   // Refresh token
   refreshToken: async (refreshToken: string): Promise<RefreshTokenResponse> => {
     try {
-      const response = await apiService.post<RefreshTokenResponse>('/auth/refresh-token', {
-        refreshToken,
+      const res = await fetch('/api/auth/refresh-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken }),
       });
-      return response.data;
-    } catch (error: unknown) {
-      console.error('Refresh Token API Error:', error);
 
-      type ErrorWithStatus = { status?: number; response?: { status?: number } };
-      const err = error as ErrorWithStatus;
-
-      // Ensure 401 errors are properly propagated
-      if (err?.response?.status === 401 || err?.status === 401) {
-        console.log('Refresh token request returned 401 - token expired');
-        // Create a structured error that includes the 401 status
-        const structuredError = {
-          ...(error as object),
-          status: 401,
-          response: { ...(err.response ?? {}), status: 401 },
-        } as ErrorWithStatus;
-        throw structuredError;
+      if (!res.ok) {
+        const status = res.status;
+        // Normalize to structured 401 error for upstream handling
+        if (status === 401) {
+          const structuredError = {
+            status: 401,
+            response: { status: 401 },
+          } as { status?: number; response?: { status?: number } };
+          throw structuredError;
+        }
+        const message = await res.text();
+        throw new Error(message || 'Failed to refresh token');
       }
 
+      const data = (await res.json()) as RefreshTokenResponse;
+      return data;
+    } catch (error: unknown) {
+      console.error('Refresh Token API Error:', error);
+      type ErrorWithStatus = { status?: number; response?: { status?: number } };
+      const err = error as ErrorWithStatus;
+      if (err?.response?.status === 401 || err?.status === 401) {
+        throw err;
+      }
       throw error;
     }
   },

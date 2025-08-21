@@ -50,7 +50,9 @@ export function ServiceCard({ service, priority = false, onHover, size = 'md' }:
 
   const { mutate: toggleFavorite, isPending: isToggling } = useAddOrRemoveFavorite();
 
-  const isDiscounted = service.virtualPrice < service.basePrice;
+  const hasVirtual = (service.virtualPrice ?? 0) > 0;
+  const effectivePrice = hasVirtual ? service.virtualPrice : service.basePrice;
+  const isDiscounted = hasVirtual && service.virtualPrice < service.basePrice;
 
   // Category handling: support both object and array shapes at runtime
   const isRecord = (v: unknown): v is Record<string, unknown> =>
@@ -219,7 +221,7 @@ export function ServiceCard({ service, priority = false, onHover, size = 'md' }:
             <div className="flex justify-between items-center">
               <div>
                 <p className={cn('text-xl font-semibold', size === 'sm' && 'text-base')}>
-                  {formatCurrency(service.virtualPrice)}
+                  {formatCurrency(effectivePrice)}
                   {isDiscounted && (
                     <span className="text-sm text-gray-400 line-through ml-2">
                       {formatCurrency(service.basePrice)}

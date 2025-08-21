@@ -1,7 +1,6 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 import { getCookie, setCookie, deleteCookie } from 'cookies-next';
-import apiService from '@/lib/api/core';
+import apiService, { setAuthErrorHandler } from '@/lib/api/core';
 import { jwtDecode, JwtPayload } from 'jwt-decode';
 import fetchAuth from '@/lib/api/services/fetchAuth';
 import router from 'next/router';
@@ -69,137 +68,126 @@ const getUserFromToken = (token: string): User | null => {
   }
 };
 
-export const useAuthStore = create<AuthState>()(
-  persist(
-    (set, get) => {
-      return {
+export const useAuthStore = create<AuthState>()((set, get) => {
+  return {
+    token: null,
+    refreshToken: null,
+    user: null,
+    isAuthenticated: false,
+    isLoading: true,
+
+    setToken: (token, refreshToken) => {
+      if (token && refreshToken) {
+        const user = getUserFromToken(token);
+        if (user) {
+          set({ token, refreshToken, user, isAuthenticated: true, isLoading: false });
+          setCookie('auth-token', token, { maxAge: 60 * 60 * 24 * 7, path: '/' });
+          setCookie('refresh-token', refreshToken, { maxAge: 60 * 60 * 24 * 7, path: '/' });
+          setCookie('userId', user.id, { maxAge: 60 * 60 * 24 * 7, path: '/' });
+          apiService.setAuthToken(token);
+        } else {
+          get().logout();
+        }
+      } else {
+        get().logout();
+      }
+    },
+
+    refreshAccessToken: async () => {
+      try {
+        // Prefer in-memory refresh token, fallback to cookie
+        const tokenFromState = get().refreshToken;
+        const tokenFromCookie = (getCookie('refresh-token') as string | null) ?? null;
+        const currentRefreshToken = tokenFromState || tokenFromCookie;
+
+        if (!currentRefreshToken) {
+          console.warn('No refresh token available');
+          get().logout();
+          return false;
+        }
+
+        // Avoid sending stale Authorization header on refresh request
+        apiService.setAuthToken(null);
+
+        const response = await fetchAuth.refreshToken(currentRefreshToken);
+        if (response.data?.accessToken && response.data?.refreshToken) {
+          get().setToken(response.data.accessToken, response.data.refreshToken);
+          return true;
+        }
+
+        console.error('Invalid refresh token response:', response);
+        get().logout();
+        return false;
+      } catch (error: unknown) {
+        console.error('Failed to refresh token:', error);
+
+        // Check if it's a 401 error specifically
+        type ErrorWithStatus = { status?: number; response?: { status?: number } };
+        const err = error as ErrorWithStatus;
+        console.log('err: ', err);
+        if (err?.response?.status === 401 || err?.status === 401) {
+          router.push('/login');
+          console.log('Refresh token expired (401), logging out');
+        }
+
+        // Force logout regardless of error type
+        get().logout();
+        return false;
+      }
+    },
+
+    logout: () => {
+      console.log('Logging out - clearing all auth data');
+      deleteCookie('auth-token', { path: '/' });
+      deleteCookie('refresh-token', { path: '/' });
+      deleteCookie('userId', { path: '/' });
+      apiService.setAuthToken(null);
+      set({
         token: null,
         refreshToken: null,
         user: null,
         isAuthenticated: false,
-        isLoading: true,
+        isLoading: false,
+      });
+      if (typeof window !== 'undefined') {
+        try {
+          window.dispatchEvent(new Event('logout'));
+        } catch (error: unknown) {
+          console.error('Failed to dispatch logout event:', error);
+        }
+      }
+      console.log('Logout completed - all auth data cleared');
+    },
 
-        setToken: (token, refreshToken) => {
-          if (token && refreshToken) {
-            const user = getUserFromToken(token);
-            if (user) {
-              set({ token, refreshToken, user, isAuthenticated: true, isLoading: false });
-              setCookie('auth-token', token, { maxAge: 60 * 60 * 24 * 7, path: '/' });
-              setCookie('refresh-token', refreshToken, { maxAge: 60 * 60 * 24 * 7, path: '/' });
-              setCookie('userId', user.id, { maxAge: 60 * 60 * 24 * 7, path: '/' });
-              apiService.setAuthToken(token);
-            } else {
-              get().logout();
-            }
-          } else {
-            get().logout();
-          }
-        },
+    forceClearAll: () => {
+      deleteCookie('auth-token', { path: '/' });
+      deleteCookie('refresh-token', { path: '/' });
+      deleteCookie('userId', { path: '/' });
+      apiService.setAuthToken(null);
+      set({
+        token: null,
+        refreshToken: null,
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+      });
+    },
 
-        refreshAccessToken: async () => {
-          try {
-            const currentRefreshToken = get().refreshToken;
-            if (!currentRefreshToken) {
-              const response = await fetchAuth.refreshToken(currentRefreshToken as string);
-              if (response.data?.accessToken && response.data?.refreshToken) {
-                get().setToken(response.data.accessToken, response.data.refreshToken);
-                return true;
-              }
-
-              return false;
-            }
-            // Avoid sending stale Authorization header on refresh request
-            apiService.setAuthToken(null);
-
-            const response = await fetchAuth.refreshToken(currentRefreshToken);
-            if (response.data?.accessToken && response.data?.refreshToken) {
-              get().setToken(response.data.accessToken, response.data.refreshToken);
-              return true;
-            }
-
-            console.error('Invalid refresh token response:', response);
-            get().logout();
-            return false;
-          } catch (error: unknown) {
-            console.error('Failed to refresh token:', error);
-
-            // Check if it's a 401 error specifically
-            type ErrorWithStatus = { status?: number; response?: { status?: number } };
-            const err = error as ErrorWithStatus;
-            // router.push('/login');
-            console.log('err: ', err);
-            if (err?.response?.status === 401 || err?.status === 401) {
-              router.push('/login');
-              console.log('Refresh token expired (401), logging out');
-            }
-
-            // Force logout regardless of error type
-            get().logout();
-            return false;
-          }
-        },
-
-        logout: () => {
-          console.log('Logging out - clearing all auth data');
-          deleteCookie('auth-token', { path: '/' });
-          deleteCookie('refresh-token', { path: '/' });
-          deleteCookie('userId', { path: '/' });
-          apiService.setAuthToken(null);
-          set({
-            token: null,
-            refreshToken: null,
-            user: null,
-            isAuthenticated: false,
-            isLoading: false,
-          });
-          if (typeof window !== 'undefined') {
-            try {
-              window.dispatchEvent(new Event('logout'));
-            } catch (error: unknown) {
-              console.error('Failed to dispatch logout event:', error);
-            }
-          }
-          console.log('Logout completed - all auth data cleared');
-        },
-
-        forceClearAll: () => {
-          deleteCookie('auth-token', { path: '/' });
-          deleteCookie('refresh-token', { path: '/' });
-          deleteCookie('userId', { path: '/' });
-          apiService.setAuthToken(null);
-          set({
-            token: null,
-            refreshToken: null,
-            user: null,
-            isAuthenticated: false,
-            isLoading: false,
-          });
-        },
-
-        // Utility function to check current auth state
-        getAuthState: () => {
-          const cookies = {
-            authToken: (getCookie('auth-token') as string | null) ?? null,
-            refreshToken: (getCookie('refresh-token') as string | null) ?? null,
-            userId: (getCookie('userId') as string | null) ?? null,
-          };
-          const state = get();
-          return {
-            store: state,
-            cookies,
-          };
-        },
+    // Utility function to check current auth state
+    getAuthState: () => {
+      const cookies = {
+        authToken: (getCookie('auth-token') as string | null) ?? null,
+        refreshToken: (getCookie('refresh-token') as string | null) ?? null,
+        userId: (getCookie('userId') as string | null) ?? null,
+      };
+      const state = get();
+      return {
+        store: state,
+        cookies,
       };
     },
-    {
-      name: 'auth-storage',
-      partialize: state => ({
-        token: state.token,
-        refreshToken: state.refreshToken,
-      }),
-    }
-  )
-);
+  };
+});
 
 // Initial state sync from cookies
 const initializeAuthFromCookies = () => {
@@ -224,3 +212,18 @@ const initializeAuthFromCookies = () => {
 
 // Initialize auth state when the module loads
 initializeAuthFromCookies();
+
+// Remove any legacy persisted auth state from localStorage (we now rely on cookies only)
+if (typeof window !== 'undefined') {
+  try {
+    window.localStorage.removeItem('auth-storage');
+  } catch (error) {
+    console.error('Error removing legacy auth-storage from localStorage:', error);
+  }
+}
+
+// Wire API 401 handler to our token refresh flow
+setAuthErrorHandler(async () => {
+  const success = await useAuthStore.getState().refreshAccessToken();
+  return success;
+});

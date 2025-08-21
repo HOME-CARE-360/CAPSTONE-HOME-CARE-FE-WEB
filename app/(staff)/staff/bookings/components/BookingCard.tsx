@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   MapPin,
   Phone,
@@ -17,6 +18,8 @@ import {
   Package,
   AlertTriangle,
   Play,
+  Settings,
+  Plus,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Booking, StatusServiceRequest } from '@/lib/api/services/fetchBooking';
@@ -28,9 +31,20 @@ import {
   useCreateInspectionReport,
   useStaffCheckOut,
 } from '@/hooks/useStaff';
+import { useStaffBookingDetail } from '@/hooks/useBooking';
 import { useUploadImage } from '@/hooks/useImage';
+import { useAssetsList, useCreateAsset } from '@/hooks/useAssets';
+import type { AssetCreateRequest } from '@/lib/api/services/fetchAssets';
+import { categoryService, type Category } from '@/lib/api/services/fetchCategory';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Image from 'next/image';
@@ -43,11 +57,20 @@ import {
   SheetTrigger,
   SheetFooter,
 } from '@/components/ui/sheet';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { toast } from 'sonner';
 
 interface BookingCardProps {
   booking: Booking;
@@ -83,11 +106,48 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [checkoutImages, setCheckoutImages] = useState<UploadedImage[]>([]);
 
+  // Asset management state
+  const [assetsViewOpen, setAssetsViewOpen] = useState(false);
+  const [assetCreateOpen, setAssetCreateOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [assetFormData, setAssetFormData] = useState<AssetCreateRequest>({
+    categoryId: 0,
+    brand: '',
+    model: '',
+    serial: '',
+    nickname: '',
+    purchaseDate: new Date().toISOString().split('T')[0] + 'T00:00:00.000Z',
+  });
+
   const { mutate: checkIn, isPending: isCheckingIn } = useStaffCheckIn();
   const { data: proposalData, isLoading: isLoadingProposal } = useGetProposal(booking.id);
   const { mutate: createReport, isPending: isCreatingReport } = useCreateInspectionReport();
   const { mutate: uploadImage, isPending: isUploading } = useUploadImage();
   const { mutate: staffCheckOut, isPending: isCheckingOut } = useStaffCheckOut();
+
+  // Staff booking detail hook - fetch when asset dialogs need customer ID
+  const shouldFetchBookingDetail = assetsViewOpen || assetCreateOpen;
+  const { data: bookingDetailResponse, isLoading: isLoadingBookingDetail } = useStaffBookingDetail(
+    booking.id,
+    { enabled: shouldFetchBookingDetail }
+  );
+
+  // Get customer ID from booking detail
+  const customerId = bookingDetailResponse?.data?.customer?.id;
+
+  // Asset hooks - Using customerId from booking detail
+  const {
+    assets,
+    isLoading: isLoadingAssets,
+    error: assetsError,
+  } = useAssetsList(customerId || 0, { enabled: !!customerId });
+  const { createAsset, isLoading: isCreatingAsset } = useCreateAsset();
+
+  // Categories query
+  const { data: categories, isLoading: isLoadingCategories } = useQuery({
+    queryKey: ['categories'],
+    queryFn: () => categoryService.getCategories(),
+  });
 
   const initials = booking.customer.name
     .split(' ')
@@ -140,6 +200,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
   const isInProgress = booking.serviceRequest.status === StatusServiceRequest.IN_PROGRESS;
   const isEstimated = booking.serviceRequest.status === StatusServiceRequest.ESTIMATED;
   const isCancelled = booking.serviceRequest.status === StatusServiceRequest.CANCELLED;
+  // const isPending = booking.serviceRequest.status === StatusServiceRequest.PENDING;
 
   // Check if staff has already checked in for this booking
   // For IN_PROGRESS status, we assume they have checked in
@@ -150,6 +211,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
   const canCheckIn = !hasCheckedIn && !isEstimated && !isCancelled;
   const canCreateReport = isInProgress && hasCheckedIn;
   const canViewProposals = isInProgress || isEstimated;
+  const canManageAssets = isInProgress && hasCheckedIn;
 
   const isProposalAccepted = (proposalData?.data?.status || '').toUpperCase() === 'ACCEPTED';
 
@@ -298,6 +360,56 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
         },
       }
     );
+  };
+
+  // Asset management handlers
+  const handleCreateAsset = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (
+      !selectedCategory ||
+      !assetFormData.brand ||
+      !assetFormData.model ||
+      !assetFormData.serial ||
+      !assetFormData.nickname
+    ) {
+      return;
+    }
+
+    if (!customerId) {
+      toast.error('Không thể tạo thiết bị: Không tìm thấy thông tin khách hàng');
+      return;
+    }
+
+    try {
+      await createAsset(customerId, assetFormData);
+      setAssetCreateOpen(false);
+      resetAssetForm();
+    } catch (error) {
+      // Error is already handled by the hook
+    }
+  };
+
+  // Category selection handler
+  const handleCategorySelect = (categoryId: string) => {
+    const category = categories?.find(c => c.id.toString() === categoryId) || null;
+    setSelectedCategory(category);
+    setAssetFormData(prev => ({
+      ...prev,
+      categoryId: category ? category.id : 0,
+    }));
+  };
+
+  const resetAssetForm = () => {
+    setSelectedCategory(null);
+    setAssetFormData({
+      categoryId: 0,
+      brand: '',
+      model: '',
+      serial: '',
+      nickname: '',
+      purchaseDate: new Date().toISOString().split('T')[0] + 'T00:00:00.000Z',
+    });
   };
 
   const hasUploadingImages = uploadedImages.some(img => img.status === 'uploading');
@@ -997,6 +1109,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
               <Button
                 onClick={() => setCheckoutOpen(true)}
                 size="sm"
+                variant="ghost"
                 className="h-7 px-2 text-xs bg-purple-600 hover:bg-purple-700"
               >
                 <CheckCircle className="h-3 w-3 mr-1" />
@@ -1004,6 +1117,21 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
               </Button>
             )}
           </div>
+
+          {/* Asset Management Buttons - Only show when can manage assets */}
+          {canManageAssets && (
+            <div className="flex gap-2 justify-end">
+              <Button onClick={() => setAssetsViewOpen(true)} size="sm">
+                <Settings className="h-3 w-3 mr-1" />
+                Xem tất cả tài sản của người dùng
+              </Button>
+
+              <Button onClick={() => setAssetCreateOpen(true)} size="sm">
+                <Plus className="h-3 w-3 mr-1" />
+                Tạo tài sản
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Service Information */}
@@ -1177,6 +1305,319 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
           </form>
         </SheetContent>
       </Sheet>
+
+      {/* View Assets Dialog */}
+      <Dialog open={assetsViewOpen} onOpenChange={setAssetsViewOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col p-0">
+          <div className="px-6 py-5 border-b">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-semibold flex items-center gap-2">
+                <Settings className="h-5 w-5 text-blue-500" />
+                Thiết bị của khách hàng
+              </DialogTitle>
+              <DialogDescription className="mt-1">
+                Danh sách thiết bị đã đăng ký của{' '}
+                {bookingDetailResponse?.data?.customer?.name || booking.customer.name}
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+
+          <div className="flex-1 px-6 py-5 overflow-y-auto">
+            {isLoadingBookingDetail ? (
+              <div className="text-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                <p className="text-sm text-gray-500 mt-2">Đang tải thông tin khách hàng...</p>
+              </div>
+            ) : !customerId ? (
+              <div className="text-center py-8">
+                <Settings className="h-12 w-12 text-red-300 mx-auto mb-3" />
+                <h3 className="text-sm font-medium text-red-500">Lỗi tải thông tin khách hàng</h3>
+                <p className="text-sm text-red-400 mt-1">Không thể tải thông tin khách hàng</p>
+              </div>
+            ) : isLoadingAssets ? (
+              <div className="text-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                <p className="text-sm text-gray-500 mt-2">Đang tải danh sách thiết bị...</p>
+              </div>
+            ) : assetsError ? (
+              <div className="text-center py-8">
+                <Settings className="h-12 w-12 text-red-300 mx-auto mb-3" />
+                <h3 className="text-sm font-medium text-red-500">Lỗi tải danh sách thiết bị</h3>
+                <p className="text-sm text-red-400 mt-1">
+                  Không thể tải danh sách thiết bị của khách hàng
+                </p>
+              </div>
+            ) : !assets || !Array.isArray(assets) || assets.length === 0 ? (
+              <div className="text-center py-8">
+                <Settings className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                <h3 className="text-sm font-medium text-gray-500">Chưa có thiết bị nào</h3>
+                <p className="text-sm text-gray-400 mt-1">Khách hàng chưa đăng ký thiết bị nào</p>
+                <Button
+                  onClick={() => {
+                    setAssetsViewOpen(false);
+                    setAssetCreateOpen(true);
+                  }}
+                  size="sm"
+                  className="mt-4"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Tạo thiết bị đầu tiên
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {Array.isArray(assets) &&
+                  assets.map(asset => (
+                    <div
+                      key={asset.id}
+                      className="border rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <h4 className="font-medium text-gray-900">{asset.nickname}</h4>
+                          <p className="text-sm text-gray-500">
+                            {asset.brand} {asset.model}
+                          </p>
+                        </div>
+                        <Badge variant="outline" className="text-xs">
+                          ID: {asset.id}
+                        </Badge>
+                      </div>
+
+                      <div className="grid gap-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Serial:</span>
+                          <span className="font-mono">{asset.serial}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Ngày mua:</span>
+                          <span>
+                            {format(new Date(asset.purchaseDate), 'dd/MM/yyyy', { locale: vi })}
+                          </span>
+                        </div>
+                        {asset.Category && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-500">Danh mục:</span>
+                            <span>{asset.Category.name}</span>
+                          </div>
+                        )}
+                        {asset.description && (
+                          <div className="mt-2">
+                            <span className="text-gray-500 text-xs">Mô tả:</span>
+                            <p className="text-xs text-gray-600 mt-1">{asset.description}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="px-6 py-4 border-t">
+            <Button variant="outline" onClick={() => setAssetsViewOpen(false)} className="mr-2">
+              Đóng
+            </Button>
+            <Button
+              onClick={() => {
+                setAssetsViewOpen(false);
+                setAssetCreateOpen(true);
+              }}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Thêm thiết bị
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Asset Dialog */}
+      <Dialog open={assetCreateOpen} onOpenChange={setAssetCreateOpen}>
+        <DialogContent className="max-w-lg max-h-[80vh] flex flex-col p-0">
+          <div className="px-6 py-5 border-b">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-semibold flex items-center gap-2">
+                <Plus className="h-5 w-5 text-green-500" />
+                Tạo thiết bị mới
+              </DialogTitle>
+              <DialogDescription className="mt-1">
+                Đăng ký thiết bị mới cho{' '}
+                {bookingDetailResponse?.data?.customer?.name || booking.customer.name}
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+
+          {isLoadingBookingDetail ? (
+            <div className="flex-1 flex items-center justify-center py-8">
+              <div className="text-center">
+                <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                <p className="text-sm text-gray-500 mt-2">Đang tải thông tin khách hàng...</p>
+              </div>
+            </div>
+          ) : !customerId ? (
+            <div className="flex-1 flex items-center justify-center py-8">
+              <div className="text-center">
+                <Plus className="h-12 w-12 text-red-300 mx-auto mb-3" />
+                <h3 className="text-sm font-medium text-red-500">Lỗi tải thông tin khách hàng</h3>
+                <p className="text-sm text-red-400 mt-1">Không thể tạo thiết bị</p>
+              </div>
+            </div>
+          ) : (
+            <form onSubmit={handleCreateAsset} className="flex-1 flex flex-col">
+              <div className="flex-1 px-6 py-5 space-y-4 overflow-y-auto">
+                <div className="space-y-2">
+                  <Label htmlFor="category">
+                    Danh mục <span className="text-red-500">*</span>
+                  </Label>
+                  {isLoadingCategories ? (
+                    <div className="flex items-center space-x-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span className="text-sm text-gray-500">Đang tải danh mục...</span>
+                    </div>
+                  ) : (
+                    <Select
+                      value={selectedCategory?.id.toString() || ''}
+                      onValueChange={handleCategorySelect}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Chọn danh mục thiết bị" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories?.map(category => (
+                          <SelectItem key={category.id} value={category.id.toString()}>
+                            <div className="flex items-center space-x-2">
+                              {category.logo && (
+                                <Image
+                                  src={category.logo}
+                                  alt={category.name}
+                                  width={16}
+                                  height={16}
+                                  className="rounded"
+                                />
+                              )}
+                              <span>{category.name}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="brand">
+                    Thương hiệu <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="brand"
+                    value={assetFormData.brand}
+                    onChange={e => setAssetFormData(prev => ({ ...prev, brand: e.target.value }))}
+                    placeholder="Nhập tên thương hiệu"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="model">
+                    Model <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="model"
+                    value={assetFormData.model}
+                    onChange={e => setAssetFormData(prev => ({ ...prev, model: e.target.value }))}
+                    placeholder="Nhập model sản phẩm"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="serial">
+                    Số serial <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="serial"
+                    value={assetFormData.serial}
+                    onChange={e => setAssetFormData(prev => ({ ...prev, serial: e.target.value }))}
+                    placeholder="Nhập số serial"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="nickname">
+                    Tên gọi <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="nickname"
+                    value={assetFormData.nickname}
+                    onChange={e =>
+                      setAssetFormData(prev => ({ ...prev, nickname: e.target.value }))
+                    }
+                    placeholder="Nhập tên gọi thiết bị"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="purchaseDate">
+                    Ngày mua <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="purchaseDate"
+                    type="date"
+                    value={assetFormData.purchaseDate.split('T')[0]}
+                    onChange={e =>
+                      setAssetFormData(prev => ({
+                        ...prev,
+                        purchaseDate: e.target.value + 'T00:00:00.000Z',
+                      }))
+                    }
+                    required
+                  />
+                </div>
+              </div>
+
+              <DialogFooter className="px-6 py-4 border-t">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setAssetCreateOpen(false);
+                    resetAssetForm();
+                  }}
+                  disabled={isCreatingAsset}
+                  className="mr-2"
+                >
+                  Hủy
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={
+                    isCreatingAsset ||
+                    !selectedCategory ||
+                    !assetFormData.brand ||
+                    !assetFormData.model ||
+                    !assetFormData.serial ||
+                    !assetFormData.nickname
+                  }
+                >
+                  {isCreatingAsset ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Đang tạo...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Tạo thiết bị
+                    </>
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

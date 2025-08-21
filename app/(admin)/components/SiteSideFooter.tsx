@@ -65,7 +65,7 @@ export function SiteSideFooter() {
     },
   ];
   // Get user data from profile response
-  const user = profileData?.data
+  const user = profileData?.data?.user
     ? {
         name: profileData.data.user.name,
         email: profileData.data.user.email,

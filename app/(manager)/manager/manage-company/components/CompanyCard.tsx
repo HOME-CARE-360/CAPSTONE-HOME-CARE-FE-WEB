@@ -73,7 +73,7 @@ export function CompanyCard({ company }: CompanyCardProps) {
       {/* Content */}
       <div className="px-1">
         <div className="mb-2">
-          <h3 className="text-base font-medium line-clamp-2">{company.description}</h3>
+          <h3 className="text-base font-medium line-clamp-2">{company.user.name}</h3>
         </div>
         <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
           <MapPin className="h-4 w-4" />
@@ -102,7 +102,7 @@ export function CompanyCard({ company }: CompanyCardProps) {
                 <AlertDialogHeader>
                   <AlertDialogTitle>Xác nhận duyệt</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Bạn có chắc chắn muốn duyệt công ty {company.description} ?
+                    Bạn có chắc chắn muốn duyệt công ty {company.user.name} ?
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -127,7 +127,7 @@ export function CompanyCard({ company }: CompanyCardProps) {
                 <AlertDialogHeader>
                   <AlertDialogTitle>Xác nhận từ chối</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Bạn có chắc chắn muốn từ chối công ty {company.description} ?
+                    Bạn có chắc chắn muốn từ chối công ty {company.user.name} ?
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

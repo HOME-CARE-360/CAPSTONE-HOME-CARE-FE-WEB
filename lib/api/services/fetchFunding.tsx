@@ -8,18 +8,27 @@ export interface CreateWithDrawResponse {
   success: boolean;
   code: string;
   message: string;
+  data?: WithdrawRequest;
 }
 
-export interface GetListWithDrawResponse {
-  success: boolean;
-  code: string;
-  message: string;
+export interface WithdrawRequest {
+  id: number;
+  amount: number;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'COMPLETED';
+  createdAt: string;
+  processedAt: string | null;
+  processedById: number | null;
+  note: string | null;
+  userId: number;
 }
+
+export interface GetListWithDrawResponse extends Array<WithdrawRequest> {}
 
 export interface GetDetailWithDrawResponse {
   success: boolean;
   code: string;
   message: string;
+  data?: WithdrawRequest;
 }
 
 export const fundingService = {

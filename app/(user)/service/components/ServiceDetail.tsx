@@ -82,8 +82,12 @@ export default function ServiceDetail() {
         <div>
           <h1 className="text-3xl font-bold mb-2">{service.name}</h1>
           <div className="flex items-center gap-2 mb-4">
-            <span className="text-2xl font-semibold">{formatCurrency(service.virtualPrice)}</span>
-            {service.virtualPrice < service.basePrice && (
+            <span className="text-2xl font-semibold">
+              {formatCurrency(
+                (service.virtualPrice ?? 0) > 0 ? service.virtualPrice : service.basePrice
+              )}
+            </span>
+            {(service.virtualPrice ?? 0) > 0 && service.virtualPrice < service.basePrice && (
               <span className="text-muted-foreground line-through">
                 {formatCurrency(service.basePrice)}
               </span>

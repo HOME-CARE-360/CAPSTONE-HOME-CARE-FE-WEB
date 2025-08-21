@@ -418,6 +418,126 @@ export interface CancelServiceRequestResponse {
   message: string;
 }
 
+// Top Services and Providers
+export interface TopDiscountedService {
+  id: number;
+  name: string;
+  images: string[];
+  basePrice: number;
+  virtualPrice: number;
+  discountPercent: number;
+  durationMinutes: number;
+  description: string;
+  updatedAt: string;
+  category: {
+    id: number;
+    name: string;
+  };
+  provider: {
+    id: number;
+    address: string;
+    name: string;
+    phone: string;
+    email: string;
+    avatar: string;
+  };
+}
+
+export interface TopDiscountedServicesResponse {
+  success: boolean;
+  code: string;
+  message: string;
+  data: {
+    items: TopDiscountedService[];
+    page: number;
+    limit: number;
+    totalItems: number;
+    totalPages: number;
+  };
+  statusCode: number;
+  timestamp: string;
+}
+
+export interface TopProvider {
+  rank: number;
+  id: number;
+  address: string;
+  userId: number;
+  companyType: string;
+  industry: string | null;
+  logo: string | null;
+  taxId: string;
+  verificationStatus: string;
+  verifiedAt: string | null;
+  contact: {
+    name: string;
+    phone: string;
+    email: string;
+    avatar: string | null;
+  };
+  completedBookingsCount: number;
+}
+
+export interface TopProvidersResponse {
+  success: boolean;
+  code: string;
+  message: string;
+  data: {
+    items: TopProvider[];
+    page: number;
+    limit: number;
+    totalItems: number;
+    totalPages: number;
+  };
+  statusCode: number;
+  timestamp: string;
+}
+
+export interface TopFavoriteService {
+  rank: number;
+  serviceId: number;
+  favoriteCount: number;
+  service: {
+    id: number;
+    name: string;
+    images: string[];
+    basePrice: number;
+    virtualPrice: number;
+    durationMinutes: number;
+    status: string;
+    description: string;
+    updatedAt: string;
+    category: {
+      id: number;
+      name: string;
+    };
+    provider: {
+      id: number;
+      address: string;
+      userId: number;
+      name: string;
+      phone: string;
+      email: string;
+      logo: string | null;
+    };
+  };
+}
+
+export interface TopFavoriteServicesResponse {
+  success: boolean;
+  code: string;
+  message: string;
+  data: {
+    items: TopFavoriteService[];
+    page: number;
+    limit: number;
+    totalItems: number;
+    totalPages: number;
+  };
+  statusCode: number;
+  timestamp: string;
+}
+
 // User service with profile-related API methods
 export const userService = {
   // Get current user profile
@@ -551,6 +671,25 @@ export const userService = {
     const response = await apiService.patch<CancelServiceRequestResponse>(
       `/users/cancel-service-request/${serviceRequestId}`,
       {}
+    );
+    return response.data;
+  },
+
+  getTopDiscountedServices: async (): Promise<TopDiscountedServicesResponse> => {
+    const response = await apiService.get<TopDiscountedServicesResponse>(
+      '/publics/top-discounted-services'
+    );
+    return response.data;
+  },
+
+  getTopProvidersAllTime: async (): Promise<TopProvidersResponse> => {
+    const response = await apiService.get<TopProvidersResponse>('/publics/top-providers-all-time');
+    return response.data;
+  },
+
+  getTopFavoriteServices: async (): Promise<TopFavoriteServicesResponse> => {
+    const response = await apiService.get<TopFavoriteServicesResponse>(
+      '/publics/top-favorite-services'
     );
     return response.data;
   },

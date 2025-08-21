@@ -286,3 +286,27 @@ export const useCancelServiceRequest = () => {
     },
   });
 };
+
+export const useGetTopDiscountedServices = () => {
+  return useQuery({
+    queryKey: ['publics', 'top-discounted-services'],
+    queryFn: () => userService.getTopDiscountedServices(),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+};
+
+export const useGetTopProvidersAllTime = () => {
+  return useQuery({
+    queryKey: ['publics', 'top-providers-all-time'],
+    queryFn: () => userService.getTopProvidersAllTime(),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+};
+
+export const useGetTopFavoriteServices = () => {
+  return useQuery({
+    queryKey: ['publics', 'top-favorite-services'],
+    queryFn: () => userService.getTopFavoriteServices(),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+};

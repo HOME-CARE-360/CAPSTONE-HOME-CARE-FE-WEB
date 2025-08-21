@@ -13,9 +13,9 @@ export default function CategoryServices() {
   const categoryId = Number(params?.id);
 
   const filters = useMemo(() => {
-    const f: { categoryId?: number[]; page?: number; limit?: number } = {};
+    const f: { categories?: number[]; page?: number; limit?: number } = {};
     if (!Number.isNaN(categoryId)) {
-      f.categoryId = [categoryId];
+      f.categories = [categoryId];
     }
     f.page = 1;
     f.limit = 12;

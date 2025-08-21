@@ -11,6 +11,9 @@ import {
   GetAllRoleResponseType,
   GetAllUsersResponseType,
   GetPermissionByRoleIdType,
+  GetReportMonthResponseType,
+  GetReportMutipleMonthExportPDFResponseType,
+  GetStatisticsUsersResponseType,
   ResetPasswordUserRequestType,
   UserFormData,
 } from '@/schemaValidations/admin.schema';
@@ -86,7 +89,7 @@ export const useCreateUser = () => {
 };
 
 export const useGetStatisticsUsers = () => {
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error } = useQuery<GetStatisticsUsersResponseType>({
     queryKey: ['admin', 'statistics', 'users'],
     queryFn: () => AdminService.getStatisticsUsers(),
   });
@@ -275,6 +278,51 @@ export const useGetPremissionByRoleId = (
   const { data, isLoading, error } = useQuery<GetPermissionByRoleIdType>({
     queryKey: ['admin', 'permission', 'role', roleId, params],
     queryFn: () => AdminService.getPremissionByRoleId(roleId, params),
+  });
+
+  return {
+    data,
+    isLoading,
+    error,
+  };
+};
+
+export const useGetReportMonth = (params: { year: number; month: number }) => {
+  const { data, isLoading, error } = useQuery<GetReportMonthResponseType>({
+    queryKey: ['admin', 'report', 'month', params],
+    queryFn: () => AdminService.getReportMonth(params),
+  });
+
+  return {
+    data: data?.data,
+    isLoading,
+    error,
+  };
+};
+
+export const useGetExportPDFMutipleMonth = (params: {
+  startMonth: number;
+  startYear: number;
+  endMonth: number;
+  endYear: number;
+}) => {
+  const { data, isLoading, error, refetch } = useQuery<GetReportMutipleMonthExportPDFResponseType>({
+    queryKey: ['admin', 'report', 'export', 'pdf', params],
+    queryFn: () => AdminService.getExportPDFMutipleMonth(params),
+  });
+
+  return {
+    data,
+    isLoading,
+    error,
+    refetch,
+  };
+};
+
+export const useGetExportPDFMonthly = (params: { month: number; year: number }) => {
+  const { data, isLoading, error } = useQuery<GetReportMutipleMonthExportPDFResponseType>({
+    queryKey: ['admin', 'report', 'export', 'pdf', 'monthly', params],
+    queryFn: () => AdminService.getExportPDFMonthly(params),
   });
 
   return {

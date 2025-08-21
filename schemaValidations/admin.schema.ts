@@ -95,18 +95,24 @@ export const userFormSchema = createUserRequestSchema
     path: ['confirmPassword'],
   });
 
-export const getStatisticsUserSchema = z.object({
-  totals: z.object({
-    users: z.number(),
-    active: z.number(),
-    inactive: z.number(),
-    blocked: z.number(),
-  }),
-  types: z.object({
-    customers: z.number(),
-    serviceProviders: z.number(),
-    staff: z.number(),
-    adminOnly: z.number(),
+export const getStatisticsUsersResponseSchema = z.object({
+  code: z.string(),
+  message: z.string(),
+  statusCode: z.number(),
+  success: z.boolean(),
+  data: z.object({
+    totals: z.object({
+      users: z.number(),
+      active: z.number(),
+      inactive: z.number(),
+      blocked: z.number(),
+    }),
+    types: z.object({
+      customers: z.number(),
+      serviceProviders: z.number(),
+      staff: z.number(),
+      adminOnly: z.number(),
+    }),
   }),
 });
 
@@ -122,8 +128,8 @@ export const getStatisticsRolesUserSchema = z.object({
   ),
 });
 
-export const getStatisticsUsersResponseSchema =
-  buildPaginationResponseSchema(getStatisticsUserSchema);
+// export const getStatisticsUsersResponseSchema =
+//   buildPaginationResponseSchema(getStatisticsUserSchema);
 
 export const getStatisticsRolesUserResponseSchema = buildPaginationResponseSchema(
   getStatisticsRolesUserSchema
@@ -300,6 +306,106 @@ export const getAllPermissionResponseSchema = z.object({
     hasPrev: z.boolean(),
   }),
 });
+
+export const dataReportMonthResponseSchema = z.object({
+  month: z.number(),
+  year: z.number(),
+  userStatistics: z.object({
+    totalUsers: z.number(),
+    newUsers: z.number(),
+    activeUsers: z.number(),
+    inactiveUsers: z.number(),
+    blockedUsers: z.number(),
+    deletedUsers: z.number(),
+  }),
+  usersByType: z.object({
+    customers: z.number(),
+    serviceProviders: z.number(),
+    staff: z.number(),
+    adminOnly: z.number(),
+  }),
+  roleStatics: z.object({
+    totalRoles: z.number(),
+    roles: z.array(
+      z.object({
+        id: z.number(),
+        name: z.string(),
+        userCount: z.number(),
+        percentage: z.number(),
+      })
+    ),
+  }),
+  topUsers: z.array(
+    z.object({
+      id: z.number(),
+      name: z.string(),
+      email: z.string(),
+      status: z.string(),
+      createdAt: z.string(),
+      roles: z.array(
+        z.object({
+          name: z.string(),
+        })
+      ),
+    })
+  ),
+  activitySummary: z.object({
+    totalLogins: z.number(),
+    totalDevices: z.number(),
+    totalNotifications: z.number(),
+    mostActiveUsers: z.array(
+      z.object({
+        name: z.string(),
+        email: z.string(),
+        loginCount: z.number(),
+      })
+    ),
+  }),
+});
+
+export const getReportMonthResponseSchema = z.object({
+  success: z.boolean(),
+  code: z.string(),
+  message: z.string(),
+  statusCode: z.number(),
+  data: dataReportMonthResponseSchema,
+});
+
+export const getReportMutipleMonthExportPDFResponseSchema = z.object({
+  success: z.boolean(),
+  code: z.string(),
+  message: z.string(),
+  statusCode: z.number(),
+  data: z.string(),
+});
+
+export const getProfileAdminReponseSchema = z.object({
+  success: z.boolean(),
+  code: z.string(),
+  message: z.string(),
+  data: z.object({
+    id: z.number(),
+    email: z.string(),
+    name: z.string(),
+    phone: z.string(),
+    avatar: z.string(),
+    status: z.string(),
+    createdById: z.number(),
+    updatedById: z.number().nullable(),
+    createdAt: z.string(),
+    updatedAt: z.string(),
+  }),
+  statusCode: z.number(),
+});
+
+export type GetProfileAdminReponseType = z.infer<typeof getProfileAdminReponseSchema>;
+export type GetProfileManagerReponseType = GetProfileAdminReponseType;
+export type DataReportMonthResponseType = z.infer<typeof dataReportMonthResponseSchema>;
+
+export type GetReportMutipleMonthExportPDFResponseType = z.infer<
+  typeof getReportMutipleMonthExportPDFResponseSchema
+>;
+export type GetReportMonthResponseType = z.infer<typeof getReportMonthResponseSchema>;
 
 export type GetAllPermissionResponseType = z.infer<typeof getAllPermissionResponseSchema>;
 export type AssignPermissionToRoleResponseType = z.infer<

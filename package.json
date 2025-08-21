@@ -88,7 +88,7 @@
     "react-router-dom": "^6.28.1",
     "react-syntax-highlighter": "^15.6.1",
     "react-use-downloader": "^1.2.8",
-    "recharts": "^2.15.1",
+    "recharts": "^2.15.4",
     "socket.io-client": "^4.8.1",
     "sonner": "^2.0.5",
     "tailwind-merge": "^2.6.0",

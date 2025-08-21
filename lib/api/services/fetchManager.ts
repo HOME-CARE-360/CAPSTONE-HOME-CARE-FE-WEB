@@ -1,3 +1,4 @@
+import { GetProfileManagerReponseType } from '@/schemaValidations/admin.schema';
 import apiService, { RequestParams } from '../core';
 
 export interface CompanyListResponse {
@@ -309,5 +310,15 @@ export const managerSerivce = {
       payload
     );
     return response.data;
+  },
+
+  getManagerProfile: async (): Promise<GetProfileManagerReponseType> => {
+    try {
+      const response = await apiService.get<GetProfileManagerReponseType>('/publics/get-me');
+      return response.data;
+    } catch (error) {
+      console.error('Get User Profile Error:', error);
+      throw error;
+    }
   },
 };

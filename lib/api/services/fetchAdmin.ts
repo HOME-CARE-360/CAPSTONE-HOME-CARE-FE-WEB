@@ -17,6 +17,9 @@ import {
   AssignPermissionToRoleRequestType,
   AssignPermissionToRoleResponseType,
   GetAllPermissionResponseType,
+  GetReportMonthResponseType,
+  GetReportMutipleMonthExportPDFResponseType,
+  GetProfileAdminReponseType,
 } from '@/schemaValidations/admin.schema';
 import { ResponseMessageType } from '@/schemaValidations/response.schema';
 
@@ -29,6 +32,16 @@ interface UserSearchParams {
 }
 
 export const AdminService = {
+  getAdminProfile: async (): Promise<GetProfileAdminReponseType> => {
+    try {
+      const response = await apiService.get<GetProfileAdminReponseType>('/publics/get-me');
+      return response.data;
+    } catch (error) {
+      console.error('Get User Profile Error:', error);
+      throw error;
+    }
+  },
+
   getUsers: async (params?: UserSearchParams): Promise<GetAllUsersResponseType> => {
     const queryParams = new URLSearchParams();
 
@@ -142,6 +155,43 @@ export const AdminService = {
 
     const url = `/admin/permissions${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
     const response = await apiService.get<GetAllPermissionResponseType>(url);
+    return response.data;
+  },
+
+  getReportMonth: async (params: { month: number; year: number }) => {
+    const queryParams = new URLSearchParams();
+    if (params?.month) queryParams.append('month', params.month.toString());
+    if (params?.year) queryParams.append('year', params.year.toString());
+
+    const url = `/admin/reports/monthly${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    const response = await apiService.get<GetReportMonthResponseType>(url);
+    return response.data;
+  },
+
+  getExportPDFMutipleMonth: async (params: {
+    startMonth: number;
+    startYear: number;
+    endMonth: number;
+    endYear: number;
+  }) => {
+    const queryParams = new URLSearchParams();
+    if (params?.startMonth) queryParams.append('startMonth', params.startMonth.toString());
+    if (params?.startYear) queryParams.append('startYear', params.startYear.toString());
+    if (params?.endMonth) queryParams.append('endMonth', params.endMonth.toString());
+    if (params?.endYear) queryParams.append('endYear', params.endYear.toString());
+
+    const url = `/admin/reports/multi-months/export/pdf${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    const response = await apiService.get<GetReportMutipleMonthExportPDFResponseType>(url);
+    return response.data;
+  },
+
+  getExportPDFMonthly: async (params: { month: number; year: number }) => {
+    const queryParams = new URLSearchParams();
+    if (params?.month) queryParams.append('month', params.month.toString());
+    if (params?.year) queryParams.append('year', params.year.toString());
+
+    const url = `/admin/reports/monthly/export/pdf${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    const response = await apiService.get<GetReportMutipleMonthExportPDFResponseType>(url);
     return response.data;
   },
 };

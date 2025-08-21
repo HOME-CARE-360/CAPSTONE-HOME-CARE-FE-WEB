@@ -29,12 +29,12 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { useUserProfile } from '@/hooks/useUser';
 import { useAuth } from '@/hooks/useAuth';
+import { useGetManagerProfile } from '@/hooks/useManager';
 
 export function SiteSideFooter() {
   const { isMobile } = useSidebar();
-  const { data: profileData, isLoading: profileLoading } = useUserProfile();
+  const { data: profileData, isLoading: profileLoading } = useGetManagerProfile();
   const { logout } = useAuth();
   const [status, setStatus] = useState<string>('Online');
   // Define user status options inside the component
@@ -65,19 +65,19 @@ export function SiteSideFooter() {
     },
   ];
   // Get user data from profile response
-  const user = profileData?.data?.user
+  const user = profileData?.data
     ? {
-        name: profileData.data.user.name,
-        email: profileData.data.user.email,
-        avatar: profileData.data.user.avatar || '',
-        status: profileData.data.user.status,
+        name: profileData.data.name,
+        email: profileData.data.email,
+        avatar: profileData.data.avatar || '',
+        status: profileData.data.status,
       }
     : {};
 
   // Update status state when profile data loads
   useEffect(() => {
-    if (profileData?.data?.user?.status) {
-      setStatus(profileData.data.user.status);
+    if (profileData?.data?.status) {
+      setStatus(profileData.data.status);
     }
   }, [profileData]);
 

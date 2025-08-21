@@ -17,6 +17,7 @@ import {
   ResetPasswordUserRequestType,
   UserFormData,
 } from '@/schemaValidations/admin.schema';
+import { useAuthStore } from '@/lib/store/authStore';
 
 interface UserSearchParams {
   page?: number;
@@ -38,6 +39,20 @@ export const useGetAllUsers = (params?: UserSearchParams) => {
     error,
   };
 };
+
+export function useGetAdminProfile() {
+  const isAuthenticated = useAuthStore(state => state.isAuthenticated);
+
+  return useQuery({
+    queryKey: ['admin', 'profile'],
+    queryFn: () => AdminService.getAdminProfile(),
+    enabled: isAuthenticated,
+    // select: (data: GetProfileResponse) => ({
+    //   profile: data.data,
+    //   message: data.message,
+    // }),
+  });
+}
 
 export const useGetUserById = (id: string | number) => {
   const { data, isLoading, error } = useQuery({

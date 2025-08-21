@@ -12,6 +12,7 @@ import {
   UpdateWithdrawRequest,
   UpdateWithdrawResponse,
 } from '@/lib/api/services/fetchManager';
+import { useAuthStore } from '@/lib/store/authStore';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
@@ -113,3 +114,17 @@ export const useUpdateWithdraw = () => {
     },
   });
 };
+
+export function useGetManagerProfile() {
+  const isAuthenticated = useAuthStore(state => state.isAuthenticated);
+
+  return useQuery({
+    queryKey: ['manager', 'profile'],
+    queryFn: () => managerSerivce.getManagerProfile(),
+    enabled: isAuthenticated,
+    // select: (data: GetProfileResponse) => ({
+    //   profile: data.data,
+    //   message: data.message,
+    // }),
+  });
+}

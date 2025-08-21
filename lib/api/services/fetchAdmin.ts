@@ -19,6 +19,7 @@ import {
   GetAllPermissionResponseType,
   GetReportMonthResponseType,
   GetReportMutipleMonthExportPDFResponseType,
+  GetProfileAdminReponseType,
 } from '@/schemaValidations/admin.schema';
 import { ResponseMessageType } from '@/schemaValidations/response.schema';
 
@@ -31,6 +32,16 @@ interface UserSearchParams {
 }
 
 export const AdminService = {
+  getAdminProfile: async (): Promise<GetProfileAdminReponseType> => {
+    try {
+      const response = await apiService.get<GetProfileAdminReponseType>('/publics/get-me');
+      return response.data;
+    } catch (error) {
+      console.error('Get User Profile Error:', error);
+      throw error;
+    }
+  },
+
   getUsers: async (params?: UserSearchParams): Promise<GetAllUsersResponseType> => {
     const queryParams = new URLSearchParams();
 

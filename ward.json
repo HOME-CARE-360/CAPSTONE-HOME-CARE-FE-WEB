@@ -1,0 +1,30 @@
+{
+  "city": "Thành phố Hồ Chí Minh",
+  "type": "Thành phố trực thuộc Trung ương",
+  "districts": [
+    { "name": "Quận 1", "type": "Quận" },
+    { "name": "Quận 2", "type": "Quận" },
+    { "name": "Quận 3", "type": "Quận" },
+    { "name": "Quận 4", "type": "Quận" },
+    { "name": "Quận 5", "type": "Quận" },
+    { "name": "Quận 6", "type": "Quận" },
+    { "name": "Quận 7", "type": "Quận" },
+    { "name": "Quận 8", "type": "Quận" },
+    { "name": "Quận 9", "type": "Quận" },
+    { "name": "Quận 10", "type": "Quận" },
+    { "name": "Quận 11", "type": "Quận" },
+    { "name": "Quận 12", "type": "Quận" },
+    { "name": "Quận Bình Thạnh", "type": "Quận" },
+    { "name": "Quận Gò Vấp", "type": "Quận" },
+    { "name": "Quận Phú Nhuận", "type": "Quận" },
+    { "name": "Quận Tân Bình", "type": "Quận" },
+    { "name": "Quận Tân Phú", "type": "Quận" },
+    { "name": "Quận Bình Tân", "type": "Quận" },
+    { "name": "Quận Thủ Đức", "type": "Quận" },
+    { "name": "Huyện Bình Chánh", "type": "Huyện" },
+    { "name": "Huyện Củ Chi", "type": "Huyện" },
+    { "name": "Huyện Hóc Môn", "type": "Huyện" },
+    { "name": "Huyện Nhà Bè", "type": "Huyện" },
+    { "name": "Huyện Cần Giờ", "type": "Huyện" }
+  ]
+}

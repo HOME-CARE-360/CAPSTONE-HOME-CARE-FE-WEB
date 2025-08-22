@@ -30,7 +30,6 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useService } from '@/hooks/useService';
 import { useGetServiceProviderInformation } from '@/hooks/useUser';
-import { useProvince, useProvinceCommunes } from '@/hooks/useProvince';
 import { CreateBookingRequest } from '@/lib/api/services/fetchBooking';
 import { useCreateBooking } from '@/hooks/useBooking';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -38,6 +37,7 @@ import { formatCurrency } from '@/utils/numbers/formatCurrency';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import Image from 'next/image';
+import wardData from '@/ward.json';
 
 // Type-safe helpers
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -148,11 +148,6 @@ const DateTimeLocationSkeleton = () => (
         <div className="space-y-3">
           <Skeleton className="h-4 w-32" />
           <Skeleton className="h-12 w-full" />
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className="h-10 w-full" />
-            ))}
-          </div>
         </div>
         <div className="space-y-3">
           <Skeleton className="h-4 w-32" />
@@ -315,20 +310,14 @@ export default function NewBookingPage() {
     : 0;
   const { data: profileProvider, isLoading: isProviderLoading } =
     useGetServiceProviderInformation(serviceProviderId);
-  const { data: provinceData, isLoading: isProvinceLoading } = useProvince();
   const { mutateAsync: createBooking } = useCreateBooking();
 
   // Check if any critical data is still loading
   const isDataLoading = isProfileLoading || isServiceLoading || isProviderLoading;
 
-  // Location state
-  const [selectedProvince, setSelectedProvince] = useState<string>('');
-  const [selectedCommune, setSelectedCommune] = useState<string>('');
-  const [name, setName] = useState<string>('');
-  const [communeSearchTerm, setCommuneSearchTerm] = useState<string>('');
-
-  // Commune data hook - must be after selectedProvince state
-  const { data: communeData, isLoading: isCommuneLoading } = useProvinceCommunes(selectedProvince);
+  // Location state - simplified for districts only
+  const [selectedDistrict, setSelectedDistrict] = useState<string>('');
+  const [districtSearchTerm, setDistrictSearchTerm] = useState<string>('');
 
   const [formData, setFormData] = useState<CreateBookingRequest>({
     providerId: 0,
@@ -348,62 +337,36 @@ export default function NewBookingPage() {
   // Derive category display name from service data
   const categoryName = useMemo(() => getServiceCategoryName(serviceData?.service), [serviceData]);
 
-  const provinces = useMemo(() => {
-    if (!provinceData?.provinces) {
-      return [];
-    }
-
-    const mappedProvinces = provinceData.provinces.map(province => ({
-      code: province.code,
-      name: province.name,
+  // Get districts from local ward.json
+  const districts = useMemo(() => {
+    return wardData.districts.map(district => ({
+      name: district.name,
+      type: district.type,
     }));
+  }, []);
 
-    return mappedProvinces;
-  }, [provinceData]);
-
-  // Get communes for selected province
-  const communes = useMemo(() => {
-    if (!selectedProvince || !communeData?.communes) return [];
-
-    return communeData.communes.map(commune => ({
-      code: commune.code,
-      name: commune.name,
-    }));
-  }, [selectedProvince, communeData]);
-
-  // Filter provinces based on search
-  const filteredProvinces = useMemo(() => {
-    if (!name) return provinces;
-    return provinces.filter(province => province.name.toLowerCase().includes(name.toLowerCase()));
-  }, [provinces, name]);
-
-  // Filter communes based on search
-  const filteredCommunes = useMemo(() => {
-    if (!communeSearchTerm) return communes;
-    return communes.filter(commune =>
-      commune.name.toLowerCase().includes(communeSearchTerm.toLowerCase())
+  // Filter districts based on search
+  const filteredDistricts = useMemo(() => {
+    if (!districtSearchTerm) return districts;
+    return districts.filter(district =>
+      district.name.toLowerCase().includes(districtSearchTerm.toLowerCase())
     );
-  }, [communes, communeSearchTerm]);
+  }, [districts, districtSearchTerm]);
 
-  // Update full address when province, commune, or detailed address changes
+  // Update full address when district or detailed address changes
   const fullAddress = useMemo(() => {
-    const selectedProvinceName = provinces.find(p => p.code === selectedProvince)?.name;
-    const selectedCommuneName = communes.find(c => c.code === selectedCommune)?.name;
-
-    const addressParts = [
-      formData.location?.trim(),
-      selectedCommuneName,
-      selectedProvinceName,
-    ].filter(Boolean);
+    const addressParts = [formData.location?.trim(), selectedDistrict, wardData.city].filter(
+      Boolean
+    );
 
     return addressParts.join(', ');
-  }, [selectedProvince, selectedCommune, provinces, communes, formData.location]);
+  }, [selectedDistrict, formData.location]);
 
-  // Update location when province or commune changes - but keep the detailed address
+  // Update location when district changes - but keep the detailed address
   useEffect(() => {
     // Don't override the user's detailed address input
     // The full address will be computed from fullAddress memo above
-  }, [selectedProvince, selectedCommune, provinces, communes]);
+  }, [selectedDistrict, wardData]);
 
   // Filter providers based on selected category
   useEffect(() => {
@@ -569,8 +532,8 @@ export default function NewBookingPage() {
     // Validate time separately
     const isTimeValid = validateTime(selectedTime);
 
-    // Also check if province and commune are selected
-    const hasRequiredLocation = selectedProvince && selectedCommune && formData.location?.trim();
+    // Also check if district is selected
+    const hasRequiredLocation = selectedDistrict && formData.location?.trim();
 
     return Object.keys(newErrors).length === 0 && isTimeValid && !!hasRequiredLocation;
   };
@@ -602,6 +565,7 @@ export default function NewBookingPage() {
         description: `Mã đặt lịch: BK${response.data}`,
         duration: 5000,
       });
+
       // Check if response has checkout URL for payment
       if (response.data && 'checkoutUrl' in response.data && response.data.checkoutUrl) {
         window.open(response.data.checkoutUrl, '_blank');
@@ -625,10 +589,8 @@ export default function NewBookingPage() {
       setSelectedTime('09:00');
       setTimeError('');
       setErrors({});
-      setSelectedProvince('');
-      setSelectedCommune('');
-      setName('');
-      setCommuneSearchTerm('');
+      setSelectedDistrict('');
+      setDistrictSearchTerm('');
       setShowConfirmation(false);
     } catch (error) {
       // Error is handled by the hook with toast
@@ -803,95 +765,58 @@ export default function NewBookingPage() {
                     <div className="space-y-6">
                       <Label className="text-sm font-medium">Địa chỉ thực hiện dịch vụ</Label>
 
-                      {/* Province Selection */}
+                      {/* City Display */}
                       <div className="space-y-3">
                         <Label className="text-sm font-medium text-muted-foreground">
-                          Tỉnh/Thành phố
+                          Thành phố
+                        </Label>
+                        <div className="p-3 bg-muted/30 rounded-lg border">
+                          <div className="flex items-center gap-2">
+                            <MapPin className="h-4 w-4 text-primary" />
+                            <span className="font-medium">{wardData.city}</span>
+                            <Badge variant="secondary" className="text-xs">
+                              {wardData.type}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* District Selection */}
+                      <div className="space-y-3">
+                        <Label className="text-sm font-medium text-muted-foreground">
+                          Quận/Huyện
                         </Label>
                         <div className="relative">
                           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                           <Input
-                            placeholder="Tìm kiếm tỉnh/thành phố..."
-                            value={name}
-                            onChange={e => setName(e.target.value)}
+                            placeholder="Tìm kiếm quận/huyện..."
+                            value={districtSearchTerm}
+                            onChange={e => setDistrictSearchTerm(e.target.value)}
                             className="h-12 pl-10"
                           />
                         </div>
-                        {isProvinceLoading ? (
-                          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                            {Array.from({ length: 6 }).map((_, i) => (
-                              <Skeleton key={i} className="h-10 w-full" />
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-48 overflow-y-auto">
-                            {filteredProvinces.map(province => (
-                              <button
-                                key={province.code}
-                                type="button"
-                                onClick={() => {
-                                  setSelectedProvince(province.code);
-                                  setSelectedCommune(''); // Reset commune when province changes
-                                  setCommuneSearchTerm('');
-                                }}
-                                className={`h-10 px-3 text-sm text-left rounded-lg border transition-colors ${
-                                  selectedProvince === province.code
-                                    ? 'bg-primary text-primary-foreground border-primary'
-                                    : 'bg-background hover:bg-muted border-border'
-                                }`}
-                              >
-                                {province.name}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Commune Selection */}
-                      {selectedProvince && (
-                        <div className="space-y-3">
-                          <Label className="text-sm font-medium text-muted-foreground">
-                            Phường
-                          </Label>
-                          <div className="relative">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input
-                              placeholder="Tìm kiếm phường"
-                              value={communeSearchTerm}
-                              onChange={e => setCommuneSearchTerm(e.target.value)}
-                              className="h-12 pl-10"
-                            />
-                          </div>
-                          {isCommuneLoading ? (
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                              {Array.from({ length: 6 }).map((_, i) => (
-                                <Skeleton key={i} className="h-10 w-full" />
-                              ))}
-                            </div>
-                          ) : communes.length > 0 ? (
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-48 overflow-y-auto">
-                              {filteredCommunes.map(commune => (
-                                <button
-                                  key={commune.code}
-                                  type="button"
-                                  onClick={() => setSelectedCommune(commune.code)}
-                                  className={`h-10 px-3 text-sm text-left rounded-lg border transition-colors ${
-                                    selectedCommune === commune.code
-                                      ? 'bg-primary text-primary-foreground border-primary'
-                                      : 'bg-background hover:bg-muted border-border'
-                                  }`}
-                                >
-                                  {commune.name}
-                                </button>
-                              ))}
-                            </div>
-                          ) : (
-                            <div className="p-4 text-center text-muted-foreground bg-muted/30 rounded-lg">
-                              <p className="text-sm">Không có quận/huyện nào cho tỉnh này</p>
-                            </div>
-                          )}
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-48 overflow-y-auto">
+                          {filteredDistricts.map((district, index) => (
+                            <button
+                              key={index}
+                              type="button"
+                              onClick={() => setSelectedDistrict(district.name)}
+                              className={`h-10 px-3 text-sm text-left rounded-lg border transition-colors ${
+                                selectedDistrict === district.name
+                                  ? 'bg-primary text-primary-foreground border-primary'
+                                  : 'bg-background hover:bg-muted border-border'
+                              }`}
+                            >
+                              <div className="flex items-center gap-1">
+                                <span className="truncate">{district.name}</span>
+                                <Badge variant="outline" className="text-xs ml-auto">
+                                  {district.type}
+                                </Badge>
+                              </div>
+                            </button>
+                          ))}
                         </div>
-                      )}
+                      </div>
 
                       {/* Detailed Address Input */}
                       <div className="space-y-3">
@@ -922,18 +847,14 @@ export default function NewBookingPage() {
                       </div>
 
                       {/* Full Address Preview */}
-                      {(selectedProvince || selectedCommune || formData.location) && (
+                      {(selectedDistrict || formData.location) && (
                         <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                           <div className="flex items-start gap-2">
                             <MapPin className="h-4 w-4 text-blue-600 mt-0.5" />
                             <div className="flex-1">
                               <p className="text-sm font-medium text-blue-800">Địa chỉ đầy đủ:</p>
                               <p className="text-sm text-blue-700">
-                                {[
-                                  formData.location,
-                                  communes.find(c => c.code === selectedCommune)?.name,
-                                  provinces.find(p => p.code === selectedProvince)?.name,
-                                ]
+                                {[formData.location, selectedDistrict, wardData.city]
                                   .filter(Boolean)
                                   .join(', ') || 'Đang hoàn thiện thông tin địa chỉ...'}
                               </p>
@@ -998,7 +919,7 @@ export default function NewBookingPage() {
                     <div className="mt-4 p-4 rounded-lg bg-muted/30 border">
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-muted-foreground">Số tiền khảo sát</span>
-                        <span className="font-semibold">{formatCurrency(100000)}</span>
+                        <span className="font-semibold">{formatCurrency(30000)}</span>
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
                         Số tiền này dùng để xác nhận yêu cầu. Giá cuối cùng sẽ hiển thị sau khi khảo
@@ -1159,7 +1080,7 @@ export default function NewBookingPage() {
                         </div>
                         <div className="flex justify-between items-center text-sm">
                           <span className="text-muted-foreground">Tiền khảo sát</span>
-                          <span className="font-semibold">{formatCurrency(100000)}</span>
+                          <span className="font-semibold">{formatCurrency(30000)}</span>
                         </div>
                         <p className="text-xs text-muted-foreground">
                           *Giá cuối cùng sẽ được xác nhận sau khi khảo sát
@@ -1175,8 +1096,7 @@ export default function NewBookingPage() {
                         !formData.preferredDate ||
                         !selectedDate ||
                         !selectedTime ||
-                        !selectedProvince ||
-                        !selectedCommune ||
+                        !selectedDistrict ||
                         !formData.location?.trim()
                       }
                     >
@@ -1184,8 +1104,8 @@ export default function NewBookingPage() {
                         ? 'Vui lòng chọn giờ hợp lệ'
                         : !formData.preferredDate
                           ? 'Vui lòng chọn ngày và giờ'
-                          : !selectedProvince || !selectedCommune
-                            ? 'Vui lòng chọn tỉnh/thành và phường/xã'
+                          : !selectedDistrict
+                            ? 'Vui lòng chọn quận/huyện'
                             : !formData.location?.trim()
                               ? 'Vui lòng nhập địa chỉ chi tiết'
                               : 'Gửi yêu cầu'}
@@ -1240,7 +1160,7 @@ export default function NewBookingPage() {
               </div>
               <div className="text-right">
                 <p className="text-sm text-muted-foreground">Đặt cọc</p>
-                <p className="text-xl font-bold text-primary">{formatCurrency(100000)}</p>
+                <p className="text-xl font-bold text-primary">{formatCurrency(30000)}</p>
               </div>
             </div>
 
@@ -1347,7 +1267,7 @@ export default function NewBookingPage() {
                 <div className="text-sm text-muted-foreground">
                   <p className="font-medium mb-1">Lưu ý quan trọng:</p>
                   <ul className="space-y-1 text-xs">
-                    <li>• Tiền đặt cọc {formatCurrency(100000)} để xác nhận yêu cầu</li>
+                    <li>• Tiền đặt cọc {formatCurrency(30000)} để xác nhận yêu cầu</li>
                     <li>• Giá cuối cùng sẽ được thông báo sau khi khảo sát</li>
                     <li>• Nhân viên sẽ liên hệ trong vòng 24h</li>
                   </ul>

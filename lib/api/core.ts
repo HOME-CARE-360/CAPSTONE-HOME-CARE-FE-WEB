@@ -62,7 +62,7 @@ export class ApiService {
     config: ExtendedAxiosRequestConfig;
   }> = [];
 
-  constructor(baseURL: string, timeout = 10000) {
+  constructor(baseURL: string, timeout = 20000) {
     this.client = axios.create({
       baseURL,
       headers: {
@@ -354,7 +354,7 @@ export class ApiService {
 }
 
 // Create API service instance without onAuthError initially
-const apiService = new ApiService(process.env.NEXT_PUBLIC_API_URL_BACKEND || '', 10000);
+const apiService = new ApiService(process.env.NEXT_PUBLIC_API_URL_BACKEND || '', 20000);
 
 // Export a function to set the onAuthError callback later
 export const setAuthErrorHandler = (handler: () => Promise<boolean>) => {

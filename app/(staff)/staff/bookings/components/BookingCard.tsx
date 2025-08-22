@@ -94,6 +94,13 @@ interface UploadedImage {
   status: 'uploading' | 'success' | 'error';
 }
 
+interface ServiceItem {
+  id: number;
+  name: string;
+  unitPrice: number;
+  brand?: string;
+}
+
 export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }: BookingCardProps) {
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('details');
@@ -745,47 +752,50 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                   <TabsContent value="proposals" className="mt-6 space-y-6">
                     {/* Proposals Section */}
                     <div className="space-y-4">
-                      <div className="flex items-center gap-2">
-                        <Package className="h-5 w-5" />
-                        <h3 className="text-sm font-medium text-gray-900">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Package className="h-5 w-5 text-blue-500" />
+                        <h3 className="text-sm font-semibold text-gray-900">
                           Đề xuất dịch vụ bổ sung
                         </h3>
                       </div>
 
                       {isLoadingProposal ? (
-                        <div className="text-center py-8">
-                          <Loader2 className="h-6 w-6 animate-spin mx-auto" />
-                          <p className="text-sm text-gray-500 mt-2">Đang tải đề xuất...</p>
+                        <div className="flex flex-col items-center justify-center py-8">
+                          <Loader2 className="h-6 w-6 animate-spin text-blue-500 mb-2" />
+                          <p className="text-sm text-gray-500">Đang tải đề xuất...</p>
                         </div>
                       ) : proposalData?.data ? (
                         <div className="space-y-4">
-                          <div className="border rounded-lg p-4">
-                            <div className="flex items-start justify-between mb-3">
+                          <div className="border rounded-xl p-5 shadow-sm bg-white">
+                            <div className="flex items-center justify-between mb-3">
                               <div>
-                                <h4 className="font-medium text-gray-900">
+                                <h4 className="font-semibold text-gray-900">
                                   Đề xuất #{proposalData.data.id}
                                 </h4>
-                                <p className="text-sm text-gray-500">
+                                <p className="text-xs text-gray-500">
                                   {format(
                                     new Date(proposalData.data.createdAt),
                                     'dd/MM/yyyy HH:mm',
-                                    {
-                                      locale: vi,
-                                    }
+                                    { locale: vi }
                                   )}
                                 </p>
                               </div>
                               <Badge
                                 variant={
-                                  proposalData.data.status === 'ACCEPTED' ? 'default' : 'outline'
+                                  proposalData.data.status === 'ACCEPTED'
+                                    ? 'default'
+                                    : proposalData.data.status === 'PENDING'
+                                      ? 'outline'
+                                      : 'secondary'
                                 }
-                                className={`text-xs ${
+                                className={cn(
+                                  'text-xs px-3 py-1 rounded-full',
                                   proposalData.data.status === 'ACCEPTED'
                                     ? 'bg-green-100 text-green-700 border-green-200'
                                     : proposalData.data.status === 'PENDING'
-                                      ? 'bg-yellow-100 text-yellow-700 border-yellow-200'
+                                      ? 'bg-green-100 border-green-200'
                                       : 'bg-gray-100 text-gray-700 border-gray-200'
-                                }`}
+                                )}
                               >
                                 {proposalData.data.status === 'ACCEPTED'
                                   ? 'Đã chấp nhận'
@@ -797,55 +807,91 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
 
                             {proposalData.data.notes && (
                               <div className="mb-3">
-                                <p className="text-sm text-gray-600">{proposalData.data.notes}</p>
+                                <p className="text-sm text-gray-600 italic">
+                                  &quot;{proposalData.data.notes}&quot;
+                                </p>
                               </div>
                             )}
 
                             <div className="space-y-2">
-                              <h5 className="text-sm font-medium text-gray-700">
+                              <h5 className="text-sm font-medium text-gray-700 mb-1">
                                 Dịch vụ đề xuất:
                               </h5>
-                              {proposalData.data.items.map(service => (
-                                <div
-                                  key={service.id}
-                                  className="flex items-center justify-between p-2 bg-gray-50 rounded"
-                                >
-                                  <div className="flex-1">
-                                    <p className="font-medium text-sm">{service.service.name}</p>
+                              <div className="divide-y divide-gray-100">
+                                {proposalData.data.items.map(service => (
+                                  <div
+                                    key={service.id}
+                                    className="flex flex-col gap-1 py-3 first:pt-0 last:pb-0"
+                                  >
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex-1">
+                                        <span className="font-medium text-gray-900">
+                                          {service.service.name}
+                                        </span>
+                                        <span className="ml-2 text-xs text-gray-500">
+                                          x {service.quantity}
+                                        </span>
+                                      </div>
+                                      <div className="text-right">
+                                        <span className="text-sm font-semibold text-green-700">
+                                          {(service.service.virtualPrice > 0
+                                            ? service.service.virtualPrice
+                                            : service.service.basePrice
+                                          ).toLocaleString('vi-VN')}
+                                          đ/{service.service.durationMinutes} phút
+                                        </span>
+                                      </div>
+                                    </div>
+                                    {/* Show serviceItems if available */}
+                                    {service.service.serviceItems &&
+                                      service.service.serviceItems.length > 0 && (
+                                        <div className="ml-4 mt-1">
+                                          <div className="flex flex-col gap-1">
+                                            {(
+                                              service.service
+                                                .serviceItems as unknown as ServiceItem[]
+                                            ).map((item: ServiceItem) => (
+                                              <div
+                                                key={item.id}
+                                                className="flex items-center justify-between text-xs"
+                                              >
+                                                <span className="text-gray-600">{item.name}</span>
+                                                <span className="text-gray-500">
+                                                  {item.unitPrice.toLocaleString('vi-VN')}đ
+                                                  {item.brand ? ` (${item.brand})` : ''}
+                                                </span>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      )}
                                   </div>
-                                  <div className="text-right">
-                                    <p className="text-sm font-medium">
-                                      {service.service.virtualPrice.toLocaleString('vi-VN')}đ x{' '}
-                                      {service.quantity}
-                                    </p>
-                                    <p className="text-xs text-gray-500">
-                                      {service.service.durationMinutes} phút
-                                    </p>
-                                  </div>
-                                </div>
-                              ))}
-
-                              <div className="pt-2 border-t border-gray-200">
-                                <div className="flex justify-between items-center">
-                                  <span className="font-medium text-gray-900">Tổng cộng:</span>
-                                  <span className="font-bold text-green-500 text-lg">
-                                    {proposalData.data.items
-                                      .reduce(
-                                        (total, service) =>
-                                          total + service.service.virtualPrice * service.quantity,
-                                        0
-                                      )
-                                      .toLocaleString('vi-VN')}
-                                    đ
-                                  </span>
-                                </div>
+                                ))}
+                              </div>
+                              {/* Tổng tiền */}
+                              <div className="flex items-center justify-end mt-3">
+                                <span className="text-sm text-gray-600 mr-2">Tổng cộng:</span>
+                                <span className="text-lg font-bold text-green-700">
+                                  {proposalData.data.items
+                                    .reduce(
+                                      (total, service) =>
+                                        total +
+                                        (service.service.virtualPrice > 0
+                                          ? service.service.virtualPrice
+                                          : service.service.basePrice) *
+                                          service.quantity,
+                                      0
+                                    )
+                                    .toLocaleString('vi-VN')}
+                                  đ
+                                </span>
                               </div>
                             </div>
                           </div>
                         </div>
                       ) : (
-                        <div className="text-center py-8">
-                          <Package className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                        <div className="flex flex-col items-center justify-center py-8">
+                          <Package className="h-12 w-12 text-gray-300 mb-3" />
                           <h3 className="text-sm font-medium text-gray-500">Chưa có đề xuất nào</h3>
                           <p className="text-sm text-gray-400 mt-1">
                             Các đề xuất dịch vụ bổ sung sẽ hiển thị ở đây
@@ -855,7 +901,6 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                     </div>
                   </TabsContent>
 
-                  {/* Hidden Report Tab - Accessible via button */}
                   <TabsContent value="report" className="mt-6 space-y-6">
                     {/* Inspection Report Form */}
                     <form onSubmit={handleCreateReport} className="space-y-6">

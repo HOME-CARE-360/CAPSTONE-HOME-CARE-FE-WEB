@@ -26,9 +26,11 @@ export default function ServiceDetail() {
   const providerId: number | undefined =
     typeof service?.providerId === 'number' ? service?.providerId : undefined;
   const relatedCategoryId: number | undefined = useMemo(() => {
+    // Try to match by category name
     const categoryName = service?.Category?.name?.trim();
-    if (!categoryName) return undefined;
-    const list = categoriesData?.categories || [];
+    if (!categoryName || !categoriesData?.categories) return undefined;
+
+    const list = categoriesData.categories || [];
     const found = list.find(c => c.name.trim().toLowerCase() === categoryName.toLowerCase());
     return found?.id;
   }, [service?.Category?.name, categoriesData]);
@@ -92,6 +94,9 @@ export default function ServiceDetail() {
                 {formatCurrency(service.basePrice)}
               </span>
             )}
+            {(service.virtualPrice ?? 0) === 0 && (
+              <span className="text-lg text-green-600 font-medium">Miễn phí</span>
+            )}
           </div>
           <div className="flex items-center gap-2 mb-4">
             <Clock className="h-4 w-4" />
@@ -152,49 +157,57 @@ export default function ServiceDetail() {
       </div>
 
       {/* Related Services */}
-      {relatedCategoryId && (
-        <div className="mt-12">
-          <h2 className="text-xl font-semibold mb-4">Dịch vụ cùng danh mục</h2>
-          {isRelatedLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="overflow-hidden transition-all duration-300 flex flex-col">
-                  <div className="relative aspect-square size-full mb-2">
-                    <Skeleton className="absolute inset-0 rounded-2xl" />
+      <div className="mt-12">
+        <h2 className="text-xl font-semibold mb-4">
+          {service?.Category?.name
+            ? `Dịch vụ cùng danh mục: ${service.Category.name}`
+            : 'Dịch vụ khác'}
+        </h2>
+        {isRelatedLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="overflow-hidden transition-all duration-300 flex flex-col">
+                <div className="relative aspect-square size-full mb-2">
+                  <Skeleton className="absolute inset-0 rounded-2xl" />
+                </div>
+                <div className="px-1">
+                  <div className="flex justify-between items-center mb-2">
+                    <Skeleton className="h-6 w-20" />
+                    <div className="flex gap-2">
+                      <Skeleton className="h-8 w-8 rounded-full" />
+                      <Skeleton className="h-8 w-8 rounded-full" />
+                    </div>
                   </div>
-                  <div className="px-1">
-                    <div className="flex justify-between items-center mb-2">
-                      <Skeleton className="h-6 w-20" />
-                      <div className="flex gap-2">
-                        <Skeleton className="h-8 w-8 rounded-full" />
-                        <Skeleton className="h-8 w-8 rounded-full" />
-                      </div>
-                    </div>
-                    <div className="flex justify-between items-center mb-2">
-                      <Skeleton className="h-4 w-16" />
-                      <Skeleton className="h-4 w-20" />
-                    </div>
-                    <div className="mb-2">
-                      <Skeleton className="h-5 w-3/4" />
-                    </div>
-                    <div className="mb-2">
-                      <Skeleton className="h-4 w-32" />
-                    </div>
+                  <div className="flex justify-between items-center mb-2">
+                    <Skeleton className="h-4 w-16" />
+                    <Skeleton className="h-4 w-20" />
+                  </div>
+                  <div className="mb-2">
+                    <Skeleton className="h-5 w-3/4" />
+                  </div>
+                  <div className="mb-2">
+                    <Skeleton className="h-4 w-32" />
                   </div>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {((relatedData?.services as ServiceForCard[]) || []).map(
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {((relatedData?.services as ServiceForCard[]) || []).length > 0 ? (
+              ((relatedData?.services as ServiceForCard[]) || []).map(
                 (s: ServiceForCard, index: number) => (
                   <ServiceCard key={s.id} service={s} priority={index < 2} />
                 )
-              )}
-            </div>
-          )}
-        </div>
-      )}
+              )
+            ) : (
+              <div className="col-span-full text-center text-muted-foreground py-8">
+                Không có dịch vụ liên quan nào
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </section>
   );
 }
@@ -203,14 +216,21 @@ export default function ServiceDetail() {
 function useServiceRelated(categoryId: number | undefined, excludeServiceId: number | undefined) {
   const filters = useMemo(() => {
     const f: { categories?: number[]; page?: number; limit?: number } = {};
-    if (typeof categoryId === 'number') f.categories = [categoryId];
+    // If we have a categoryId, filter by category, otherwise get general services
+    if (typeof categoryId === 'number' && categoryId >= 0) {
+      f.categories = [categoryId];
+    }
     f.page = 1;
     f.limit = 6;
     return f;
   }, [categoryId]);
+
   const query = useServices(filters);
+
+  // Filter out the current service from results
   if (query.data?.services && typeof excludeServiceId === 'number') {
     query.data.services = query.data.services.filter(s => s.id !== excludeServiceId);
   }
+
   return query;
 }

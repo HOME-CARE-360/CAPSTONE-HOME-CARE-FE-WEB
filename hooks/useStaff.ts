@@ -63,9 +63,11 @@ export function useStaffCheckIn() {
       return response;
     },
     onSuccess: () => {
-      toast.success('Check-in thành công');
-      queryClient.invalidateQueries({ queryKey: ['staff-bookings'] });
-      queryClient.invalidateQueries({ queryKey: ['bookings'] });
+      setTimeout(() => {
+        toast.success('Check-in thành công');
+        queryClient.invalidateQueries({ queryKey: ['staff-bookings'] });
+        queryClient.invalidateQueries({ queryKey: ['bookings'] });
+      }, 5000);
     },
     onError: (error: unknown) => {
       let errorMessage = 'Có lỗi xảy ra khi check-in';

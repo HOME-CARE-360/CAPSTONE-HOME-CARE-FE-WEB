@@ -837,11 +837,15 @@ export default function ProfilePage() {
                 <Input
                   inputMode="numeric"
                   placeholder="Nhập số tiền"
-                  value={withdrawAmount}
-                  onChange={e => setWithdrawAmount(e.target.value.replace(/[^0-9]/g, ''))}
+                  value={withdrawAmount.replace(/\B(?=(\d{3})+(?!\d))/g, '.')}
+                  onChange={e => {
+                    // Remove all non-digit characters
+                    const raw = e.target.value.replace(/\D/g, '');
+                    setWithdrawAmount(raw);
+                  }}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Số tiền không được vượt quá số dư khả dụng.
+                  Số tiền không được vượt quá số dư khả dụng. (Tối thiểu 100.000đ)
                 </p>
               </div>
             </div>
@@ -859,12 +863,12 @@ export default function ProfilePage() {
                 !userData.wallet ||
                 isCreatingWithdraw ||
                 !withdrawAmount ||
-                Number(withdrawAmount) <= 0 ||
+                Number(withdrawAmount) < 100000 ||
                 Number(withdrawAmount) > (userData.wallet?.balance ?? 0)
               }
               onClick={() => {
                 const amount = Number(withdrawAmount);
-                if (!Number.isFinite(amount) || amount <= 0) return;
+                if (!Number.isFinite(amount) || amount < 100000) return;
                 createWithdraw(
                   { amount },
                   {

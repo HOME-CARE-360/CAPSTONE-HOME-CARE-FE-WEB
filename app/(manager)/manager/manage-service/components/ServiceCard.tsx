@@ -31,10 +31,13 @@ export function ServiceCard({ service }: ServiceCardProps) {
   const { mutate: changeStatus, isPending } = useChangeService();
 
   const images = service.images && service.images.length > 0 ? service.images : [];
-  const isDiscounted = service.virtualPrice > service.basePrice;
-  const discountPercent = isDiscounted
-    ? Math.round(((service.virtualPrice - service.basePrice) / service.virtualPrice) * 100)
-    : 0;
+
+  // Updated price logic based on your requirements
+  const isDiscounted = service.virtualPrice > 0 && service.virtualPrice < service.basePrice;
+
+  // Determine which price to display
+  const displayPrice = service.virtualPrice > 0 ? service.virtualPrice : service.basePrice;
+  const showOriginalPrice = isDiscounted; // Only show crossed out price when there's a discount
 
   const statusBadge = (status: ServiceStatus) => {
     switch (status) {
@@ -97,11 +100,11 @@ export function ServiceCard({ service }: ServiceCardProps) {
           {service.Category?.name && (
             <Badge className="bg-green-500 backdrop-blur-sm z-10">{service.Category.name}</Badge>
           )}
-          {isDiscounted && (
+          {/* {isDiscounted && (
             <Badge className="bg-red-500 text-white border-red-500 backdrop-blur-sm z-10">
               -{discountPercent}%
             </Badge>
-          )}
+          )} */}
         </div>
         <div className="absolute top-4 right-4">{statusBadge(service.status)}</div>
 
@@ -135,15 +138,16 @@ export function ServiceCard({ service }: ServiceCardProps) {
 
       <div className="px-1">
         <div className="flex justify-between items-center">
-          <p className="text-xl font-semibold">
-            {formatCurrency(service.basePrice)}
-            {isDiscounted && (
-              <span className="text-sm text-gray-400 line-through ml-2">
-                {formatCurrency(service.virtualPrice)}
+          <div className="flex items-center gap-2">
+            <p className="text-xl font-semibold">{formatCurrency(displayPrice)}</p>
+            {showOriginalPrice && (
+              <span className="text-sm text-gray-400 line-through">
+                {formatCurrency(service.basePrice)}
               </span>
             )}
-          </p>
+          </div>
         </div>
+
         <div className="flex justify-between items-center mb-2 text-foreground text-sm">
           <div className="flex items-center">
             <Clock className="h-4 w-4 mr-1" />
@@ -151,8 +155,12 @@ export function ServiceCard({ service }: ServiceCardProps) {
           </div>
           <div className="text-sm text-muted-foreground">{service.Category?.name || 'Dịch vụ'}</div>
         </div>
+
         <div className="mb-2">
-          <h3 className="text-base font-medium line-clamp-2">{service.name}</h3>
+          <h3 className="text-sm font-medium line-clamp-2">{service.name}</h3>
+        </div>
+        <div className="mb-2">
+          <h3 className="text-base font-bold line-clamp-2">{service.provider}</h3>
         </div>
 
         {service.status === 'PENDING' && (

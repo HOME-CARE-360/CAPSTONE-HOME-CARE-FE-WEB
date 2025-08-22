@@ -138,10 +138,19 @@ export interface ReportSearchParams {
 }
 
 // Withdraws
-export interface WithdrawItemUser {
-  id?: number;
-  name?: string | null;
-  email?: string | null;
+export interface WithdrawItemUserWallet {
+  bankName: string | null;
+  bankAccount: string | null;
+  balance: number;
+  accountHolder: string | null;
+}
+
+export interface WithdrawItemUserDetail {
+  name: string | null;
+  phone: string | null;
+  email: string | null;
+  avatar: string | null;
+  Wallet: WithdrawItemUserWallet | null;
 }
 
 export interface WithdrawItem {
@@ -150,10 +159,11 @@ export interface WithdrawItem {
   status: string;
   createdAt: string;
   processedAt: string | null;
-  processedById: number | null;
+  processedById?: number | null;
   note: string | null;
-  userId: number;
-  User: WithdrawItemUser | null;
+  userId?: number;
+  User?: WithdrawItemUserDetail | null;
+  User_WithdrawalRequest_userIdToUser?: WithdrawItemUserDetail | null;
 }
 
 export interface WithdrawListResponse {
@@ -174,7 +184,7 @@ export interface WithdrawSearchParams {
 
 export interface UpdateWithdrawRequest {
   id: number;
-  status: 'APPROVED' | 'REJECTED' | 'PENDING';
+  status: 'APPROVED' | 'CANCELLED' | 'COMPLETED' | 'PENDING' | 'REJECTED';
   note?: string | null;
 }
 

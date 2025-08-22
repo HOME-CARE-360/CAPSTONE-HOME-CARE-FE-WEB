@@ -7,7 +7,7 @@ import {
   useUpdateUserProposal,
   useCancelServiceRequest,
 } from '@/hooks/useUser';
-import { CustomerBooking } from '@/lib/api/services/fetchUser';
+import { CustomerBooking, ServiceItem } from '@/lib/api/services/fetchUser';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -84,7 +84,7 @@ const getServiceRequestStatusVi = (status: string) => {
     // CONFIRMED: 'Đã xác nhận',
     // ACCEPTED: 'Đã chấp nhận',
     // REJECTED: 'Từ chối',
-    // IN_PROGRESS: 'Đang thực hiện',
+    IN_PROGRESS: 'Đang thực hiện',
     // COMPLETED: 'Hoàn thành',
     CANCELLED: 'Đã hủy',
   };
@@ -178,7 +178,9 @@ const ProposalSection = ({
   const lastProposalItem = sortedItems.length > 0 ? sortedItems[sortedItems.length - 1] : undefined;
 
   const totalAmount = lastProposalItem
-    ? (lastProposalItem.Service?.virtualPrice ?? 0) * normalizeQuantity(lastProposalItem.quantity)
+    ? (lastProposalItem.Service?.virtualPrice && lastProposalItem.Service.virtualPrice > 0
+        ? lastProposalItem.Service.virtualPrice
+        : (lastProposalItem.Service?.basePrice ?? 0)) * normalizeQuantity(lastProposalItem.quantity)
     : 0;
 
   const computedPaidStatus = (paymentTransactionStatus || transactionStatus || '').toUpperCase();
@@ -222,7 +224,6 @@ const ProposalSection = ({
         </div>
 
         {proposal.notes && <p className="mt-2 text-sm text-muted-foreground">{proposal.notes}</p>}
-
         {sortedItems && sortedItems.length > 0 ? (
           <div className="mt-3 space-y-3">
             {sortedItems.map((item, index) => (
@@ -237,10 +238,64 @@ const ProposalSection = ({
                   </div>
                   <div className="whitespace-nowrap font-medium">
                     {formatCurrency(
-                      (item.Service?.virtualPrice ?? 0) * normalizeQuantity(item.quantity)
+                      (item.Service?.virtualPrice && item.Service.virtualPrice > 0
+                        ? item.Service.virtualPrice
+                        : (item.Service?.basePrice ?? 0)) * normalizeQuantity(item.quantity)
                     )}
                   </div>
                 </div>
+
+                {/* Service Items Details */}
+                {Array.isArray(item.Service?.serviceItems) &&
+                  item.Service.serviceItems.length > 0 && (
+                    <div className="mt-2 grid gap-2">
+                      {(item.Service.serviceItems as ServiceItem[]).map(serviceItem => (
+                        <div
+                          key={serviceItem.serviceItem.id}
+                          className="flex flex-col sm:flex-row items-end sm:items-end gap-3 border rounded-lg p-3 bg-muted/20"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="font-semibold text-sm truncate">
+                                {serviceItem.serviceItem.name}
+                              </span>
+                              {serviceItem.serviceItem.brand && (
+                                <span className="ml-1 py-0.5 rounded bg-muted text-muted-foreground text-xs">
+                                  {serviceItem.serviceItem.brand}
+                                </span>
+                              )}
+                            </div>
+                            {serviceItem.serviceItem.model && (
+                              <div className="text-xs text-muted-foreground mt-0.5">
+                                Model:{' '}
+                                <span className="font-medium text-foreground">
+                                  {serviceItem.serviceItem.model}
+                                </span>
+                              </div>
+                            )}
+                            {serviceItem.serviceItem.description && (
+                              <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                                {serviceItem.serviceItem.description}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex flex-col gap-1 text-xs min-w-[120px]">
+                            <div>
+                              <span className="text-muted-foreground">Đơn giá: </span>
+                              <span className="font-medium">
+                                {formatCurrency(serviceItem.serviceItem.unitPrice)}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Bảo hành: </span>
+                              <span>{serviceItem.serviceItem.warrantyPeriod} tháng</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                 <div className="mt-1 text-xs text-muted-foreground flex items-center gap-1">
                   <ClockIcon className="h-3 w-3" />
                   <span>
@@ -429,7 +484,36 @@ const ProposalSection = ({
           <DialogHeader>
             <DialogTitle>Lỗi thanh toán</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-muted-foreground">{paymentErrorMsg}</p>
+          <p className="text-sm text-muted-foreground">
+            {(() => {
+              if (typeof paymentErrorMsg === 'string') {
+                return paymentErrorMsg;
+              }
+              if (
+                paymentErrorMsg &&
+                typeof paymentErrorMsg === 'object' &&
+                'message' in paymentErrorMsg
+              ) {
+                const msg = (paymentErrorMsg as { message?: string }).message;
+                if (Array.isArray(msg)) {
+                  return msg.map((m: unknown, i: number) =>
+                    typeof m === 'object' && m && 'message' in m ? (
+                      <span key={i}>{(m as { message: string }).message}</span>
+                    ) : (
+                      <span key={i}>{String(m)}</span>
+                    )
+                  );
+                }
+                if (typeof msg === 'string') {
+                  return msg;
+                }
+                if (typeof msg === 'object') {
+                  return JSON.stringify(msg);
+                }
+              }
+              return JSON.stringify(paymentErrorMsg);
+            })()}
+          </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsPaymentErrorOpen(false)}>
               Đóng

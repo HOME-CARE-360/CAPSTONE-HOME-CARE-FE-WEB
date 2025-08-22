@@ -44,34 +44,49 @@ import Image from 'next/image';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuthStore } from '@/lib/store/authStore';
 
-const serviceFormSchema = z.object({
-  name: z
-    .string()
-    .min(1, 'Tên dịch vụ là bắt buộc')
-    .max(100, 'Tên dịch vụ không được quá 100 ký tự')
-    .refine(val => val.trim().length > 0, 'Tên dịch vụ không được chỉ chứa khoảng trắng'),
-  description: z
-    .string()
-    .min(10, 'Mô tả dịch vụ phải có ít nhất 10 ký tự')
-    .max(500, 'Mô tả dịch vụ không được quá 500 ký tự')
-    .refine(val => val.trim().length >= 10, 'Mô tả dịch vụ không được chỉ chứa khoảng trắng'),
-  basePrice: z
-    .number()
-    .min(100000, 'Giá cơ bản không được dưới 100k')
-    .max(10000000, 'Giá cơ bản không được quá 10 triệu'),
-  virtualPrice: z
-    .number()
-    .min(100000, 'Giá ảo không được dưới 100k')
-    .max(10000000, 'Giá ảo không được quá 10 triệu'),
-  durationMinutes: z
-    .number()
-    .min(5, 'Thời gian phải ít nhất 5 phút')
-    .max(480, 'Thời gian không được quá 8 giờ (480 phút)'),
-  categoryId: z.number().min(1, 'Vui lòng chọn loại dịch vụ'),
-  serviceItemsId: z.array(z.number()).optional(),
-});
+const serviceFormSchema = z
+  .object({
+    name: z
+      .string()
+      .min(1, 'Tên dịch vụ là bắt buộc')
+      .max(100, 'Tên dịch vụ không được quá 100 ký tự')
+      .refine(val => val.trim().length > 0, 'Tên dịch vụ không được chỉ chứa khoảng trắng'),
+    description: z
+      .string()
+      .min(10, 'Mô tả dịch vụ phải có ít nhất 10 ký tự')
+      .max(500, 'Mô tả dịch vụ không được quá 500 ký tự')
+      .refine(val => val.trim().length >= 10, 'Mô tả dịch vụ không được chỉ chứa khoảng trắng'),
+    basePrice: z
+      .number({
+        required_error: 'Giá cơ bản là bắt buộc',
+        invalid_type_error: 'Giá cơ bản phải là số',
+      })
+      .min(50000, 'Giá cơ bản không được dưới 50.000k')
+      .max(10000000, 'Giá cơ bản không được quá 10.000.000k')
+      .int('Giá cơ bản phải là số nguyên'),
+    virtualPrice: z
+      .number({
+        required_error: 'Giá giảm giá là bắt buộc',
+        invalid_type_error: 'Giá giảm giá phải là số',
+      })
+      .min(50000, 'Giá giảm giá không được dưới 50.000k')
+      .max(10000000, 'Giá giảm giá không được quá 10.000.000k')
+      .int('Giá giảm giá phải là số nguyên'),
+    durationMinutes: z
+      .number()
+      .min(60, 'Thời gian phải ít nhất 60 phút')
+      .max(480, 'Thời gian không được quá 8 giờ (480 phút)'),
+    categoryId: z.number().min(1, 'Vui lòng chọn loại dịch vụ'),
+    serviceItemsId: z.array(z.number()).optional(),
+  })
+  .refine(data => data.virtualPrice <= data.basePrice, {
+    message: 'Giá giảm giá không được lớn hơn giá cơ bản',
+    path: ['virtualPrice'],
+  });
 
-type ServiceFormData = z.infer<typeof serviceFormSchema>;
+type ServiceFormData = z.infer<typeof serviceFormSchema> & {
+  hasDiscount?: boolean;
+};
 
 interface UploadedImage {
   id: string;
@@ -122,7 +137,7 @@ export function SheetService({ service, trigger, open, onOpenChange }: SheetServ
     defaultValues: {
       name: '',
       description: '',
-      basePrice: 0,
+      basePrice: 100000,
       virtualPrice: 0,
       durationMinutes: 30,
       categoryId: 0,
@@ -178,7 +193,7 @@ export function SheetService({ service, trigger, open, onOpenChange }: SheetServ
       form.reset({
         name: '',
         description: '',
-        basePrice: 0,
+        basePrice: 100000,
         virtualPrice: 0,
         durationMinutes: 30,
         categoryId: 0,
@@ -258,11 +273,20 @@ export function SheetService({ service, trigger, open, onOpenChange }: SheetServ
     }
     setIsLoading(true);
     try {
-      // Ensure basePrice and virtualPrice are not below 100,000
-      if (data.basePrice < 100000 || data.virtualPrice < 100000) {
-        toast.error('Giá không được dưới 100k');
+      // Ensure basePrice and virtualPrice are not below 50, and virtualPrice <= basePrice
+      if (data.basePrice < 50) {
+        toast.error('Giá cơ bản không được dưới 50 VNĐ');
         return;
       }
+      if (data.virtualPrice < 50) {
+        toast.error('Giá giảm giá không được dưới 50 VNĐ');
+        return;
+      }
+      if (data.virtualPrice > data.basePrice) {
+        toast.error('Giá giảm giá không được lớn hơn giá cơ bản');
+        return;
+      }
+
       // Get all successfully uploaded image URLs
       const imageUrls = uploadedImages
         .filter(img => img.status === 'success')
@@ -308,7 +332,9 @@ export function SheetService({ service, trigger, open, onOpenChange }: SheetServ
   const { isAuthenticated } = useAuthStore();
   const canSubmit = isAuthenticated && form.formState.isValid && !isSubmitting;
   const isPriceValid =
-    (form.watch('basePrice') ?? 0) >= 100000 && (form.watch('virtualPrice') ?? 0) >= 100000;
+    (form.watch('basePrice') ?? 0) >= 50 &&
+    (form.watch('virtualPrice') ?? 0) >= 50 &&
+    (form.watch('virtualPrice') ?? 0) <= (form.watch('basePrice') ?? 0);
 
   const formatCurrencyVi = (value: number): string => {
     if (typeof value !== 'number' || Number.isNaN(value)) return '';
@@ -318,7 +344,7 @@ export function SheetService({ service, trigger, open, onOpenChange }: SheetServ
   const parseCurrencyToNumber = (input: string): number => {
     const digitsOnly = input.replace(/[\D]/g, '');
     const parsedValue = digitsOnly ? Number(digitsOnly) : 0;
-    return parsedValue < 100000 ? 100000 : parsedValue;
+    return parsedValue;
   };
 
   // Helper function to calculate total cost of selected service items
@@ -593,7 +619,7 @@ export function SheetService({ service, trigger, open, onOpenChange }: SheetServ
 
               {/* Price Fields */}
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
+                <div className="space-y-2 col-span-2">
                   <Label htmlFor="basePrice">Giá cơ bản (VNĐ) *</Label>
                   <Controller
                     name="basePrice"
@@ -602,15 +628,28 @@ export function SheetService({ service, trigger, open, onOpenChange }: SheetServ
                       <Input
                         id="basePrice"
                         inputMode="numeric"
-                        placeholder="0"
+                        placeholder="50"
                         value={field.value ? formatCurrencyVi(field.value) : ''}
-                        onChange={e => field.onChange(parseCurrencyToNumber(e.target.value))}
-                        onBlur={() =>
-                          field.onChange(
-                            !field.value || field.value < 100000 ? 100000 : field.value
-                          )
-                        }
+                        onChange={e => {
+                          const newValue = parseCurrencyToNumber(e.target.value);
+                          field.onChange(newValue);
+                          // If not discounting, keep virtualPrice in sync
+                          if (!form.watch('hasDiscount')) {
+                            form.setValue('virtualPrice', newValue);
+                          }
+                        }}
+                        onBlur={() => {
+                          const currentValue = field.value;
+                          if (!currentValue || currentValue < 50) {
+                            field.onChange(50);
+                            if (!form.watch('hasDiscount')) {
+                              form.setValue('virtualPrice', 50);
+                            }
+                          }
+                          form.trigger(['basePrice', 'virtualPrice']);
+                        }}
                         disabled={isSubmitting}
+                        className={form.formState.errors.basePrice ? 'border-red-500' : ''}
                       />
                     )}
                   />
@@ -621,33 +660,78 @@ export function SheetService({ service, trigger, open, onOpenChange }: SheetServ
                   )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="virtualPrice">Giá ảo (VNĐ) *</Label>
+                <div className="col-span-2 flex items-center gap-2">
                   <Controller
-                    name="virtualPrice"
+                    name="hasDiscount"
                     control={form.control}
+                    defaultValue={false}
                     render={({ field }) => (
-                      <Input
-                        id="virtualPrice"
-                        inputMode="numeric"
-                        placeholder="0"
-                        value={field.value ? formatCurrencyVi(field.value) : ''}
-                        onChange={e => field.onChange(parseCurrencyToNumber(e.target.value))}
-                        onBlur={() =>
-                          field.onChange(
-                            !field.value || field.value < 100000 ? 100000 : field.value
-                          )
-                        }
-                        disabled={isSubmitting}
-                      />
+                      <>
+                        <Input
+                          id="hasDiscount"
+                          type="checkbox"
+                          checked={field.value || false}
+                          onChange={e => {
+                            field.onChange(e.target.checked);
+                            if (!e.target.checked) {
+                              form.setValue('virtualPrice', form.getValues('basePrice'));
+                            }
+                          }}
+                          disabled={isSubmitting}
+                          className="peer w-4 h-4 accent-green-500 border-gray-300 rounded focus:ring-2 focus:ring-green-400"
+                        />
+                        <Label
+                          htmlFor="hasDiscount"
+                          className="cursor-pointer select-none peer-checked:text-green-700"
+                        >
+                          Áp dụng giảm giá?
+                        </Label>
+                      </>
                     )}
                   />
-                  {form.formState.errors.virtualPrice && (
-                    <p className="text-sm text-red-600">
-                      {form.formState.errors.virtualPrice.message}
-                    </p>
-                  )}
                 </div>
+
+                {form.watch('hasDiscount') && (
+                  <div className="space-y-2 col-span-2">
+                    <Label htmlFor="virtualPrice">Giá giảm giá (VNĐ) *</Label>
+                    <Controller
+                      name="virtualPrice"
+                      control={form.control}
+                      render={({ field }) => (
+                        <Input
+                          id="virtualPrice"
+                          inputMode="numeric"
+                          placeholder="50"
+                          value={field.value ? formatCurrencyVi(field.value) : ''}
+                          onChange={e => {
+                            const newValue = parseCurrencyToNumber(e.target.value);
+                            field.onChange(newValue);
+                          }}
+                          onBlur={() => {
+                            const currentValue = field.value;
+                            const basePrice = form.getValues('basePrice');
+                            // Ensure minimum value is 50
+                            if (!currentValue || currentValue < 50) {
+                              field.onChange(50);
+                            }
+                            // Ensure virtual price doesn't exceed base price
+                            else if (currentValue > basePrice) {
+                              field.onChange(basePrice);
+                            }
+                            form.trigger(['basePrice', 'virtualPrice']);
+                          }}
+                          disabled={isSubmitting}
+                          className={form.formState.errors.virtualPrice ? 'border-red-500' : ''}
+                        />
+                      )}
+                    />
+                    {form.formState.errors.virtualPrice && (
+                      <p className="text-sm text-red-600">
+                        {form.formState.errors.virtualPrice.message}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Duration */}
@@ -771,7 +855,7 @@ export function SheetService({ service, trigger, open, onOpenChange }: SheetServ
                     : !form.formState.isValid
                       ? 'Vui lòng điền đầy đủ thông tin hợp lệ'
                       : !isPriceValid
-                        ? 'Giá không được dưới 100k'
+                        ? 'Giá cơ bản và giá giảm giá >= 50 VNĐ, giá giảm giá <= giá cơ bản'
                         : undefined
                 }
               >

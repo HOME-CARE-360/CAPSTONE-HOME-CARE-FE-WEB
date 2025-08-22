@@ -205,8 +205,10 @@ export function ServiceCard({
         <div className="flex justify-between items-center">
           <div>
             <p className={cn('text-xl font-semibold', size === 'sm' && 'text-base')}>
-              {formatCurrency(service.virtualPrice)}
-              {isDiscounted && (
+              {service.virtualPrice === 0
+                ? formatCurrency(service.basePrice)
+                : formatCurrency(service.virtualPrice)}
+              {isDiscounted && service.virtualPrice > 0 && (
                 <span className="text-sm text-gray-400 line-through ml-2">
                   {formatCurrency(service.basePrice)}
                 </span>

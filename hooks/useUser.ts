@@ -272,9 +272,31 @@ export const useCancelServiceRequest = () => {
     onSuccess: data => {
       toast.success(data.message || 'Đã hủy yêu cầu dịch vụ');
     },
-    onError: (error: Error | ValidationError) => {
+    onError: (error: unknown) => {
       let errorMessage = 'An unexpected error occurred';
-      if (typeof error === 'object' && error !== null && 'message' in error) {
+
+      // Handle error shape from backend
+      if (typeof error === 'object' && error !== null && 'message' in error && 'error' in error) {
+        // error from backend
+        const err = error as {
+          statusCode?: number;
+          error?: string;
+          message?: { message?: string; path?: string[] } | string;
+          details?: Record<string, unknown>;
+        };
+
+        if (typeof err.message === 'object' && err.message && 'message' in err.message) {
+          // Nested message object
+          errorMessage =
+            (err.message as { message?: string }).message ||
+            (typeof err.error === 'string' ? err.error : errorMessage);
+        } else if (typeof err.message === 'string') {
+          errorMessage = err.message;
+        } else if (typeof err.error === 'string') {
+          errorMessage = err.error;
+        }
+      } else if (typeof error === 'object' && error !== null && 'message' in error) {
+        // fallback for ValidationError or Error
         const errorObj = error as { message: string | ValidationError[] };
         if (Array.isArray(errorObj.message)) {
           errorMessage = errorObj.message[0]?.message || errorMessage;
@@ -282,6 +304,7 @@ export const useCancelServiceRequest = () => {
           errorMessage = errorObj.message;
         }
       }
+
       toast.error(errorMessage);
     },
   });

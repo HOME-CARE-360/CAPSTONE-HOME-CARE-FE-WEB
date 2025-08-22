@@ -240,7 +240,11 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
   };
 
   const totalAmount = selectedServices.reduce((total, s) => {
-    return total + (s.service?.virtualPrice || 0) * s.quantity;
+    const price =
+      s.service && s.service.virtualPrice && s.service.virtualPrice !== 0
+        ? s.service.virtualPrice
+        : s.service?.basePrice || 0;
+    return total + price * s.quantity;
   }, 0);
 
   const isProposalFormValid = selectedServices.length > 0;
@@ -480,9 +484,9 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                     <TabsContent value="details" className="mt-6 space-y-6">
                       {/* Priority Alert for Pending Bookings */}
                       {needsStaffAssignment && (
-                        <Alert className="border-yellow-200 bg-yellow-50">
-                          <AlertTriangle className="h-4 w-4 text-yellow-600" />
-                          <AlertDescription className="text-yellow-800">
+                        <Alert className="border-green-200 bg-green-50">
+                          <AlertTriangle className="h-4 w-4 text-green-600" />
+                          <AlertDescription>
                             <strong>Ưu tiên cao:</strong> Đặt lịch này cần được phân công nhân viên
                             ngay để xử lý.
                           </AlertDescription>
@@ -613,7 +617,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                             className={cn(
                               'space-y-3',
                               needsStaffAssignment &&
-                                'p-4 bg-yellow-50 border border-yellow-200 rounded-lg'
+                                'p-4 bg-green-50 border border-green-200 rounded-lg'
                             )}
                           >
                             <div className="flex items-center gap-2">
@@ -649,7 +653,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                               ) : (
                                 <>
                                   <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                                    <p className="text-sm text-blue-800">
+                                    <p className="text-sm">
                                       <strong>Hướng dẫn:</strong> Chọn nhân viên phù hợp để xử lý
                                       đặt lịch này.
                                       {needsStaffAssignment &&
@@ -664,7 +668,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                                     <SelectTrigger
                                       className={cn(
                                         needsStaffAssignment &&
-                                          'border-yellow-400 focus:border-yellow-500'
+                                          'border-green-400 focus:border-green-500'
                                       )}
                                     >
                                       <SelectValue placeholder="Chọn nhân viên" />
@@ -701,7 +705,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                                     className={cn(
                                       'w-full',
                                       needsStaffAssignment &&
-                                        'bg-yellow-600 hover:bg-yellow-700 text-white'
+                                        'bg-green-500 hover:bg-green-600 text-white'
                                     )}
                                     disabled={!selectedStaffId || isAssigning}
                                   >
@@ -728,36 +732,48 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                         {/* Show assigned staff information if staff exists */}
                         {hasStaffAssigned && detailBooking?.booking?.staff && (
                           <div className="space-y-3">
-                            <h4 className="text-sm font-medium text-gray-700">
+                            <h4 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
+                              <Users className="h-4 w-4 text-blue-500" />
                               Nhân viên được phân công
                             </h4>
-                            <div className="p-3 border rounded-lg">
-                              <div className="flex items-center gap-3">
-                                <Avatar className="h-8 w-8">
-                                  <AvatarImage
-                                    src={detailBooking.booking.staff.user.avatar || undefined}
-                                  />
-                                  <AvatarFallback className="text-xs">
-                                    {detailBooking.booking.staff.user.name
-                                      .split(' ')
-                                      .map(n => n.charAt(0))
-                                      .join('')
-                                      .substring(0, 2)
-                                      .toUpperCase()}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div>
-                                  <p className="font-medium">
-                                    {detailBooking.booking.staff.user.name}
-                                  </p>
-                                  <p className="text-sm">
-                                    {detailBooking.booking.staff.user.email}
-                                  </p>
-                                  <p className="text-sm">
-                                    {detailBooking.booking.staff.user.phone}
-                                  </p>
+                            <div className="p-4 border rounded-lg bg-green-50 border-green-200 flex items-center gap-4">
+                              <Avatar className="h-12 w-12 border-2 border-green-200 shadow-sm">
+                                <AvatarImage
+                                  src={detailBooking.booking.staff.user.avatar || undefined}
+                                />
+                                <AvatarFallback className="text-base font-bold bg-green-100">
+                                  {detailBooking.booking.staff.user.name
+                                    .split(' ')
+                                    .map(n => n.charAt(0))
+                                    .join('')
+                                    .substring(0, 2)
+                                    .toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-semibold text-gray-900 truncate">
+                                  {detailBooking.booking.staff.user.name}
+                                </p>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <Mail className="h-4 w-4 text-gray-400" />
+                                  <span className="text-sm text-gray-700 truncate">
+                                    {detailBooking.booking.staff.user.email || '--'}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <Phone className="h-4 w-4 text-gray-400" />
+                                  <span className="text-sm text-gray-700 truncate">
+                                    {detailBooking.booking.staff.user.phone || '--'}
+                                  </span>
                                 </div>
                               </div>
+                              {/* Optional: Add a badge or status */}
+                              <Badge
+                                variant="outline"
+                                className="text-xs border-green-400 text-green-700 bg-white"
+                              >
+                                Đã phân công
+                              </Badge>
                             </div>
                           </div>
                         )}
@@ -820,23 +836,44 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                         )}
 
                         {/* Show existing proposals if any */}
-                        {detailBooking?.booking?.Proposal && (
+                        {detailBooking?.booking?.Proposal && proposalDisplayItems.length > 0 && (
                           <div className="space-y-3">
-                            <h4 className="text-sm font-medium text-gray-700">
-                              Dịch vụ được thêm vào
+                            <h4 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
+                              <FileText className="h-4 w-4 text-blue-500" />
+                              Dịch vụ đã đề xuất
+                              {detailBooking.booking.Proposal.status === 'REJECTED' && (
+                                <Badge variant="destructive" className="ml-2">
+                                  Đã bị từ chối
+                                </Badge>
+                              )}
+                              {detailBooking.booking.Proposal.status === 'PENDING' && (
+                                <Badge variant="secondary" className="ml-2">
+                                  Đang chờ duyệt
+                                </Badge>
+                              )}
+                              {detailBooking.booking.Proposal.status === 'APPROVED' && (
+                                <Badge variant="default" className="ml-2">
+                                  Đã duyệt
+                                </Badge>
+                              )}
                             </h4>
-                            <div className="p-3 border rounded-lg">
-                              <div className="grid gap-3 sm:grid-cols-2">
+                            <div className="rounded-lg border border-green-100 bg-green-50 p-4">
+                              <div className="grid gap-4 sm:grid-cols-2">
                                 {proposalDisplayItems.map(({ item, totalQuantity }, idx) => {
                                   const firstImage = Array.isArray(item.Service?.images)
                                     ? item.Service?.images[0]
                                     : undefined;
+                                  const price =
+                                    typeof item.Service?.virtualPrice === 'number' &&
+                                    item.Service.virtualPrice !== 0
+                                      ? item.Service.virtualPrice
+                                      : item.Service?.basePrice || 0;
                                   return (
                                     <div
                                       key={item.id ?? idx}
-                                      className="flex gap-3 p-3 border rounded-lg"
+                                      className="flex gap-3 rounded-lg bg-white border border-gray-100 shadow-sm hover:shadow transition p-3"
                                     >
-                                      <div className="relative w-20 h-20 rounded-md overflow-hidden bg-gray-100">
+                                      <div className="relative w-16 h-16 rounded-md overflow-hidden bg-green-100 flex-shrink-0">
                                         {firstImage ? (
                                           <Image
                                             src={firstImage}
@@ -845,24 +882,43 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                                             className="object-cover"
                                           />
                                         ) : (
-                                          <div className="w-full h-full bg-gray-200" />
+                                          <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400 text-xs">
+                                            Không ảnh
+                                          </div>
                                         )}
                                       </div>
-                                      <div className="flex-1">
-                                        <p className="font-medium">{item.Service?.name ?? ''}</p>
-                                        <p className="text-sm text-gray-600">
-                                          {typeof item.Service?.virtualPrice === 'number'
-                                            ? `Giá cơ bản: ${item.Service.virtualPrice.toLocaleString('vi-VN')}đ`
-                                            : 'Không có thông tin giá'}
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2">
+                                          <p className="font-medium truncate">
+                                            {item.Service?.name ?? ''}
+                                          </p>
+                                          <Badge variant="secondary" className="text-xs">
+                                            x{totalQuantity}
+                                          </Badge>
+                                        </div>
+                                        <p className="text-xs text-gray-500 truncate">
+                                          {item.Service?.description || 'Không có mô tả'}
                                         </p>
-                                        <p className="text-xs text-gray-500">
-                                          Số lượng: {totalQuantity}
-                                        </p>
+                                        <div className="flex items-center gap-2 mt-1">
+                                          <span className="text-sm font-semibold text-blue-700">
+                                            {price.toLocaleString('vi-VN')}đ
+                                          </span>
+                                          <span className="text-xs text-gray-400">
+                                            {item.Service?.durationMinutes} phút
+                                          </span>
+                                        </div>
                                       </div>
                                     </div>
                                   );
                                 })}
                               </div>
+                              {/* Proposal notes */}
+                              {detailBooking.booking.Proposal.notes && (
+                                <div className="mt-4 p-3 rounded bg-green-50 border border-green-200 text-sm">
+                                  <span className="font-medium">Ghi chú đề xuất:</span>{' '}
+                                  {detailBooking.booking.Proposal.notes}
+                                </div>
+                              )}
                             </div>
                           </div>
                         )}
@@ -877,7 +933,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                           <div
                             className={`p-4 rounded-lg ${
                               isInProgress
-                                ? 'bg-blue-50 border border-blue-200'
+                                ? 'bg-green-50 border border-green-200'
                                 : booking.status === 'ESTIMATED'
                                   ? 'bg-green-50 border border-green-200'
                                   : 'bg-gray-50'
@@ -885,11 +941,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                           >
                             <h3 className="text-sm font-medium text-gray-900 mb-2">
                               Thông tin đặt lịch
-                              {isInProgress && (
-                                <Badge className="ml-2 bg-blue-100 text-blue-700 border-blue-200">
-                                  Đang xử lý
-                                </Badge>
-                              )}
+                              {isInProgress && <Badge className="ml-2">Đang xử lý</Badge>}
                               {booking.status === 'ESTIMATED' && (
                                 <Badge className="ml-2 bg-green-100 text-green-700 border-green-200">
                                   Đã ước lượng
@@ -913,7 +965,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                               {isInProgress && (
                                 <div className="flex justify-between">
                                   <span className="text-gray-600">Trạng thái:</span>
-                                  <span className="font-medium text-blue-700">
+                                  <span className="font-medium text-green-700">
                                     Có thể đề xuất dịch vụ bổ sung
                                   </span>
                                 </div>
@@ -951,8 +1003,8 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                                     : 'Chọn dịch vụ'}
                             </h3>
                             {isInProgress && (
-                              <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                                <p className="text-sm text-amber-800">
+                              <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                                <p className="text-sm">
                                   <strong>Lưu ý:</strong> Đây là các dịch vụ bổ sung có thể thêm vào
                                   trong quá trình thực hiện công việc.
                                 </p>
@@ -996,7 +1048,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                                       key={service.id}
                                       className={`p-3 border rounded-lg cursor-pointer transition-colors ${
                                         isSelected
-                                          ? 'border-blue-500 bg-blue-50'
+                                          ? 'border-green-500 bg-green-50'
                                           : 'border-gray-200 hover:border-gray-300'
                                       }`}
                                       onClick={() => addService(service)}
@@ -1009,9 +1061,70 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                                           <p className="text-sm text-gray-600 line-clamp-2">
                                             {service.description}
                                           </p>
+
+                                          {/* Show attached item details if available */}
+                                          {service.attachedItems &&
+                                          service.attachedItems.length > 0 ? (
+                                            service.attachedItems.map(item => {
+                                              const sItem = item.serviceItem;
+                                              return (
+                                                <div
+                                                  key={sItem.id}
+                                                  className="flex items-start gap-2 p-2 mb-1 rounded border border-gray-200"
+                                                >
+                                                  <div className="flex-1">
+                                                    <div className="flex items-center gap-2">
+                                                      <span className="font-semibold text-xs text-gray-700">
+                                                        {sItem.name}
+                                                      </span>
+                                                      {sItem.brand && (
+                                                        <span className="ml-2 px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs">
+                                                          {sItem.brand}
+                                                        </span>
+                                                      )}
+                                                      {sItem.model && (
+                                                        <span className="ml-2 px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs">
+                                                          {sItem.model}
+                                                        </span>
+                                                      )}
+                                                    </div>
+                                                    <div className="flex flex-wrap gap-2 mt-1 text-xs text-gray-600">
+                                                      <span>
+                                                        <span className="font-medium">Giá:</span>{' '}
+                                                        {sItem.unitPrice?.toLocaleString('vi-VN')}đ
+                                                      </span>
+                                                      {sItem.warrantyPeriod && (
+                                                        <span>
+                                                          <span className="font-medium">
+                                                            Bảo hành:
+                                                          </span>{' '}
+                                                          {sItem.warrantyPeriod} tháng
+                                                        </span>
+                                                      )}
+                                                    </div>
+                                                    {sItem.description && (
+                                                      <div className="mt-1 text-xs text-gray-500 line-clamp-2">
+                                                        <span className="font-medium">Mô tả:</span>{' '}
+                                                        {sItem.description}
+                                                      </div>
+                                                    )}
+                                                  </div>
+                                                </div>
+                                              );
+                                            })
+                                          ) : (
+                                            <div className="text-xs text-gray-500 mt-1">
+                                              <span>Không có vật tư</span>
+                                            </div>
+                                          )}
+
                                           <div className="flex items-center gap-2 mt-2">
                                             <Badge variant="secondary" className="text-xs">
-                                              {service.virtualPrice.toLocaleString('vi-VN')}đ
+                                              {(service.virtualPrice && service.virtualPrice !== 0
+                                                ? service.virtualPrice
+                                                : service.basePrice
+                                              ).toLocaleString('vi-VN')}
+                                              đ
                                             </Badge>
                                             <span className="text-xs text-gray-500">
                                               {service.durationMinutes} phút
@@ -1040,58 +1153,65 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                                   Dịch vụ đã chọn
                                 </h3>
                                 <div className="space-y-3">
-                                  {selectedServices.map(item => (
-                                    <div
-                                      key={item.serviceId}
-                                      className="flex items-center justify-between p-3 border rounded-lg"
-                                    >
-                                      <div className="flex-1">
-                                        <h4 className="font-medium text-gray-900">
-                                          {item.service?.name}
-                                        </h4>
-                                        <p className="text-sm text-gray-600">
-                                          {item.service?.virtualPrice.toLocaleString('vi-VN')}đ x{' '}
-                                          {item.quantity}
-                                        </p>
+                                  {selectedServices.map(item => {
+                                    const price =
+                                      item.service &&
+                                      item.service.virtualPrice &&
+                                      item.service.virtualPrice !== 0
+                                        ? item.service.virtualPrice
+                                        : item.service?.basePrice || 0;
+                                    return (
+                                      <div
+                                        key={item.serviceId}
+                                        className="flex items-center justify-between p-3 border rounded-lg"
+                                      >
+                                        <div className="flex-1">
+                                          <h4 className="font-medium text-gray-900">
+                                            {item.service?.name}
+                                          </h4>
+                                          <p className="text-sm text-gray-600">
+                                            {price.toLocaleString('vi-VN')}đ x {item.quantity}
+                                          </p>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                          <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-8 w-8 p-0"
+                                            onClick={() =>
+                                              updateQuantity(item.serviceId, item.quantity - 1)
+                                            }
+                                          >
+                                            <Minus className="h-3 w-3" />
+                                          </Button>
+                                          <span className="w-8 text-center text-sm font-medium">
+                                            {item.quantity}
+                                          </span>
+                                          <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-8 w-8 p-0"
+                                            onClick={() =>
+                                              updateQuantity(item.serviceId, item.quantity + 1)
+                                            }
+                                          >
+                                            <Plus className="h-3 w-3" />
+                                          </Button>
+                                          <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
+                                            onClick={() => removeService(item.serviceId)}
+                                          >
+                                            <X className="h-3 w-3" />
+                                          </Button>
+                                        </div>
                                       </div>
-                                      <div className="flex items-center gap-2">
-                                        <Button
-                                          type="button"
-                                          variant="outline"
-                                          size="sm"
-                                          className="h-8 w-8 p-0"
-                                          onClick={() =>
-                                            updateQuantity(item.serviceId, item.quantity - 1)
-                                          }
-                                        >
-                                          <Minus className="h-3 w-3" />
-                                        </Button>
-                                        <span className="w-8 text-center text-sm font-medium">
-                                          {item.quantity}
-                                        </span>
-                                        <Button
-                                          type="button"
-                                          variant="outline"
-                                          size="sm"
-                                          className="h-8 w-8 p-0"
-                                          onClick={() =>
-                                            updateQuantity(item.serviceId, item.quantity + 1)
-                                          }
-                                        >
-                                          <Plus className="h-3 w-3" />
-                                        </Button>
-                                        <Button
-                                          type="button"
-                                          variant="ghost"
-                                          size="sm"
-                                          className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
-                                          onClick={() => removeService(item.serviceId)}
-                                        >
-                                          <X className="h-3 w-3" />
-                                        </Button>
-                                      </div>
-                                    </div>
-                                  ))}
+                                    );
+                                  })}
                                 </div>
 
                                 {/* Total */}

@@ -10,6 +10,7 @@ import { ValidationError } from './fetchAuth';
 import { ProviderType } from '@/schemaValidations/provider.schema';
 import { StatusBooking, StatusServiceRequest } from './fetchBooking';
 import { CompanyType, VerificationStatus } from './fetchManager';
+
 export interface User {
   userName: string;
   fullName: string;
@@ -403,12 +404,33 @@ export interface GetUserProposalResponse {
         categoryId: number;
         unit: 'PER_JOB' | 'PER_HOUR' | string;
         status: 'ACCEPTED' | 'PENDING' | 'REJECTED' | string;
-        serviceItems?: string[];
+        serviceItems?: ServiceItem[];
       };
     }[];
   };
   statusCode: number;
   timestamp: string; // ISO 8601
+}
+
+export interface ServiceItem {
+  serviceId: number;
+  serviceItemId: number;
+  serviceItem: {
+    id: number;
+    name: string;
+    unitPrice: number;
+    warrantyPeriod: number;
+    createdAt: string;
+    deletedAt: string | null;
+    updatedAt: string;
+    brand: string;
+    description: string;
+    isActive: boolean;
+    model: string;
+    stockQuantity: number;
+    unit: string;
+    providerId: number;
+  };
 }
 
 export interface UpdateUserProposalResponse {

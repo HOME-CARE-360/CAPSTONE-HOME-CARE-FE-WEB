@@ -10,7 +10,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Calendar24 } from '@/components/custom-date-picker';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -22,9 +21,7 @@ import {
   CheckCircle,
   AlertCircle,
   Wrench,
-  Clock,
   MapPin,
-  Phone,
   Search,
 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -40,6 +37,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { formatCurrency } from '@/utils/numbers/formatCurrency';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
+import Image from 'next/image';
 
 // Type-safe helpers
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -298,7 +296,7 @@ const paymentMethods = [
   },
   {
     value: 'WALLET' as const,
-    label: 'VÍ',
+    label: 'Thanh toán ví',
     description: 'Thanh toán bằng ví',
     icon: <CreditCard className="h-5 w-5" />,
   },
@@ -387,19 +385,24 @@ export default function NewBookingPage() {
     );
   }, [communes, communeSearchTerm]);
 
-  // Update location when province or commune changes
-  useEffect(() => {
+  // Update full address when province, commune, or detailed address changes
+  const fullAddress = useMemo(() => {
     const selectedProvinceName = provinces.find(p => p.code === selectedProvince)?.name;
     const selectedCommuneName = communes.find(c => c.code === selectedCommune)?.name;
 
-    let location = '';
-    if (selectedCommuneName && selectedProvinceName) {
-      location = `${selectedCommuneName}, ${selectedProvinceName}`;
-    } else if (selectedProvinceName) {
-      location = selectedProvinceName;
-    }
+    const addressParts = [
+      formData.location?.trim(),
+      selectedCommuneName,
+      selectedProvinceName,
+    ].filter(Boolean);
 
-    setFormData(prev => ({ ...prev, location }));
+    return addressParts.join(', ');
+  }, [selectedProvince, selectedCommune, provinces, communes, formData.location]);
+
+  // Update location when province or commune changes - but keep the detailed address
+  useEffect(() => {
+    // Don't override the user's detailed address input
+    // The full address will be computed from fullAddress memo above
   }, [selectedProvince, selectedCommune, provinces, communes]);
 
   // Filter providers based on selected category
@@ -557,7 +560,8 @@ export default function NewBookingPage() {
       }
     }
 
-    if (!formData.location.trim()) newErrors.location = '';
+    // Validate detailed address is required
+    if (!formData.location?.trim()) newErrors.location = '';
     if (!formData.phoneNumber.trim()) newErrors.phoneNumber = '';
 
     setErrors(newErrors);
@@ -565,7 +569,10 @@ export default function NewBookingPage() {
     // Validate time separately
     const isTimeValid = validateTime(selectedTime);
 
-    return Object.keys(newErrors).length === 0 && isTimeValid;
+    // Also check if province and commune are selected
+    const hasRequiredLocation = selectedProvince && selectedCommune && formData.location?.trim();
+
+    return Object.keys(newErrors).length === 0 && isTimeValid && !!hasRequiredLocation;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -582,7 +589,13 @@ export default function NewBookingPage() {
     setIsSubmitting(true);
 
     try {
-      const response = await createBooking(formData);
+      // Create booking request with full address
+      const bookingRequest = {
+        ...formData,
+        location: fullAddress, // Use the computed full address
+      };
+
+      const response = await createBooking(bookingRequest);
 
       // Show success message with booking ID
       toast.success('Đặt lịch thành công!', {
@@ -686,12 +699,16 @@ export default function NewBookingPage() {
                   </CardHeader>
                   <CardContent>
                     <div className="flex items-start gap-6">
-                      <div className="w-20 h-20 bg-muted rounded-xl flex items-center justify-center flex-shrink-0">
-                        <Wrench className="h-10 w-10 text-muted-foreground" />
-                      </div>
+                      <Image
+                        src={serviceData?.service?.Category?.logo || '/default-category-icon.png'}
+                        alt={categoryName}
+                        width={100}
+                        height={50}
+                        className="object-cover rounded-lg"
+                      />
                       <div className="flex-1 space-y-4">
                         <div className="flex items-center gap-3">
-                          <Badge variant="secondary" className="text-base px-3 py-1">
+                          <Badge variant="secondary" className="text-sm px-3 py-1">
                             {categoryName || 'Danh mục'}
                           </Badge>
                         </div>
@@ -876,13 +893,10 @@ export default function NewBookingPage() {
                         </div>
                       )}
 
-                      {/* Detailed Address */}
+                      {/* Detailed Address Input */}
                       <div className="space-y-3">
-                        <Label
-                          htmlFor="detailedAddress"
-                          className="text-sm font-medium text-muted-foreground"
-                        >
-                          Địa chỉ chi tiết (số nhà, tên đường...)
+                        <Label htmlFor="detailedAddress" className="text-sm font-medium">
+                          Địa chỉ chi tiết <span className="text-red-500">*</span>
                         </Label>
                         <div className="relative">
                           <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -892,26 +906,37 @@ export default function NewBookingPage() {
                             onChange={e =>
                               setFormData(prev => ({ ...prev, location: e.target.value }))
                             }
-                            placeholder="Nhập địa chỉ chi tiết..."
+                            placeholder="Nhập số nhà, tên đường, địa chỉ cụ thể..."
                             className={`h-12 pl-10 ${errors.location ? 'border-destructive' : ''}`}
                           />
                         </div>
                         {errors.location && (
                           <p className="text-sm text-destructive flex items-center gap-2">
                             <AlertCircle className="h-4 w-4" />
-                            Vui lòng nhập địa chỉ thực hiện
+                            Vui lòng nhập địa chỉ chi tiết
                           </p>
                         )}
+                        <p className="text-xs text-muted-foreground">
+                          Vui lòng nhập địa chỉ cụ thể để nhân viên có thể tìm đến dễ dàng
+                        </p>
                       </div>
 
-                      {/* Selected Location Display */}
-                      {formData.location && (
-                        <div className="p-4 bg-muted/30 rounded-lg border">
+                      {/* Full Address Preview */}
+                      {(selectedProvince || selectedCommune || formData.location) && (
+                        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                           <div className="flex items-start gap-2">
-                            <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+                            <MapPin className="h-4 w-4 text-blue-600 mt-0.5" />
                             <div className="flex-1">
-                              <p className="text-sm font-medium">Địa chỉ đã chọn:</p>
-                              <p className="text-sm text-muted-foreground">{formData.location}</p>
+                              <p className="text-sm font-medium text-blue-800">Địa chỉ đầy đủ:</p>
+                              <p className="text-sm text-blue-700">
+                                {[
+                                  formData.location,
+                                  communes.find(c => c.code === selectedCommune)?.name,
+                                  provinces.find(p => p.code === selectedProvince)?.name,
+                                ]
+                                  .filter(Boolean)
+                                  .join(', ') || 'Đang hoàn thiện thông tin địa chỉ...'}
+                              </p>
                             </div>
                           </div>
                         </div>
@@ -949,11 +974,21 @@ export default function NewBookingPage() {
                               className="flex items-center gap-4 cursor-pointer flex-1 p-4 rounded-lg border hover:bg-muted/50 transition-colors"
                             >
                               {method.icon}
-                              <div>
+                              <div className="flex-1">
                                 <p className="font-medium">{method.label}</p>
                                 <p className="text-sm text-muted-foreground">
                                   {method.description}
                                 </p>
+                                {method.value === 'WALLET' && profifeData?.data?.user?.wallet && (
+                                  <div className="mt-2 p-2 bg-muted/50 rounded-md">
+                                    <p className="text-sm font-medium text-muted-foreground">
+                                      Số dư ví:{' '}
+                                      <span className="text-primary font-semibold">
+                                        {formatCurrency(profifeData.data.user.wallet.balance)}
+                                      </span>
+                                    </p>
+                                  </div>
+                                )}
                               </div>
                             </Label>
                           </div>
@@ -1002,7 +1037,7 @@ export default function NewBookingPage() {
               </div>
 
               {/* Right Column - Booking Summary */}
-              <div className="space-y-6">
+              <div className="space-y-6 w-fit">
                 <Card className="sticky top-24 shadow-lg border-0">
                   <CardHeader className="pb-6">
                     <CardTitle className="flex items-center gap-3 text-xl">
@@ -1018,9 +1053,15 @@ export default function NewBookingPage() {
                       <div className="space-y-4">
                         <h4 className="font-semibold text-lg">Danh mục</h4>
                         <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center">
-                            <Wrench className="h-6 w-6 text-muted-foreground" />
-                          </div>
+                          <Image
+                            src={
+                              serviceData?.service?.Category?.logo || '/default-category-icon.png'
+                            }
+                            alt={categoryName}
+                            width={50}
+                            height={50}
+                            className="object-cover rounded-lg"
+                          />
                           <div>
                             <p className="font-medium">{categoryName}</p>
                             <p className="text-sm text-muted-foreground">
@@ -1059,17 +1100,17 @@ export default function NewBookingPage() {
                     {/* Date & Time Summary */}
                     {formData.preferredDate && (
                       <div className="space-y-4">
-                        <h4 className="font-semibold text-lg">Thời gian thực hiện</h4>
+                        <h4 className="font-semibold text-sm">Thời gian thực hiện</h4>
                         <div className="bg-muted/30 p-4 rounded-lg">
                           {(() => {
                             try {
                               const date = new Date(formData.preferredDate);
                               return (
                                 <div className="space-y-2">
-                                  <p className="font-medium">
+                                  <p className="font-medium text-sm">
                                     {format(date, 'EEEE, dd MMMM yyyy', { locale: vi })}
                                   </p>
-                                  <p className="text-muted-foreground">
+                                  <p className="text-muted-foreground text-sm">
                                     Lúc {format(date, 'HH:mm', { locale: vi })}
                                   </p>
                                 </div>
@@ -1085,19 +1126,19 @@ export default function NewBookingPage() {
                     )}
 
                     {/* Location Summary */}
-                    {formData.location && (
+                    {fullAddress && (
                       <div className="space-y-4">
-                        <h4 className="font-semibold text-lg">Địa chỉ</h4>
+                        <h4 className="font-semibold text-sm">Địa chỉ</h4>
                         <div className="flex items-start gap-2">
                           <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-                          <p className="text-sm text-muted-foreground">{formData.location}</p>
+                          <p className="text-sm text-muted-foreground">{fullAddress}</p>
                         </div>
                       </div>
                     )}
 
                     {/* Payment Summary */}
                     <div className="space-y-4">
-                      <h4 className="font-semibold text-lg">Thanh toán</h4>
+                      <h4 className="font-semibold text-sm">Thanh toán</h4>
                       <p className="text-sm text-muted-foreground">
                         {paymentMethods.find(m => m.value === formData.paymentMethod)?.label}
                       </p>
@@ -1130,14 +1171,24 @@ export default function NewBookingPage() {
                       type="submit"
                       className="w-full h-12 text-lg font-semibold"
                       disabled={
-                        !!timeError || !formData.preferredDate || !selectedDate || !selectedTime
+                        !!timeError ||
+                        !formData.preferredDate ||
+                        !selectedDate ||
+                        !selectedTime ||
+                        !selectedProvince ||
+                        !selectedCommune ||
+                        !formData.location?.trim()
                       }
                     >
                       {timeError
                         ? 'Vui lòng chọn giờ hợp lệ'
                         : !formData.preferredDate
                           ? 'Vui lòng chọn ngày và giờ'
-                          : 'Gửi yêu cầu'}
+                          : !selectedProvince || !selectedCommune
+                            ? 'Vui lòng chọn tỉnh/thành và phường/xã'
+                            : !formData.location?.trim()
+                              ? 'Vui lòng nhập địa chỉ chi tiết'
+                              : 'Gửi yêu cầu'}
                     </Button>
 
                     <p className="text-xs text-muted-foreground text-center">
@@ -1156,120 +1207,182 @@ export default function NewBookingPage() {
 
       {/* Confirmation Dialog */}
       <Dialog open={showConfirmation} onOpenChange={setShowConfirmation}>
-        <DialogContent className="max-w-lg p-0 overflow-hidden">
-          <div className="flex flex-col items-center justify-center bg-green-50 py-6 px-4 border-b">
-            <CheckCircle
-              className="h-10 w-10 text-green-600 mb-2 animate-bounce"
-              aria-hidden="true"
-            />
-            <h2 className="text-2xl font-bold text-green-700 mb-1">Xác nhận gửi yêu cầu?</h2>
-            <p className="text-sm text-green-800">Kiểm tra thông tin trước khi xác nhận</p>
+        <DialogContent className="max-w-2xl p-0 overflow-hidden border-0 shadow-2xl">
+          {/* Header */}
+          <div className="px-8 py-6 border-b bg-gradient-to-r from-background to-muted/20">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/10">
+                <CheckCircle className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold tracking-tight">Xác nhận yêu cầu</h2>
+                <p className="text-muted-foreground">Vui lòng kiểm tra thông tin trước khi gửi</p>
+              </div>
+            </div>
           </div>
-          <div className="p-6 space-y-6">
-            <div>
-              <h4 className="font-semibold text-lg mb-3">Thông tin yêu cầu</h4>
-              <div className="grid grid-cols-1 gap-3 text-sm">
-                <div className="flex items-center gap-2">
-                  <Phone className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                  <span className="text-muted-foreground flex-1">Số điện thoại:</span>
-                  <span className="font-medium">
-                    {formData.phoneNumber || <span className="text-destructive">Chưa nhập</span>}
-                  </span>
+
+          {/* Content */}
+          <div className="px-8 py-6 space-y-8">
+            {/* Service Overview */}
+            <div className="flex items-center gap-4 p-4 rounded-xl bg-muted/30 border">
+              <Image
+                src={serviceData?.service?.Category?.logo || '/default-category-icon.png'}
+                alt={categoryName}
+                width={50}
+                height={50}
+                className="object-cover rounded-lg"
+              />
+              <div className="flex-1">
+                <h3 className="font-semibold text-lg">{categoryName}</h3>
+                <p className="text-sm text-muted-foreground">
+                  Nhà cung cấp: {profileProvider?.data?.user?.name}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm text-muted-foreground">Đặt cọc</p>
+                <p className="text-xl font-bold text-primary">{formatCurrency(100000)}</p>
+              </div>
+            </div>
+
+            {/* Information Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Left Column */}
+              <div className="space-y-4">
+                <h4 className="font-semibold text-base flex items-center gap-2">
+                  <User className="h-4 w-4 text-primary" />
+                  Thông tin liên hệ
+                </h4>
+                <div className="space-y-3 pl-6">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Số điện thoại</span>
+                    <span className="font-medium text-sm">
+                      {formData.phoneNumber || 'Chưa nhập'}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <CalendarIcon className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                  <span className="text-muted-foreground flex-1">Ngày:</span>
-                  <span className="font-medium">
-                    {formData.preferredDate ? (
-                      (() => {
-                        try {
-                          return format(new Date(formData.preferredDate), 'dd/MM/yyyy', {
-                            locale: vi,
-                          });
-                        } catch {
-                          return <span className="text-destructive">Lỗi định dạng ngày</span>;
-                        }
-                      })()
-                    ) : selectedDate ? (
-                      format(selectedDate, 'dd/MM/yyyy', { locale: vi })
-                    ) : (
-                      <span className="text-destructive">Chưa chọn</span>
-                    )}
-                  </span>
+
+                <h4 className="font-semibold text-base flex items-center gap-2 pt-4">
+                  <MapPin className="h-4 w-4 text-primary" />
+                  Địa điểm
+                </h4>
+                <div className="space-y-2 pl-6">
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {fullAddress || 'Chưa nhập đầy đủ'}
+                  </p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                  <span className="text-muted-foreground flex-1">Giờ:</span>
-                  <span className="font-medium">
-                    {formData.preferredDate ? (
-                      (() => {
-                        try {
-                          return format(new Date(formData.preferredDate), 'HH:mm', { locale: vi });
-                        } catch {
-                          return <span className="text-destructive">Lỗi định dạng giờ</span>;
-                        }
-                      })()
-                    ) : selectedTime ? (
-                      selectedTime
-                    ) : (
-                      <span className="text-destructive">Chưa chọn</span>
-                    )}
-                  </span>
+              </div>
+
+              {/* Right Column */}
+              <div className="space-y-4">
+                <h4 className="font-semibold text-base flex items-center gap-2">
+                  <CalendarIcon className="h-4 w-4 text-primary" />
+                  Thời gian
+                </h4>
+                <div className="space-y-3 pl-6">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Ngày</span>
+                    <span className="font-medium text-sm">
+                      {formData.preferredDate
+                        ? (() => {
+                            try {
+                              return format(new Date(formData.preferredDate), 'dd/MM/yyyy', {
+                                locale: vi,
+                              });
+                            } catch {
+                              return 'Lỗi định dạng ngày';
+                            }
+                          })()
+                        : 'Chưa chọn'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Giờ</span>
+                    <span className="font-medium text-sm">
+                      {formData.preferredDate
+                        ? (() => {
+                            try {
+                              return format(new Date(formData.preferredDate), 'HH:mm', {
+                                locale: vi,
+                              });
+                            } catch {
+                              return 'Lỗi định dạng giờ';
+                            }
+                          })()
+                        : 'Chưa chọn'}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                  <span className="text-muted-foreground flex-1">Địa chỉ:</span>
-                  <span className="font-medium max-w-[200px] text-right truncate">
-                    {formData.location || <span className="text-destructive">Chưa nhập</span>}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CreditCard className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                  <span className="text-muted-foreground flex-1">Thanh toán:</span>
-                  <span className="font-medium">
+
+                <h4 className="font-semibold text-base flex items-center gap-2 pt-4">
+                  <CreditCard className="h-4 w-4 text-primary" />
+                  Thanh toán
+                </h4>
+                <div className="space-y-2 pl-6">
+                  <p className="text-sm font-medium">
                     {paymentMethods.find(m => m.value === formData.paymentMethod)?.label}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                  <span className="text-muted-foreground flex-1">Đặt cọc:</span>
-                  <span className="font-medium">{formatCurrency(100000)}</span>
+                  </p>
                 </div>
               </div>
             </div>
 
-            <Alert className="bg-yellow-50 border-yellow-200">
-              <AlertCircle className="h-4 w-4 text-yellow-600" aria-hidden="true" />
-              <AlertDescription className="text-yellow-800">
-                Sau khi xác nhận, bạn sẽ thanh toán đặt cọc {formatCurrency(100000)} để giữ lịch.
-                Giá thực tế sẽ được thông báo sau khi khảo sát.
-              </AlertDescription>
-            </Alert>
+            {/* Additional Notes */}
+            {formData.note && (
+              <div className="space-y-3">
+                <h4 className="font-semibold text-base flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-primary" />
+                  Ghi chú
+                </h4>
+                <div className="pl-6">
+                  <p className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-lg">
+                    {formData.note}
+                  </p>
+                </div>
+              </div>
+            )}
 
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button
-                onClick={confirmBooking}
-                className="flex-1 h-12 text-lg font-semibold"
-                disabled={isSubmitting}
-                aria-label="Xác nhận đặt lịch"
-              >
-                {isSubmitting ? (
-                  <span className="flex items-center gap-2">
-                    <span className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-primary" />
-                    Đang xử lý...
-                  </span>
-                ) : (
-                  'Xác nhận gửi yêu cầu'
-                )}
-              </Button>
+            {/* Important Notice */}
+            <div className="p-4 rounded-xl border-2 border-dashed border-muted-foreground/20">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-muted-foreground mt-0.5 flex-shrink-0" />
+                <div className="text-sm text-muted-foreground">
+                  <p className="font-medium mb-1">Lưu ý quan trọng:</p>
+                  <ul className="space-y-1 text-xs">
+                    <li>• Tiền đặt cọc {formatCurrency(100000)} để xác nhận yêu cầu</li>
+                    <li>• Giá cuối cùng sẽ được thông báo sau khi khảo sát</li>
+                    <li>• Nhân viên sẽ liên hệ trong vòng 24h</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer Actions */}
+          <div className="px-8 py-6 bg-muted/20 border-t">
+            <div className="flex flex-col-reverse sm:flex-row gap-3">
               <Button
                 variant="outline"
                 onClick={() => setShowConfirmation(false)}
                 disabled={isSubmitting}
-                className="flex-1 h-12 text-lg"
-                aria-label="Hủy xác nhận"
+                className="flex-1 h-12 text-base font-medium"
               >
-                Hủy
+                Kiểm tra lại
+              </Button>
+              <Button
+                onClick={confirmBooking}
+                className="flex-1 h-12 text-base font-semibold"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    Đang xử lý...
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4" />
+                    Xác nhận gửi yêu cầu
+                  </div>
+                )}
               </Button>
             </div>
           </div>

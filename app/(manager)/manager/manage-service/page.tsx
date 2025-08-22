@@ -74,7 +74,7 @@ export default function ManageServicePage() {
               <SelectItem value="PENDING">Chờ duyệt</SelectItem>
               <SelectItem value="ACCEPTED">Đã duyệt</SelectItem>
               <SelectItem value="REJECTED">Từ chối</SelectItem>
-              <SelectItem value="INACTIVE">Không hoạt động</SelectItem>
+              {/* <SelectItem value="INACTIVE">Không hoạt động</SelectItem> */}
             </SelectContent>
           </Select>
 

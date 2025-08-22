@@ -56,6 +56,10 @@ export function ServiceCard({ service }: ServiceCardProps) {
     changeStatus({ id: service.id, status: 'ACCEPTED' });
   };
 
+  const rejectService = () => {
+    changeStatus({ id: service.id, status: 'REJECTED' });
+  };
+
   const nextImage = (e: React.MouseEvent) => {
     e.preventDefault();
     setIsImageLoading(true);
@@ -188,6 +192,35 @@ export function ServiceCard({ service }: ServiceCardProps) {
                     className="bg-green-600 hover:bg-green-700"
                   >
                     Duyệt
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={isPending}
+                  className="flex-1 border-gray-300 text-black hover:bg-gray-50"
+                >
+                  Từ chối
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Xác nhận từ chối dịch vụ</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Bạn có chắc muốn từ chối dịch vụ {service.name}?
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Hủy</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={rejectService}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    Từ chối
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>

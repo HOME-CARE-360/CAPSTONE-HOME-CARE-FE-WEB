@@ -14,7 +14,7 @@ export interface CreateWithDrawResponse {
 export interface WithdrawRequest {
   id: number;
   amount: number;
-  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'COMPLETED';
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'COMPLETED' | 'CANCELLED';
   createdAt: string;
   processedAt: string | null;
   processedById: number | null;
@@ -24,12 +24,24 @@ export interface WithdrawRequest {
 
 export interface GetListWithDrawResponse extends Array<WithdrawRequest> {}
 
-export interface GetDetailWithDrawResponse {
-  success: boolean;
-  code: string;
-  message: string;
-  data?: WithdrawRequest;
+export interface WithdrawDetailUser {
+  name: string;
+  phone: string;
+  email: string;
+  avatar: string;
 }
+
+export interface WithdrawDetailResponse {
+  id: number;
+  amount: number;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'COMPLETED' | 'CANCELLED';
+  createdAt: string;
+  processedAt: string | null;
+  note: string | null;
+  User: WithdrawDetailUser;
+}
+
+export interface GetDetailWithDrawResponse extends WithdrawDetailResponse {}
 
 export const fundingService = {
   createWithDraw: async (data: CreateWithDrawRequest): Promise<CreateWithDrawResponse> => {
@@ -49,7 +61,7 @@ export const fundingService = {
 
   getDetailWithDraw: async (id: number): Promise<GetDetailWithDrawResponse> => {
     const response = await apiService.get<GetDetailWithDrawResponse>(
-      `/manage-funding/get-withdraw-detail/${id}`
+      `/publics/get-withdraw-detail/${id}`
     );
     return response.data;
   },

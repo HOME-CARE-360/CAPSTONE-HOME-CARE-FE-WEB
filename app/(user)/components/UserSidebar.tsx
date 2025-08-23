@@ -13,7 +13,8 @@ const accountItems = [
 const serviceItems = [
   { label: 'Tin nhắn', value: 'chat', href: '/settings/chat' },
   { label: 'Ngân hàng', value: 'bank', href: '/settings/bank' },
-  // { label: 'Địa chỉ', value: 'address', href: '/user/address' },
+  { label: 'Gợi ý bảo trì tài sản', value: 'asset', href: '/settings/asset' },
+  { label: 'Gợi ý dịch vụ', value: 'service', href: '/settings/service' },
   { label: 'Dịch vụ đã đặt', value: 'booking', href: '/settings/bookings' },
   { label: 'Dịch vụ yêu thích', value: 'favorites', href: '/settings/favorites' },
   { label: 'Báo cáo của bạn', value: 'report', href: '/settings/report' },

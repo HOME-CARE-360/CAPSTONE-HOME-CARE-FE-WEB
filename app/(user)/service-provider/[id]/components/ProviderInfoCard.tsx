@@ -1,9 +1,7 @@
 'use client';
 
-import { Building2, MapPin, Phone, Mail, Calendar, CheckCircle, AlertCircle } from 'lucide-react';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
+import { Building2, MapPin, Phone, Mail, Calendar, ShieldCheck } from 'lucide-react';
+import { CardContent, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { formatDate } from '@/utils/numbers/formatDate';
 
@@ -41,154 +39,109 @@ interface ProviderInfoCardProps {
 }
 
 export default function ProviderInfoCard({ providerData }: ProviderInfoCardProps) {
-  const getStatusVariant = (status: string) => {
-    switch (status.toUpperCase()) {
-      case 'VERIFIED':
-        return 'default';
-      case 'ACTIVE':
-        return 'secondary';
-      case 'INACTIVE':
-        return 'outline';
-      case 'PENDING':
-        return 'secondary';
-      case 'REJECTED':
-        return 'destructive';
-      default:
-        return 'outline';
-    }
-  };
-
-  const getCompanyInitials = (name: string) => {
-    return name
+  const getCompanyInitials = (name: string) =>
+    name
       .split(' ')
       .slice(0, 2)
       .map(word => word[0])
       .join('')
       .toUpperCase();
-  };
 
   return (
-    <Card className="overflow-hidden">
-      <CardHeader className="pb-4">
-        <div className="flex items-start justify-between">
-          <div className="flex items-start space-x-4">
-            <Avatar className="h-16 w-16">
-              <AvatarFallback className="text-lg font-semibold bg-muted">
-                {getCompanyInitials(providerData.user.name)}
-              </AvatarFallback>
-            </Avatar>
-            <div className="space-y-2">
-              <div>
-                <h2 className="text-2xl font-semibold leading-tight">{providerData.user.name}</h2>
-                <p className="text-sm text-muted-foreground font-mono">
-                  Hình thức công ty: {providerData.serviceProvider.companyType}
-                </p>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Badge
-                  variant={getStatusVariant(providerData.serviceProvider.verificationStatus)}
-                  className="font-medium"
-                >
-                  <CheckCircle className="w-3 h-3 mr-1" />
-                  {providerData.serviceProvider.verificationStatus}
-                </Badge>
-                <Badge variant={getStatusVariant(providerData.user.status)}>
-                  {providerData.user.status === 'ACTIVE' ? (
-                    <CheckCircle className="w-3 h-3 mr-1" />
-                  ) : (
-                    <AlertCircle className="w-3 h-3 mr-1" />
-                  )}
-                  {providerData.user.status}
-                </Badge>
-              </div>
+    <div className="overflow-hidden">
+      {/* Profile Header */}
+      <CardHeader className="pb-6">
+        <div className="flex flex-col items-center space-y-3">
+          <Avatar className="h-20 w-20">
+            <AvatarFallback className="text-xl font-semibold bg-muted">
+              {getCompanyInitials(providerData.user.name)}
+            </AvatarFallback>
+          </Avatar>
+          <div className="text-center space-y-1">
+            <h2 className="text-2xl font-semibold tracking-tight">{providerData.user.name}</h2>
+            <p className="text-sm text-muted-foreground">
+              {providerData.serviceProvider.companyType}
+            </p>
+            <div className="text-xs text-muted-foreground/80 flex items-center justify-center gap-1">
+              <ShieldCheck className="w-4 h-4" />
+              {providerData.serviceProvider.verificationStatus}
             </div>
           </div>
         </div>
       </CardHeader>
-      <Separator />
+
+      {/* Profile Details */}
       <CardContent className="pt-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Contact Information */}
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Thông tin liên hệ</h3>
-              <div className="space-y-4">
-                <div className="flex items-start space-x-3">
-                  <Mail className="w-5 h-5 text-muted-foreground mt-0.5" />
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium">Email</p>
-                    <p className="text-sm text-muted-foreground">{providerData.user.email}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start space-x-3">
-                  <Phone className="w-5 h-5 text-muted-foreground mt-0.5" />
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium">Số điện thoại</p>
-                    <p className="text-sm text-muted-foreground">{providerData.user.phone}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start space-x-3">
-                  <MapPin className="w-5 h-5 text-muted-foreground mt-0.5" />
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium">Địa chỉ kinh doanh</p>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      {providerData.serviceProvider.address}
-                    </p>
-                  </div>
-                </div>
-              </div>
+          {/* Contact Info */}
+          <div className="space-y-5">
+            <h3 className="text-base font-medium">Thông tin liên hệ</h3>
+            <div className="space-y-4">
+              <DetailItem
+                icon={<Mail className="w-5 h-5 text-muted-foreground" />}
+                label="Email"
+                value={providerData.user.email}
+              />
+              <DetailItem
+                icon={<Phone className="w-5 h-5 text-muted-foreground" />}
+                label="Số điện thoại"
+                value={providerData.user.phone}
+              />
+              <DetailItem
+                icon={<MapPin className="w-5 h-5 text-muted-foreground" />}
+                label="Địa chỉ kinh doanh"
+                value={providerData.serviceProvider.address}
+              />
             </div>
           </div>
 
-          {/* Company Details */}
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Thông tin công ty</h3>
-              <div className="space-y-4">
-                {/* <div className="flex items-start space-x-3">
-                  <Hash className="w-5 h-5 text-muted-foreground mt-0.5" />
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium">Mã số thuế</p>
-                    <p className="text-sm text-muted-foreground font-mono">{providerData.serviceProvider.taxId}</p>
-                  </div>
-                </div> */}
-
-                <div className="flex items-start space-x-3">
-                  <Building2 className="w-5 h-5 text-muted-foreground mt-0.5" />
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium">Loại hình công ty</p>
-                    <p className="text-sm text-muted-foreground">
-                      {providerData.serviceProvider.companyType}
-                    </p>
-                  </div>
-                </div>
-
-                {/* <div className="flex items-start space-x-3">
-                  <FileText className="w-5 h-5 text-muted-foreground mt-0.5" />
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium">Ngành nghề</p>
-                    <p className="text-sm text-muted-foreground">
-                      {providerData.serviceProvider.industry || 'Chưa xác định'}
-                    </p>
-                  </div>
-                </div> */}
-
-                <div className="flex items-start space-x-3">
-                  <Calendar className="w-5 h-5 text-muted-foreground mt-0.5" />
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium">Ngày xác minh</p>
-                    <p className="text-sm text-muted-foreground">
-                      {formatDate(providerData.serviceProvider.verifiedAt)}
-                    </p>
-                  </div>
-                </div>
-              </div>
+          {/* Company Info */}
+          <div className="space-y-5">
+            <h3 className="text-base font-medium">Thông tin công ty</h3>
+            <div className="space-y-4">
+              <DetailItem
+                icon={<Building2 className="w-5 h-5 text-muted-foreground" />}
+                label="Loại hình công ty"
+                value={providerData.serviceProvider.companyType}
+              />
+              <DetailItem
+                icon={<Calendar className="w-5 h-5 text-muted-foreground" />}
+                label="Ngày xác minh"
+                value={formatDate(providerData.serviceProvider.verifiedAt)}
+              />
+              {providerData.serviceProvider.taxId && (
+                <DetailItem
+                  icon={<ShieldCheck className="w-5 h-5 text-muted-foreground" />}
+                  label="Mã số thuế"
+                  value={providerData.serviceProvider.taxId}
+                />
+              )}
             </div>
           </div>
         </div>
       </CardContent>
-    </Card>
+    </div>
+  );
+}
+
+/* Subcomponent for repeated detail rows */
+function DetailItem({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string | null;
+}) {
+  if (!value) return null;
+  return (
+    <div className="flex items-start space-x-3">
+      {icon}
+      <div className="space-y-1">
+        <p className="text-sm font-medium">{label}</p>
+        <p className="text-sm text-muted-foreground leading-relaxed">{value}</p>
+      </div>
+    </div>
   );
 }

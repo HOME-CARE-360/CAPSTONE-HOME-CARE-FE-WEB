@@ -10,6 +10,7 @@ import userService, {
   CancelServiceRequestResponse,
   GetUserReviewsResponse,
   UserReviewsSearchParams,
+  MaintenanceSuggestionParams,
 } from '@/lib/api/services/fetchUser';
 import {
   UpdateUserProfileRequestType,
@@ -271,6 +272,7 @@ export const useCancelServiceRequest = () => {
     mutationFn: ({ serviceRequestId }) => userService.cancelServiceRequest(serviceRequestId),
     onSuccess: data => {
       toast.success(data.message || 'Đã hủy yêu cầu dịch vụ');
+      window.location.reload();
     },
     onError: (error: unknown) => {
       let errorMessage = 'An unexpected error occurred';
@@ -330,6 +332,24 @@ export const useGetTopFavoriteServices = () => {
   return useQuery({
     queryKey: ['publics', 'top-favorite-services'],
     queryFn: () => userService.getTopFavoriteServices(),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+};
+
+export const useGetMaintenanceSuggestions = (params?: MaintenanceSuggestionParams) => {
+  return useQuery({
+    queryKey: ['users', 'maintenance-suggestions', params],
+    queryFn: () => userService.getMaintenanceSuggestions(params),
+    enabled: true,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+};
+
+export const useGetServiceSuggestions = () => {
+  return useQuery({
+    queryKey: ['users', 'service-suggestions'],
+    queryFn: () => userService.getServiceSuggestions(),
+    enabled: true,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 };

@@ -5,7 +5,7 @@ import {
   ChangePasswordRequestType,
   UserType,
 } from '@/schemaValidations/user.schema';
-import apiService from '../core';
+import apiService, { RequestParams } from '../core';
 import { ValidationError } from './fetchAuth';
 import { ProviderType } from '@/schemaValidations/provider.schema';
 import { StatusBooking, StatusServiceRequest } from './fetchBooking';
@@ -329,6 +329,76 @@ export interface UserReviewsSearchParams {
   limit?: number;
   search?: string;
   rating?: number;
+}
+
+export interface MaintenanceSuggestionParams extends RequestParams {
+  categoryId?: number;
+  dueSoon?: boolean;
+  priorityFilter?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  limit?: number;
+  type?: string;
+}
+
+export interface MaintenanceSuggestion {
+  assetId: number;
+  assetName: string;
+  categoryId: number;
+  brand: string;
+  model: string;
+  code: string;
+  title: string;
+  description: string;
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  score: number;
+  reason: string;
+  nextDueDate: string;
+  dueInDays: number;
+  intervalDays: number;
+  lastServiceDate: string;
+  totalServicesCount: number;
+}
+
+export interface MaintenanceSuggestionsResponse {
+  success: boolean;
+  code: string;
+  message: string;
+  data: MaintenanceSuggestion[];
+}
+
+export interface ExternalProduct {
+  id: number;
+  title: string;
+  url: string;
+  imageUrl: string;
+  brand: string;
+  model: string;
+  categoryId: number;
+  price: number;
+  currency: string;
+  discountPct: number | null;
+  promoEndsAt: string | null;
+  source: string;
+  releaseDate: string | null;
+  scrapedAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ServiceSuggestion {
+  id: number;
+  customerAssetId: number;
+  productId: number;
+  score: number;
+  reason: string;
+  status: 'NEW' | 'VIEWED' | 'PURCHASED' | 'IGNORED';
+  createdAt: string;
+  updatedAt: string;
+  ExternalProduct: ExternalProduct;
+}
+
+export interface ServiceSuggestionsResponse {
+  message: string;
+  data: ServiceSuggestion[];
 }
 
 export interface GetServiceProviderResponse {
@@ -729,6 +799,31 @@ export const userService = {
       '/publics/top-favorite-services'
     );
     return response.data;
+  },
+
+  getMaintenanceSuggestions: async (
+    params?: MaintenanceSuggestionParams
+  ): Promise<MaintenanceSuggestionsResponse> => {
+    try {
+      const response = await apiService.get<MaintenanceSuggestionsResponse>(
+        '/users/suggestions',
+        params
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Get Maintenance Suggestions Error:', error);
+      throw error;
+    }
+  },
+
+  getServiceSuggestions: async (): Promise<ServiceSuggestionsResponse> => {
+    try {
+      const response = await apiService.get<ServiceSuggestionsResponse>('/services/get-suggestion');
+      return response.data;
+    } catch (error) {
+      console.error('Get Service Suggestions Error:', error);
+      throw error;
+    }
   },
 };
 

@@ -251,16 +251,17 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
   const isSubmittingProposal = isCreatingProposal || isUpdatingProposal;
 
   // Aggregate proposal items by service to avoid duplicates (e.g., rejected + newly added)
-  type ProposalType = NonNullable<GetDetailBookingResponse['booking']['Proposal']>;
-  type ProposalItem = ProposalType['ProposalItem'][number];
-  const rawProposalItems: ProposalItem[] = Array.isArray(
+  type ProposalItemType = NonNullable<
+    GetDetailBookingResponse['booking']['Proposal']
+  >['ProposalItem'][number];
+  const rawProposalItems: ProposalItemType[] = Array.isArray(
     detailBooking?.booking?.Proposal?.ProposalItem
   )
-    ? (detailBooking?.booking?.Proposal?.ProposalItem as ProposalItem[])
+    ? (detailBooking?.booking?.Proposal?.ProposalItem as ProposalItemType[])
     : [];
 
   // Determine the latest proposal by proposalId using newest createdAt among its items
-  const itemsByProposal = new Map<number, ProposalItem[]>();
+  const itemsByProposal = new Map<number, ProposalItemType[]>();
   rawProposalItems.forEach(item => {
     const list = itemsByProposal.get(item.proposalId) ?? [];
     list.push(item);
@@ -277,7 +278,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
     }
   });
 
-  const lastProposalItems: ProposalItem[] =
+  const lastProposalItems: ProposalItemType[] =
     lastProposalId !== null ? (itemsByProposal.get(lastProposalId) ?? []) : [];
 
   // Within the latest proposal, take only the most recent snapshot (items with max createdAt)
@@ -289,7 +290,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
     it => new Date(it.createdAt).getTime() === lastMaxTime
   );
   // Deduplicate by serviceId in that snapshot (prefer larger id if duplicated)
-  const dedupMap = new Map<number, ProposalItem>();
+  const dedupMap = new Map<number, ProposalItemType>();
   lastSnapshotItems.forEach(it => {
     const existing = dedupMap.get(it.serviceId);
     if (!existing || (it.id ?? 0) > (existing.id ?? 0)) {
@@ -780,29 +781,49 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
 
                         {/* Show inspection report if exists */}
                         {hasInspectionReport && detailBooking?.booking?.inspectionReport && (
-                          <div className="space-y-3">
-                            <h4 className="text-sm font-medium text-gray-700">Báo cáo khảo sát</h4>
-                            <div className="p-3 border rounded-lg">
-                              <div className="space-y-3">
-                                <div className="flex justify-between items-start">
-                                  <div>
-                                    <p className="text-sm">Thời gian ước tính:</p>
-                                    <p className="font-medium">
-                                      {detailBooking.booking.inspectionReport.estimatedTime} phút
+                          <div className="space-y-4">
+                            <div className="flex items-center gap-3">
+                              <FileText className="h-5 w-5 text-gray-600" />
+                              <h4 className="text-base font-semibold text-gray-900">
+                                Báo cáo khảo sát
+                              </h4>
+                            </div>
+
+                            <div className="border border-gray-200 rounded-xl overflow-hidden">
+                              {/* Header */}
+                              <div className="px-6 py-4 border-b border-gray-100">
+                                <div className="flex items-center justify-between">
+                                  <div className="space-y-1">
+                                    <h5 className="font-medium text-gray-900">
+                                      Thông tin khảo sát
+                                    </h5>
+                                    <p className="text-sm text-gray-500">
+                                      Thời gian ước tính:{' '}
+                                      <span className="font-medium text-gray-900">
+                                        {detailBooking.booking.inspectionReport.estimatedTime} phút
+                                      </span>
                                     </p>
                                   </div>
-                                  <div className="text-xs">
-                                    {format(
-                                      new Date(detailBooking.booking.inspectionReport.createdAt),
-                                      'dd/MM/yyyy HH:mm',
-                                      { locale: vi }
-                                    )}
+                                  <div className="text-right">
+                                    <p className="text-xs text-gray-500">Tạo lúc</p>
+                                    <p className="text-sm font-medium text-gray-700">
+                                      {format(
+                                        new Date(detailBooking.booking.inspectionReport.createdAt),
+                                        'dd/MM/yyyy HH:mm',
+                                        { locale: vi }
+                                      )}
+                                    </p>
                                   </div>
                                 </div>
+                              </div>
 
+                              {/* Content */}
+                              <div className="px-6 py-4 space-y-4">
                                 <div>
-                                  <p className="text-sm mb-1">Ghi chú:</p>
-                                  <p className="text-sm">
+                                  <h6 className="text-sm font-medium text-gray-700 mb-2">
+                                    Ghi chú đánh giá
+                                  </h6>
+                                  <p className="text-sm text-gray-600 leading-relaxed bg-gray-50 p-3 rounded-lg">
                                     {detailBooking.booking.inspectionReport.note}
                                   </p>
                                 </div>
@@ -810,20 +831,24 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                                 {detailBooking.booking.inspectionReport.images &&
                                   detailBooking.booking.inspectionReport.images.length > 0 && (
                                     <div>
-                                      <p className="text-sm mb-2">Hình ảnh khảo sát:</p>
-                                      <div className="grid grid-cols-2 gap-2">
+                                      <h6 className="text-sm font-medium text-gray-700 mb-3">
+                                        Hình ảnh hiện trường (
+                                        {detailBooking.booking.inspectionReport.images.length})
+                                      </h6>
+                                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                                         {detailBooking.booking.inspectionReport.images.map(
                                           (image, index) => (
                                             <div
                                               key={index}
-                                              className="relative aspect-square rounded-lg overflow-hidden bg-gray-100"
+                                              className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 hover:shadow-md transition-shadow"
                                             >
                                               <Image
                                                 src={image}
-                                                alt={`Inspection ${index + 1}`}
+                                                alt={`Khảo sát ${index + 1}`}
                                                 fill
                                                 className="object-cover"
                                               />
+                                              <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-10 transition-opacity" />
                                             </div>
                                           )
                                         )}
@@ -837,88 +862,220 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
 
                         {/* Show existing proposals if any */}
                         {detailBooking?.booking?.Proposal && proposalDisplayItems.length > 0 && (
-                          <div className="space-y-3">
-                            <h4 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
-                              <FileText className="h-4 w-4 text-blue-500" />
-                              Dịch vụ đã đề xuất
-                              {detailBooking.booking.Proposal.status === 'REJECTED' && (
-                                <Badge variant="destructive" className="ml-2">
-                                  Đã bị từ chối
-                                </Badge>
-                              )}
-                              {detailBooking.booking.Proposal.status === 'PENDING' && (
-                                <Badge variant="secondary" className="ml-2">
-                                  Đang chờ duyệt
-                                </Badge>
-                              )}
-                              {detailBooking.booking.Proposal.status === 'APPROVED' && (
-                                <Badge variant="default" className="ml-2">
-                                  Đã duyệt
-                                </Badge>
-                              )}
-                            </h4>
-                            <div className="rounded-lg border border-green-100 bg-green-50 p-4">
-                              <div className="grid gap-4 sm:grid-cols-2">
-                                {proposalDisplayItems.map(({ item, totalQuantity }, idx) => {
-                                  const firstImage = Array.isArray(item.Service?.images)
-                                    ? item.Service?.images[0]
-                                    : undefined;
-                                  const price =
-                                    typeof item.Service?.virtualPrice === 'number' &&
-                                    item.Service.virtualPrice !== 0
-                                      ? item.Service.virtualPrice
-                                      : item.Service?.basePrice || 0;
-                                  return (
-                                    <div
-                                      key={item.id ?? idx}
-                                      className="flex gap-3 rounded-lg bg-white border border-gray-100 shadow-sm hover:shadow transition p-3"
-                                    >
-                                      <div className="relative w-16 h-16 rounded-md overflow-hidden bg-green-100 flex-shrink-0">
-                                        {firstImage ? (
-                                          <Image
-                                            src={firstImage}
-                                            alt={item.Service?.name ?? ''}
-                                            fill
-                                            className="object-cover"
-                                          />
-                                        ) : (
-                                          <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400 text-xs">
-                                            Không ảnh
-                                          </div>
-                                        )}
-                                      </div>
-                                      <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2">
-                                          <p className="font-medium truncate">
-                                            {item.Service?.name ?? ''}
-                                          </p>
-                                          <Badge variant="secondary" className="text-xs">
-                                            x{totalQuantity}
-                                          </Badge>
-                                        </div>
-                                        <p className="text-xs text-gray-500 truncate">
-                                          {item.Service?.description || 'Không có mô tả'}
-                                        </p>
-                                        <div className="flex items-center gap-2 mt-1">
-                                          <span className="text-sm font-semibold text-blue-700">
-                                            {price.toLocaleString('vi-VN')}đ
-                                          </span>
-                                          <span className="text-xs text-gray-400">
-                                            {item.Service?.durationMinutes} phút
-                                          </span>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  );
-                                })}
+                          <div className="space-y-4">
+                            <div className="flex items-center gap-3">
+                              <FileText className="h-5 w-5 text-gray-600" />
+                              <h4 className="text-base font-semibold text-gray-900">
+                                Dịch vụ đã đề xuất
+                              </h4>
+                              <div className="flex gap-2">
+                                {detailBooking.booking.Proposal.status === 'REJECTED' && (
+                                  <Badge variant="outline" className="text-xs border-gray-300">
+                                    Đã bị từ chối
+                                  </Badge>
+                                )}
+                                {detailBooking.booking.Proposal.status === 'PENDING' && (
+                                  <Badge variant="outline" className="text-xs border-gray-300">
+                                    Đang chờ duyệt
+                                  </Badge>
+                                )}
+                                {detailBooking.booking.Proposal.status === 'APPROVED' && (
+                                  <Badge variant="outline" className="text-xs border-gray-300">
+                                    Đã duyệt
+                                  </Badge>
+                                )}
                               </div>
-                              {/* Proposal notes */}
-                              {detailBooking.booking.Proposal.notes && (
-                                <div className="mt-4 p-3 rounded bg-green-50 border border-green-200 text-sm">
-                                  <span className="font-medium">Ghi chú đề xuất:</span>{' '}
-                                  {detailBooking.booking.Proposal.notes}
+                            </div>
+
+                            <div className="border border-gray-200 rounded-xl overflow-hidden">
+                              {/* Header */}
+                              <div className="px-6 py-4 border-b border-gray-100">
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <h5 className="font-medium text-gray-900">Chi tiết đề xuất</h5>
+                                    <p className="text-sm text-gray-500 mt-1">
+                                      {proposalDisplayItems.length} dịch vụ được đề xuất
+                                    </p>
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="text-xs text-gray-500">Tạo lúc</p>
+                                    <p className="text-sm font-medium text-gray-700">
+                                      {format(
+                                        new Date(detailBooking.booking.Proposal.createdAt),
+                                        'dd/MM/yyyy HH:mm',
+                                        { locale: vi }
+                                      )}
+                                    </p>
+                                  </div>
                                 </div>
-                              )}
+                              </div>
+
+                              {/* Services List */}
+                              <div className="px-6 py-4">
+                                <div className="space-y-4">
+                                  {proposalDisplayItems.map(({ item, totalQuantity }, idx) => {
+                                    const firstImage = Array.isArray(item.Service?.images)
+                                      ? item.Service?.images[0]
+                                      : undefined;
+                                    const price =
+                                      typeof item.Service?.virtualPrice === 'number' &&
+                                      item.Service.virtualPrice !== 0
+                                        ? item.Service.virtualPrice
+                                        : item.Service?.basePrice || 0;
+
+                                    return (
+                                      <div
+                                        key={item.id ?? idx}
+                                        className="border border-gray-100 rounded-lg p-4 hover:shadow-sm transition-shadow"
+                                      >
+                                        <div className="flex gap-4">
+                                          {/* Service Image */}
+                                          <div className="relative w-20 h-20 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                                            {firstImage ? (
+                                              <Image
+                                                src={firstImage}
+                                                alt={item.Service?.name ?? ''}
+                                                fill
+                                                className="object-cover"
+                                              />
+                                            ) : (
+                                              <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                                                <FileText className="h-8 w-8 text-gray-400" />
+                                              </div>
+                                            )}
+                                          </div>
+
+                                          {/* Service Details */}
+                                          <div className="flex-1 min-w-0">
+                                            <div className="flex items-start justify-between mb-2">
+                                              <div className="flex-1">
+                                                <h6 className="font-medium text-gray-900 truncate">
+                                                  {item.Service?.name ?? ''}
+                                                </h6>
+                                                <p className="text-sm text-gray-500 mt-1 line-clamp-2">
+                                                  {item.Service?.description || 'Không có mô tả'}
+                                                </p>
+                                              </div>
+                                              <Badge variant="outline" className="ml-3 text-xs">
+                                                x{totalQuantity}
+                                              </Badge>
+                                            </div>
+
+                                            <div className="flex items-center justify-between">
+                                              <div className="flex items-center gap-4 text-sm text-gray-600">
+                                                <span className="font-semibold text-gray-900">
+                                                  {price.toLocaleString('vi-VN')}đ
+                                                </span>
+                                                <span>{item.Service?.durationMinutes} phút</span>
+                                              </div>
+                                              <span className="text-sm font-medium text-gray-900">
+                                                Tổng:{' '}
+                                                {(price * totalQuantity).toLocaleString('vi-VN')}đ
+                                              </span>
+                                            </div>
+
+                                            {/* Attached Items */}
+                                            {item.Service?.attachedItems &&
+                                              item.Service.attachedItems.length > 0 && (
+                                                <div className="mt-3 pt-3 border-t border-gray-100">
+                                                  <h6 className="text-xs font-medium text-gray-700 mb-2">
+                                                    Vật tư đi kèm (
+                                                    {item.Service.attachedItems.length})
+                                                  </h6>
+                                                  <div className="space-y-2">
+                                                    {item.Service.attachedItems.map(
+                                                      (attachedItem, itemIndex: number) => {
+                                                        const serviceItem =
+                                                          attachedItem.serviceItem;
+                                                        return (
+                                                          <div
+                                                            key={serviceItem.id || itemIndex}
+                                                            className="flex items-center justify-between p-2 bg-gray-50 rounded-md text-xs"
+                                                          >
+                                                            <div className="flex-1">
+                                                              <div className="flex items-center gap-2">
+                                                                <span className="font-medium text-gray-900">
+                                                                  {serviceItem.name}
+                                                                </span>
+                                                                {serviceItem.brand && (
+                                                                  <span className="px-2 py-0.5 bg-gray-200 text-gray-700 rounded text-xs">
+                                                                    {serviceItem.brand}
+                                                                  </span>
+                                                                )}
+                                                                {serviceItem.model && (
+                                                                  <span className="px-2 py-0.5 bg-gray-200 text-gray-700 rounded text-xs">
+                                                                    {serviceItem.model}
+                                                                  </span>
+                                                                )}
+                                                              </div>
+                                                              {serviceItem.description && (
+                                                                <p className="text-gray-600 mt-1 line-clamp-1">
+                                                                  {serviceItem.description}
+                                                                </p>
+                                                              )}
+                                                            </div>
+                                                            <div className="text-right ml-3">
+                                                              <div className="font-medium text-gray-900">
+                                                                {serviceItem.unitPrice?.toLocaleString(
+                                                                  'vi-VN'
+                                                                )}
+                                                                đ
+                                                              </div>
+                                                              {serviceItem.warrantyPeriod && (
+                                                                <div className="text-gray-500">
+                                                                  BH: {serviceItem.warrantyPeriod}{' '}
+                                                                  tháng
+                                                                </div>
+                                                              )}
+                                                            </div>
+                                                          </div>
+                                                        );
+                                                      }
+                                                    )}
+                                                  </div>
+                                                </div>
+                                              )}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+
+                                {/* Proposal Notes */}
+                                {detailBooking.booking.Proposal.notes && (
+                                  <div className="mt-4 pt-4 border-t border-gray-100">
+                                    <h6 className="text-sm font-medium text-gray-700 mb-2">
+                                      Ghi chú đề xuất
+                                    </h6>
+                                    <p className="text-sm text-gray-600 leading-relaxed bg-gray-50 p-3 rounded-lg">
+                                      {detailBooking.booking.Proposal.notes}
+                                    </p>
+                                  </div>
+                                )}
+
+                                {/* Total Summary */}
+                                <div className="mt-4 pt-4 border-t border-gray-100">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-sm font-medium text-gray-700">
+                                      Tổng giá trị đề xuất
+                                    </span>
+                                    <span className="text-lg font-semibold text-gray-900">
+                                      {proposalDisplayItems
+                                        .reduce((total, { item, totalQuantity }) => {
+                                          const price =
+                                            typeof item.Service?.virtualPrice === 'number' &&
+                                            item.Service.virtualPrice !== 0
+                                              ? item.Service.virtualPrice
+                                              : item.Service?.basePrice || 0;
+                                          return total + price * totalQuantity;
+                                        }, 0)
+                                        .toLocaleString('vi-VN')}
+                                      đ
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
                             </div>
                           </div>
                         )}
@@ -1064,59 +1221,60 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
 
                                           {/* Show attached item details if available */}
                                           {service.attachedItems &&
-                                          service.attachedItems.length > 0 ? (
-                                            service.attachedItems.map(item => {
-                                              const sItem = item.serviceItem;
-                                              return (
-                                                <div
-                                                  key={sItem.id}
-                                                  className="flex items-start gap-2 p-2 mb-1 rounded border border-gray-200"
-                                                >
-                                                  <div className="flex-1">
-                                                    <div className="flex items-center gap-2">
-                                                      <span className="font-semibold text-xs text-gray-700">
-                                                        {sItem.name}
-                                                      </span>
-                                                      {sItem.brand && (
-                                                        <span className="ml-2 px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs">
-                                                          {sItem.brand}
-                                                        </span>
-                                                      )}
-                                                      {sItem.model && (
-                                                        <span className="ml-2 px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs">
-                                                          {sItem.model}
-                                                        </span>
-                                                      )}
-                                                    </div>
-                                                    <div className="flex flex-wrap gap-2 mt-1 text-xs text-gray-600">
-                                                      <span>
-                                                        <span className="font-medium">Giá:</span>{' '}
-                                                        {sItem.unitPrice?.toLocaleString('vi-VN')}đ
-                                                      </span>
-                                                      {sItem.warrantyPeriod && (
-                                                        <span>
-                                                          <span className="font-medium">
-                                                            Bảo hành:
-                                                          </span>{' '}
-                                                          {sItem.warrantyPeriod} tháng
-                                                        </span>
-                                                      )}
-                                                    </div>
-                                                    {sItem.description && (
-                                                      <div className="mt-1 text-xs text-gray-500 line-clamp-2">
-                                                        <span className="font-medium">Mô tả:</span>{' '}
-                                                        {sItem.description}
+                                            service.attachedItems.length > 0 && (
+                                              <div className="mt-3 pt-3 border-t border-gray-100">
+                                                <h6 className="text-xs font-medium text-gray-700 mb-2">
+                                                  Vật tư đi kèm ({service.attachedItems.length})
+                                                </h6>
+                                                <div className="space-y-2">
+                                                  {service.attachedItems.map(item => {
+                                                    const sItem = item.serviceItem;
+                                                    return (
+                                                      <div
+                                                        key={sItem.id}
+                                                        className="flex items-center justify-between p-2 bg-gray-50 rounded-md text-xs"
+                                                      >
+                                                        <div className="flex-1">
+                                                          <div className="flex items-center gap-2">
+                                                            <span className="font-medium text-gray-900">
+                                                              {sItem.name}
+                                                            </span>
+                                                            {sItem.brand && (
+                                                              <span className="px-2 py-0.5 bg-gray-200 text-gray-700 rounded text-xs">
+                                                                {sItem.brand}
+                                                              </span>
+                                                            )}
+                                                            {sItem.model && (
+                                                              <span className="px-2 py-0.5 bg-gray-200 text-gray-700 rounded text-xs">
+                                                                {sItem.model}
+                                                              </span>
+                                                            )}
+                                                          </div>
+                                                          {sItem.description && (
+                                                            <p className="text-gray-600 mt-1 line-clamp-1">
+                                                              {sItem.description}
+                                                            </p>
+                                                          )}
+                                                        </div>
+                                                        <div className="text-right ml-3">
+                                                          <div className="font-medium text-gray-900">
+                                                            {sItem.unitPrice?.toLocaleString(
+                                                              'vi-VN'
+                                                            )}
+                                                            đ
+                                                          </div>
+                                                          {sItem.warrantyPeriod && (
+                                                            <div className="text-gray-500">
+                                                              BH: {sItem.warrantyPeriod} tháng
+                                                            </div>
+                                                          )}
+                                                        </div>
                                                       </div>
-                                                    )}
-                                                  </div>
+                                                    );
+                                                  })}
                                                 </div>
-                                              );
-                                            })
-                                          ) : (
-                                            <div className="text-xs text-gray-500 mt-1">
-                                              <span>Không có vật tư</span>
-                                            </div>
-                                          )}
+                                              </div>
+                                            )}
 
                                           <div className="flex items-center gap-2 mt-2">
                                             <Badge variant="secondary" className="text-xs">

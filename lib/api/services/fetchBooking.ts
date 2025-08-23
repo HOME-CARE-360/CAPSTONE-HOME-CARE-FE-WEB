@@ -294,7 +294,28 @@ export interface GetDetailBookingResponse {
             createdAt: string;
             updatedAt: string;
           };
-          attachedItems: unknown[];
+          attachedItems: [
+            {
+              serviceId: number;
+              serviceItemId: number;
+              serviceItem: {
+                id: number;
+                name: string;
+                unitPrice: number;
+                warrantyPeriod: number;
+                createdAt: string;
+                deletedAt: string | null;
+                updatedAt: string;
+                brand: string;
+                description: string;
+                isActive: boolean;
+                model: string;
+                stockQuantity: number;
+                unit: string;
+                providerId: number;
+              };
+            },
+          ];
         };
       }>;
     } | null;

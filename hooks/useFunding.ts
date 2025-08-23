@@ -26,9 +26,10 @@ export const useGetListWithDraw = () => {
   });
 };
 
-export const useGetDetailWithDraw = (id: number) => {
+export const useGetDetailWithDraw = (id: number, options?: { enabled?: boolean }) => {
   return useQuery({
     queryKey: ['withdraw-detail', id],
     queryFn: () => fundingService.getDetailWithDraw(id),
+    enabled: options?.enabled ?? true,
   });
 };

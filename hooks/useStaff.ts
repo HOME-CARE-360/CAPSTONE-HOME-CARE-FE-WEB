@@ -5,6 +5,7 @@ import type {
   CreateStaffRequest,
   StaffSearchParams,
   StaffCheckInResponse,
+  StaffCheckInRequest,
   CreateInspectionReportRequest,
   CreateInspectionReportResponse,
   StaffCheckoutResponse,
@@ -57,9 +58,13 @@ export function useCreateStaff() {
 
 export function useStaffCheckIn() {
   const queryClient = useQueryClient();
-  return useMutation<StaffCheckInResponse, Error, number>({
-    mutationFn: async (bookingId: number) => {
-      const response = await staffService.staffCheckIn(bookingId);
+  return useMutation<
+    StaffCheckInResponse,
+    Error,
+    { bookingId: number; data?: StaffCheckInRequest }
+  >({
+    mutationFn: async ({ bookingId, data }) => {
+      const response = await staffService.staffCheckIn(bookingId, data);
       return response;
     },
     onSuccess: () => {

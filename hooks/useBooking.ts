@@ -10,6 +10,8 @@ import {
   GetReportResponse,
   CreateReviewRequest,
   CreateReviewResponse,
+  CompleteBookingRequest,
+  CompleteBookingResponse,
   isBankTransferData,
   isWalletPaymentData,
 } from '@/lib/api/services/fetchBooking';
@@ -209,6 +211,34 @@ export const useCreateReview = () => {
       }
 
       toast.error(userMessage);
+    },
+  });
+
+  return { data, isPending, error, mutate, mutateAsync };
+};
+
+export const useCompleteBooking = () => {
+  const { data, isPending, error, mutate, mutateAsync } = useMutation<
+    CompleteBookingResponse,
+    Error,
+    CompleteBookingRequest
+  >({
+    mutationFn: (data: CompleteBookingRequest) => serviceBooking.completeBooking(data),
+    onSuccess: () => {
+      toast.success('Hoàn thành đơn hàng thành công!');
+      window.location.reload();
+    },
+    onError: (error: Error) => {
+      let errorMessage = 'Đã xảy ra lỗi không mong muốn';
+      if (typeof error === 'object' && error !== null && 'message' in error) {
+        const errorObj = error as { message: string | ValidationError[] };
+        if (Array.isArray(errorObj.message)) {
+          errorMessage = errorObj.message[0]?.message || errorMessage;
+        } else if (typeof errorObj.message === 'string') {
+          errorMessage = errorObj.message;
+        }
+      }
+      toast.error(errorMessage);
     },
   });
 

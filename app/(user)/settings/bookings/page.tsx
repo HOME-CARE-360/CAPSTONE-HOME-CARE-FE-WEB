@@ -7,7 +7,46 @@ import {
   useUpdateUserProposal,
   useCancelServiceRequest,
 } from '@/hooks/useUser';
-import { CustomerBooking, ServiceItem } from '@/lib/api/services/fetchUser';
+import { CustomerBooking } from '@/lib/api/services/fetchUser';
+
+// Define proper types to avoid 'any'
+interface ServiceItem {
+  id?: number;
+  name?: string;
+  brand?: string;
+  model?: string;
+  description?: string;
+  unitPrice?: number;
+  warrantyPeriod?: number;
+  unit?: string;
+  stockQuantity?: number;
+}
+
+interface ServiceItemWrapper {
+  serviceItem?: ServiceItem;
+  id?: number;
+  name?: string;
+  brand?: string;
+  model?: string;
+  description?: string;
+  unitPrice?: number;
+  warrantyPeriod?: number;
+  unit?: string;
+  stockQuantity?: number;
+}
+
+// Helper function to safely get provider ID from booking
+function getProviderIdFromBooking(booking: BookingItem): number | undefined {
+  // Try to get providerId if it exists (some bookings may have this property)
+  const serviceProvider = booking.ServiceProvider;
+
+  // Check if serviceProvider has a providerId property (may exist in some API responses)
+  if (serviceProvider && 'providerId' in serviceProvider) {
+    return (serviceProvider as { providerId?: number }).providerId || serviceProvider.id;
+  }
+
+  return serviceProvider?.id;
+}
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -48,30 +87,44 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { useForm } from 'react-hook-form';
-import { useCreateReport, useCreateReview } from '@/hooks/useBooking';
+import { useCreateReport, useCreateReview, useCompleteBooking } from '@/hooks/useBooking';
 import { useUploadImage } from '@/hooks/useImage';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useGetOrCreateConversation } from '@/hooks/useConversation';
 
+//Booking status
 const getStatusConfig = (status: string) => {
-  const map: Record<string, { label: string; icon: LucideIcon }> = {
-    PENDING: { label: 'Chờ nhà cung cấp xác nhận', icon: ClockIcon },
-    CONFIRMED: { label: 'Đã xác nhận', icon: CheckCircle },
-    IN_PROGRESS: { label: 'Đang thực hiện', icon: ClockIcon },
-    COMPLETED: { label: 'Hoàn thành', icon: CheckCircle },
-    CANCELLED: { label: 'Đã hủy', icon: XCircle },
+  const map: Record<
+    string,
+    {
+      label: string;
+      icon: LucideIcon;
+      variant: 'default' | 'secondary' | 'destructive' | 'outline';
+    }
+  > = {
+    PENDING: { label: 'Chờ nhà cung cấp xác nhận', icon: ClockIcon, variant: 'secondary' },
+    CONFIRMED: { label: 'Đã xác nhận', icon: CheckCircle, variant: 'default' },
+    STAFF_COMPLETED: { label: 'Nhân viên thực hiện xong', icon: CheckCircle, variant: 'default' },
+    COMPLETED: { label: 'Hoàn thành', icon: CheckCircle, variant: 'default' },
+    CANCELLED: { label: 'Đã hủy', icon: XCircle, variant: 'destructive' },
   };
-  return map[status.toUpperCase()] || { label: status, icon: AlertCircle };
+  return (
+    map[status.toUpperCase()] || { label: status, icon: AlertCircle, variant: 'outline' as const }
+  );
 };
 
 const getTransactionStatusConfig = (status: string) => {
-  const map: Record<string, string> = {
-    PENDING: 'Chờ thanh toán',
-    PAID: 'Đã thanh toán',
-    FAILED: 'Thanh toán thất bại',
-    // REFUNDED: 'Đã hoàn tiền',
+  const map: Record<
+    string,
+    { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }
+  > = {
+    PENDING: { label: 'Chờ thanh toán', variant: 'secondary' },
+    PAID: { label: 'Đã thanh toán', variant: 'default' },
+    SUCCESS: { label: 'Đã thanh toán', variant: 'default' },
+    FAILED: { label: 'Thanh toán thất bại', variant: 'destructive' },
+    // REFUNDED: { label: 'Đã hoàn tiền', variant: 'outline' },
   };
-  return map[status.toUpperCase()] || status;
+  return map[status.toUpperCase()] || { label: status, variant: 'outline' as const };
 };
 
 // Translate Service Request status to Vietnamese
@@ -249,50 +302,72 @@ const ProposalSection = ({
                 {Array.isArray(item.Service?.serviceItems) &&
                   item.Service.serviceItems.length > 0 && (
                     <div className="mt-2 grid gap-2">
-                      {(item.Service.serviceItems as ServiceItem[]).map(serviceItem => (
-                        <div
-                          key={serviceItem.serviceItem.id}
-                          className="flex flex-col sm:flex-row items-end sm:items-end gap-3 border rounded-lg p-3 bg-muted/20"
-                        >
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="font-semibold text-sm truncate">
-                                {serviceItem.serviceItem.name}
-                              </span>
-                              {serviceItem.serviceItem.brand && (
-                                <span className="ml-1 py-0.5 rounded bg-muted text-muted-foreground text-xs">
-                                  {serviceItem.serviceItem.brand}
-                                </span>
+                      {item.Service.serviceItems.map(
+                        (serviceItem: ServiceItemWrapper, itemIndex: number) => {
+                          // Handle different possible structures
+                          const actualServiceItem: ServiceItem =
+                            serviceItem?.serviceItem || serviceItem;
+
+                          return (
+                            <div
+                              key={actualServiceItem?.id || `service-item-${index}-${itemIndex}`}
+                              className="flex flex-col sm:flex-row items-end sm:items-end gap-3 border rounded-lg p-3 bg-muted/20"
+                            >
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-semibold text-sm truncate">
+                                    {actualServiceItem?.name || 'Không có tên'}
+                                  </span>
+                                  {actualServiceItem?.brand && (
+                                    <span className="ml-1 py-0.5 rounded bg-muted text-muted-foreground text-xs">
+                                      {actualServiceItem.brand}
+                                    </span>
+                                  )}
+                                </div>
+                                {actualServiceItem?.model && (
+                                  <div className="text-xs text-muted-foreground mt-0.5">
+                                    Model:{' '}
+                                    <span className="font-medium text-foreground">
+                                      {actualServiceItem.model}
+                                    </span>
+                                  </div>
+                                )}
+                                {actualServiceItem?.description && (
+                                  <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                                    {actualServiceItem.description}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex flex-col gap-1 text-xs min-w-[120px]">
+                                <div>
+                                  <span className="text-muted-foreground">Đơn giá: </span>
+                                  <span className="font-medium">
+                                    {actualServiceItem?.unitPrice
+                                      ? formatCurrency(actualServiceItem.unitPrice)
+                                      : 'N/A'}
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="text-muted-foreground">Bảo hành: </span>
+                                  <span>{actualServiceItem?.warrantyPeriod || 0} tháng</span>
+                                </div>
+                                {/* {actualServiceItem?.unit && (
+                                <div>
+                                  <span className="text-muted-foreground">Đơn vị: </span>
+                                  <span>{actualServiceItem.unit}</span>
+                                </div>
                               )}
-                            </div>
-                            {serviceItem.serviceItem.model && (
-                              <div className="text-xs text-muted-foreground mt-0.5">
-                                Model:{' '}
-                                <span className="font-medium text-foreground">
-                                  {serviceItem.serviceItem.model}
-                                </span>
+                              {typeof actualServiceItem?.stockQuantity === 'number' && (
+                                <div>
+                                  <span className="text-muted-foreground">Tồn kho: </span>
+                                  <span>{actualServiceItem.stockQuantity}</span>
+                                </div>
+                              )} */}
                               </div>
-                            )}
-                            {serviceItem.serviceItem.description && (
-                              <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-                                {serviceItem.serviceItem.description}
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex flex-col gap-1 text-xs min-w-[120px]">
-                            <div>
-                              <span className="text-muted-foreground">Đơn giá: </span>
-                              <span className="font-medium">
-                                {formatCurrency(serviceItem.serviceItem.unitPrice)}
-                              </span>
                             </div>
-                            <div>
-                              <span className="text-muted-foreground">Bảo hành: </span>
-                              <span>{serviceItem.serviceItem.warrantyPeriod} tháng</span>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
+                          );
+                        }
+                      )}
                     </div>
                   )}
 
@@ -349,7 +424,7 @@ const ProposalSection = ({
               size="sm"
               className="flex-1 sm:flex-initial bg-emerald-600 hover:bg-emerald-700 text-white transition-colors duration-150"
               disabled={isCreatingPayment}
-              aria-label="Thanh toán bằng ví"
+              aria-label="Ví"
               onClick={() =>
                 createTransaction(
                   { bookingId, method: 'WALLET' },
@@ -380,7 +455,7 @@ const ProposalSection = ({
               ) : (
                 <span className="flex items-center gap-2">
                   <Wallet className="h-4 w-4" />
-                  Thanh toán bằng ví
+                  Ví
                 </span>
               )}
             </Button>
@@ -530,7 +605,7 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [isReviewOpen, setIsReviewOpen] = useState(false);
   const statusConfig = getStatusConfig(booking.status);
-  const transactionStatusLabel = getTransactionStatusConfig(
+  const transactionStatusConfig = getTransactionStatusConfig(
     booking.Transaction?.status || 'PENDING'
   );
 
@@ -555,6 +630,8 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
   const { mutate: createReport, isPending: isReporting } = useCreateReport();
   const { mutateAsync: uploadImage, isPending: isUploading } = useUploadImage();
   const { mutate: cancelServiceRequest, isPending: isCancelling } = useCancelServiceRequest();
+  const { mutate: completeBooking, isPending: isCompleting } = useCompleteBooking();
+  const queryClient = useQueryClient();
 
   const handleUpload = async (file: File): Promise<string> => {
     const res = await uploadImage(file);
@@ -607,7 +684,7 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
         <div className="flex justify-between items-start">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className="gap-1">
+              <Badge variant={statusConfig.variant} className="gap-1">
                 <statusConfig.icon className="h-3 w-3" />
                 {statusConfig.label}
               </Badge>
@@ -637,6 +714,35 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
                   </span>
                 ) : (
                   'Hủy yêu cầu'
+                )}
+              </Button>
+            )}
+            {booking.status?.toUpperCase() === 'STAFF_COMPLETED' && (
+              <Button
+                variant="default"
+                size="sm"
+                disabled={isCompleting}
+                onClick={() =>
+                  completeBooking(
+                    { bookingId: booking.id },
+                    {
+                      onSuccess: () => {
+                        queryClient.invalidateQueries({ queryKey: ['users', 'bookings'] });
+                      },
+                    }
+                  )
+                }
+                aria-label="Hoàn thành đơn đặt này"
+              >
+                {isCompleting ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="animate-spin h-4 w-4" />
+                    Đang xử lý...
+                  </span>
+                ) : (
+                  <>
+                    <CheckCircle className="h-4 w-4 mr-1" /> Hoàn thành
+                  </>
                 )}
               </Button>
             )}
@@ -706,12 +812,7 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
                 size="sm"
                 variant="outline"
                 onClick={() => {
-                  const providerId =
-                    (
-                      booking as unknown as {
-                        ServiceProvider?: { providerId?: number; id?: number };
-                      }
-                    ).ServiceProvider?.providerId || booking.ServiceProvider?.id;
+                  const providerId = getProviderIdFromBooking(booking);
                   if (!providerId) return;
                   getOrCreateConv(
                     { receiverId: Number(providerId) },
@@ -752,7 +853,9 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
             <div className="grid gap-2 text-sm">
               <div className="flex justify-between">
                 <span>Thanh toán đặt dịch vụ</span>
-                <Badge variant="outline">{transactionStatusLabel}</Badge>
+                <Badge variant={transactionStatusConfig.variant}>
+                  {transactionStatusConfig.label}
+                </Badge>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Số tiền:</span>
@@ -912,7 +1015,9 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
                 transactionAmount={booking.Transaction?.amount}
                 paymentTransactionStatus={booking.ServiceRequest?.PaymentTransaction?.status}
                 paymentTransactionAmountOut={booking.ServiceRequest?.PaymentTransaction?.amountOut}
-                hasTransaction={Boolean(booking.Transaction)}
+                hasTransaction={Boolean(
+                  booking.Transaction && booking.Transaction.status?.toUpperCase() !== 'PENDING'
+                )}
               />
             </div>
           </div>
@@ -1087,9 +1192,9 @@ export default function BookingsPage() {
       filter: (b: BookingItem) => b.status.toUpperCase() === 'CONFIRMED',
     },
     {
-      key: 'in-progress',
-      label: 'Đang thực hiện',
-      filter: (b: BookingItem) => b.status.toUpperCase() === 'IN_PROGRESS',
+      key: 'staff-completed',
+      label: 'Nhân viên đã xong',
+      filter: (b: BookingItem) => b.status.toUpperCase() === 'STAFF_COMPLETED',
     },
     {
       key: 'completed',

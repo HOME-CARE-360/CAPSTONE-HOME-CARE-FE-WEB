@@ -1,7 +1,6 @@
 import Image from 'next/image';
 import { Service } from '@/lib/api/services/fetchService';
 import { formatCurrency } from '@/utils/numbers/formatCurrency';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Clock, Heart, Share2, ChevronLeft, ChevronRight, User } from 'lucide-react';
 import Link from 'next/link';
@@ -173,7 +172,7 @@ export function ServiceCard({ service, priority = false, onHover, size = 'md' }:
                 )
             )}
             <div className="absolute top-4 left-4 flex gap-2">
-              {categoryNames.slice(0, 2).map(name => (
+              {/* {categoryNames.slice(0, 2).map(name => (
                 <Badge
                   key={name}
                   variant="outline"
@@ -184,7 +183,7 @@ export function ServiceCard({ service, priority = false, onHover, size = 'md' }:
                 >
                   {name}
                 </Badge>
-              ))}
+              ))} */}
             </div>
             {isHovered && service.images.length > 1 && (
               <>

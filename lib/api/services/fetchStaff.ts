@@ -94,6 +94,7 @@ export interface CreateInspectionReportRequest {
   estimatedTime: number;
   note: string;
   images: string[];
+  assetIds?: number[];
   [key: string]: unknown;
 }
 
@@ -221,6 +222,11 @@ export interface StaffCheckOutRequest {
   imageUrls?: string[];
 }
 
+export interface StaffCheckInRequest {
+  imageUrls?: string[];
+  [key: string]: unknown;
+}
+
 export interface StaffCheckoutResponse {
   success: boolean;
   code: string;
@@ -284,10 +290,13 @@ export const staffService = {
     return response.data;
   },
 
-  staffCheckIn: async (bookingId: number): Promise<StaffCheckInResponse> => {
+  staffCheckIn: async (
+    bookingId: number,
+    data: StaffCheckInRequest = {}
+  ): Promise<StaffCheckInResponse> => {
     const response = await apiService.post<StaffCheckInResponse>(
       `/staffs/staff-checkin/${bookingId}`,
-      {}
+      data
     );
     return response.data;
   },

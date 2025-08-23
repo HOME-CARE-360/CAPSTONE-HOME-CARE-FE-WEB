@@ -13,6 +13,10 @@ import { toast } from 'sonner';
 export const useCreateProposalTransaction = () => {
   return useMutation<CreateProposalTransactionResponse, Error, CreateProposalTransactionRequest>({
     mutationFn: data => paymentService.createProposalTransaction(data),
+    onSuccess: () => {
+      toast.success('Thanh toán thành công');
+      window.location.reload();
+    },
     onError: (error: unknown) => {
       // Type guard to check if error has response property
       const isAxiosError = (

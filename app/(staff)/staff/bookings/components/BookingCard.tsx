@@ -84,6 +84,7 @@ interface InspectionReportFormData {
   estimatedTime: number;
   note: string;
   images: string[];
+  assetIds: number[];
 }
 
 interface UploadedImage {
@@ -108,10 +109,14 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
     estimatedTime: 0,
     note: '',
     images: [],
+    assetIds: [],
   });
+  const [selectedAssets, setSelectedAssets] = useState<number[]>([]);
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [checkoutImages, setCheckoutImages] = useState<UploadedImage[]>([]);
+  const [checkinOpen, setCheckinOpen] = useState(false);
+  const [checkinImages, setCheckinImages] = useState<UploadedImage[]>([]);
 
   // Asset management state
   const [assetsViewOpen, setAssetsViewOpen] = useState(false);
@@ -132,8 +137,8 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
   const { mutate: uploadImage, isPending: isUploading } = useUploadImage();
   const { mutate: staffCheckOut, isPending: isCheckingOut } = useStaffCheckOut();
 
-  // Staff booking detail hook - fetch when asset dialogs need customer ID
-  const shouldFetchBookingDetail = assetsViewOpen || assetCreateOpen;
+  // Staff booking detail hook - fetch when asset dialogs need customer ID or when creating inspection report
+  const shouldFetchBookingDetail = assetsViewOpen || assetCreateOpen || activeTab === 'report';
   const { data: bookingDetailResponse, isLoading: isLoadingBookingDetail } = useStaffBookingDetail(
     booking.id,
     { enabled: shouldFetchBookingDetail }
@@ -147,7 +152,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
     assets,
     isLoading: isLoadingAssets,
     error: assetsError,
-  } = useAssetsList(customerId || 0, { enabled: !!customerId });
+  } = useAssetsList(customerId || 0, { enabled: !!customerId && shouldFetchBookingDetail });
   const { createAsset, isLoading: isCreatingAsset } = useCreateAsset();
 
   // Categories query
@@ -223,12 +228,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
   const isProposalAccepted = (proposalData?.data?.status || '').toUpperCase() === 'ACCEPTED';
 
   const handleCheckIn = () => {
-    checkIn(booking.id, {
-      onSuccess: () => {
-        setOpen(false);
-        onStaffAssigned?.();
-      },
-    });
+    setCheckinOpen(true);
   };
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -294,6 +294,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
         estimatedTime: formData.estimatedTime,
         note: formData.note.trim(),
         images: successfulImages,
+        assetIds: selectedAssets,
       },
       {
         onSuccess: () => {
@@ -301,7 +302,9 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
             estimatedTime: 0,
             note: '',
             images: [],
+            assetIds: [],
           });
+          setSelectedAssets([]);
           setUploadedImages([]);
           setActiveTab('details');
           onStaffAssigned?.();
@@ -363,6 +366,71 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
         onSuccess: () => {
           setCheckoutOpen(false);
           setCheckoutImages([]);
+          onStaffAssigned?.();
+        },
+      }
+    );
+  };
+
+  // Check-in image handlers
+  const handleCheckinImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files) return;
+
+    Array.from(files).forEach(file => {
+      const imageId = `${Date.now()}-${Math.random()}`;
+      const preview = URL.createObjectURL(file);
+
+      const newImage: UploadedImage = {
+        id: imageId,
+        file,
+        preview,
+        status: 'uploading',
+      };
+
+      setCheckinImages(prev => [...prev, newImage]);
+
+      uploadImage(file, {
+        onSuccess: response => {
+          setCheckinImages(prev =>
+            prev.map(img =>
+              img.id === imageId ? { ...img, url: response.url, status: 'success' as const } : img
+            )
+          );
+        },
+        onError: () => {
+          setCheckinImages(prev =>
+            prev.map(img => (img.id === imageId ? { ...img, status: 'error' as const } : img))
+          );
+        },
+      });
+    });
+  };
+
+  const removeCheckinImage = (index: number) => {
+    const imageToRemove = checkinImages[index];
+    if (imageToRemove?.preview) {
+      URL.revokeObjectURL(imageToRemove.preview);
+    }
+    setCheckinImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSubmitCheckin = (e: React.FormEvent) => {
+    e.preventDefault();
+    const successfulImages = checkinImages
+      .filter(img => img.status === 'success' && img.url)
+      .map(img => img.url!);
+
+    checkIn(
+      {
+        bookingId: booking.id,
+        data: successfulImages.length > 0 ? { imageUrls: successfulImages } : undefined,
+      },
+      {
+        onSuccess: () => {
+          setCheckinOpen(false);
+          setCheckinImages([]);
+          setOpen(false);
           onStaffAssigned?.();
         },
       }
@@ -436,7 +504,9 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
         estimatedTime: 0,
         note: '',
         images: [],
+        assetIds: [],
       });
+      setSelectedAssets([]);
       setActiveTab('details');
     }
   }, [open]); // Only depend on open state change
@@ -544,19 +614,10 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                               onClick={handleCheckIn}
                               disabled={isCheckingIn}
                               size="sm"
-                              className="bg-blue-600 hover:bg-blue-700 just"
+                              className="bg-blue-600 hover:bg-blue-700"
                             >
-                              {isCheckingIn ? (
-                                <>
-                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                  Đang check-in...
-                                </>
-                              ) : (
-                                <>
-                                  <UserCheck className="h-4 w-4 mr-2" />
-                                  Check-in ngay
-                                </>
-                              )}
+                              <UserCheck className="h-4 w-4 mr-2" />
+                              Check-in ngay
                             </Button>
                           )}
                         </div>
@@ -980,6 +1041,87 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                         </p>
                       </div>
 
+                      {/* Asset Selection */}
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-sm font-medium text-gray-700">
+                            Chọn thiết bị liên quan (tùy chọn)
+                          </Label>
+                          {selectedAssets.length > 0 && (
+                            <span className="text-xs text-gray-500">
+                              Đã chọn {selectedAssets.length} thiết bị
+                            </span>
+                          )}
+                        </div>
+
+                        {isLoadingBookingDetail ? (
+                          <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <span className="text-sm text-gray-500">
+                              Đang tải thông tin khách hàng...
+                            </span>
+                          </div>
+                        ) : !customerId ? (
+                          <div className="p-3 bg-gray-50 rounded-lg">
+                            <p className="text-sm text-gray-500">
+                              Không thể tải thông tin khách hàng
+                            </p>
+                          </div>
+                        ) : isLoadingAssets ? (
+                          <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <span className="text-sm text-gray-500">
+                              Đang tải danh sách thiết bị...
+                            </span>
+                          </div>
+                        ) : !assets || !Array.isArray(assets) || assets.length === 0 ? (
+                          <div className="p-3 bg-gray-50 rounded-lg">
+                            <p className="text-sm text-gray-500">Khách hàng chưa có thiết bị nào</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-2 max-h-48 overflow-y-auto border rounded-lg p-3">
+                            {assets.map(asset => (
+                              <div
+                                key={asset.id}
+                                className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded"
+                              >
+                                <input
+                                  type="checkbox"
+                                  id={`asset-${asset.id}`}
+                                  checked={selectedAssets.includes(asset.id)}
+                                  onChange={e => {
+                                    if (e.target.checked) {
+                                      setSelectedAssets(prev => [...prev, asset.id]);
+                                    } else {
+                                      setSelectedAssets(prev => prev.filter(id => id !== asset.id));
+                                    }
+                                  }}
+                                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                />
+                                <Label
+                                  htmlFor={`asset-${asset.id}`}
+                                  className="flex-1 cursor-pointer"
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <div>
+                                      <p className="font-medium text-gray-900">{asset.nickname}</p>
+                                      <p className="text-sm text-gray-500">
+                                        {asset.brand} {asset.model} - SN: {asset.serial}
+                                      </p>
+                                    </div>
+                                    <Badge variant="outline" className="text-xs">
+                                      ID: {asset.id}
+                                    </Badge>
+                                  </div>
+                                </Label>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <Separator />
+
                       {/* Image Upload */}
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
@@ -1122,17 +1264,8 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                 size="sm"
                 className="h-7 px-2 text-xs bg-blue-600 hover:bg-blue-700"
               >
-                {isCheckingIn ? (
-                  <>
-                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                    Đang check-in...
-                  </>
-                ) : (
-                  <>
-                    <UserCheck className="h-3 w-3 mr-1" />
-                    Check-in
-                  </>
-                )}
+                <UserCheck className="h-3 w-3 mr-1" />
+                Check-in
               </Button>
             )}
 
@@ -1478,7 +1611,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
 
       {/* Create Asset Dialog */}
       <Dialog open={assetCreateOpen} onOpenChange={setAssetCreateOpen}>
-        <DialogContent className="max-w-lg max-h-[80vh] flex flex-col p-0">
+        <DialogContent className="max-w-lg max-h-[80vh] flex flex-col p-0 overflow-x-hidden">
           <div className="px-6 py-5 border-b">
             <DialogHeader>
               <DialogTitle className="text-xl font-semibold flex items-center gap-2">
@@ -1663,6 +1796,135 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Check-in Dialog */}
+      <Sheet open={checkinOpen} onOpenChange={setCheckinOpen}>
+        <SheetContent side="right" className="sm:max-w-lg w-full flex flex-col p-0">
+          <div className="px-6 py-5 border-b">
+            <SheetHeader>
+              <SheetTitle className="text-xl font-semibold flex items-center gap-2">
+                <UserCheck className="h-5 w-5 text-blue-500" />
+                Check-in công việc
+              </SheetTitle>
+              <SheetDescription className="mt-1">
+                Tải lên hình ảnh trước khi bắt đầu (tùy chọn), sau đó xác nhận check-in.
+              </SheetDescription>
+            </SheetHeader>
+          </div>
+          <form
+            onSubmit={handleSubmitCheckin}
+            className="flex-1 flex flex-col justify-between px-6 py-5 space-y-6"
+          >
+            <div>
+              <div className="mb-4">
+                <Label className="block text-sm font-medium text-gray-700 mb-2">
+                  Hình ảnh hiện trường (tối đa 4)
+                </Label>
+                <div className="flex items-center gap-3">
+                  <Input
+                    type="file"
+                    id="checkin-image-upload"
+                    multiple
+                    accept="image/*"
+                    onChange={handleCheckinImageSelect}
+                    className="hidden"
+                    disabled={isUploading || checkinImages.length >= 4}
+                  />
+                  <Label
+                    htmlFor="checkin-image-upload"
+                    className={`inline-flex items-center gap-2 px-4 py-2 border-2 border-dashed border-gray-300 bg-gray-50 rounded-lg cursor-pointer transition hover:bg-gray-100 focus:ring-2 focus:ring-gray-300 ${
+                      isUploading || checkinImages.length >= 4
+                        ? 'opacity-50 cursor-not-allowed'
+                        : ''
+                    }`}
+                  >
+                    {isUploading ? (
+                      <Loader2 className="h-5 w-5 animate-spin text-gray-500" />
+                    ) : (
+                      <Upload className="h-5 w-5 text-gray-500" />
+                    )}
+                    <span className="font-medium text-gray-700">
+                      {isUploading
+                        ? 'Đang tải lên...'
+                        : checkinImages.length >= 4
+                          ? 'Đã đạt giới hạn'
+                          : 'Tải lên hình ảnh'}
+                    </span>
+                  </Label>
+                  <span className="text-xs text-gray-500">{checkinImages.length}/4</span>
+                </div>
+              </div>
+              {checkinImages.length > 0 && (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
+                  {checkinImages.map((image, index) => (
+                    <div
+                      key={image.id}
+                      className="relative group rounded-lg overflow-hidden border border-gray-200 shadow-sm"
+                    >
+                      <Image
+                        src={image.preview}
+                        alt={`Check-in ${index + 1}`}
+                        width={120}
+                        height={120}
+                        className="w-full h-28 object-cover"
+                        style={{ aspectRatio: '1/1' }}
+                        priority={index === 0}
+                      />
+                      {image.status === 'uploading' && (
+                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                          <Loader2 className="h-6 w-6 text-white animate-spin" />
+                        </div>
+                      )}
+                      {image.status === 'error' && (
+                        <div className="absolute inset-0 bg-red-500/30 flex items-center justify-center">
+                          <span className="text-red-700 text-xs font-semibold">Lỗi tải lên</span>
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        aria-label="Xóa hình ảnh"
+                        onClick={() => removeCheckinImage(index)}
+                        className="absolute top-2 right-2 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center opacity-80 hover:opacity-100 transition-opacity shadow-lg"
+                        tabIndex={0}
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <SheetFooter className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-4 border-t border-gray-100">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setCheckinOpen(false)}
+                disabled={isCheckingIn || isUploading}
+                className="sm:mr-2"
+              >
+                Hủy
+              </Button>
+              <Button
+                type="submit"
+                disabled={isCheckingIn || isUploading}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow"
+              >
+                {isCheckingIn ? (
+                  <>
+                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                    Đang check-in...
+                  </>
+                ) : (
+                  <>
+                    <UserCheck className="h-5 w-5 mr-2" />
+                    Xác nhận check-in
+                  </>
+                )}
+              </Button>
+            </SheetFooter>
+          </form>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

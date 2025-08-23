@@ -430,6 +430,23 @@ export interface CreateReviewResponse {
   timestamp: string;
 }
 
+export interface CompleteBookingRequest {
+  bookingId: number;
+}
+
+export interface CompleteBookingResponse {
+  success: boolean;
+  code: string;
+  message: string;
+  data?: {
+    id: number;
+    status: string;
+    updatedAt: string;
+  };
+  statusCode: number;
+  timestamp: string;
+}
+
 export const serviceBooking = {
   createBooking: async (data: CreateBookingRequest): Promise<CreateServiceRequestResponse> => {
     try {
@@ -519,6 +536,16 @@ export const serviceBooking = {
       return response.data as CreateReviewResponse;
     } catch (error) {
       console.error('Create Review Error:', error);
+      throw error;
+    }
+  },
+
+  completeBooking: async (data: CompleteBookingRequest): Promise<CompleteBookingResponse> => {
+    try {
+      const response = await apiService.patch(`/users/complete-booking`, data);
+      return response.data as CompleteBookingResponse;
+    } catch (error) {
+      console.error('Complete Booking Error:', error);
       throw error;
     }
   },

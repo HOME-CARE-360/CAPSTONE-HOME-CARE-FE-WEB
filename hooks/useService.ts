@@ -41,6 +41,21 @@ export function useService(id?: string | number) {
   });
 }
 
+/**
+ * Hook to fetch services by provider ID
+ */
+export function useProviderServices(providerId?: number, page = 1, limit = 12) {
+  return useServices(
+    providerId
+      ? {
+          providerIds: [providerId],
+          page,
+          limit,
+        }
+      : undefined
+  );
+}
+
 // export const usePropertyBySlug = (slug: string) => {
 //   return useQuery({
 //     queryKey: ['properties', 'detail', slug],

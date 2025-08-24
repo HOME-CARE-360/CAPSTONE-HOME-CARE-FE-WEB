@@ -7,8 +7,9 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useUpdateProfile, useUserProfile } from '@/hooks/useUser';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Calendar } from '@/components/ui/calendar';
-import { CalendarIcon, Upload } from 'lucide-react';
+import { CalendarIcon, Upload, Eye, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Badge } from '@/components/ui/badge';
 import { useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
@@ -31,6 +32,7 @@ import {
 } from '@/components/ui/dialog';
 import { useRouter } from 'next/navigation';
 import { useWalletTopUp } from '@/hooks/usePayment';
+import { useCreateWithDraw, useGetListWithDraw, useGetDetailWithDraw } from '@/hooks/useFunding';
 
 type UpdateProfileFormData = {
   user: {
@@ -45,6 +47,18 @@ type UpdateProfileFormData = {
   };
 };
 
+// Withdraw data types - import from the actual service
+interface WithdrawItem {
+  id: number;
+  amount: number;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'COMPLETED' | 'CANCELLED';
+  createdAt: string;
+  processedAt: string | null;
+  processedById: number | null;
+  note: string | null;
+  userId: number;
+}
+
 export default function ProfilePage() {
   const router = useRouter();
   const { data: profile, refetch } = useUserProfile();
@@ -57,15 +71,33 @@ export default function ProfilePage() {
   const [isUploadingAvatar, setIsUploadingAvatar] = useState<boolean>(false);
   const [isTopUpOpen, setIsTopUpOpen] = useState<boolean>(false);
   const [topUpAmount, setTopUpAmount] = useState<string>('');
+  const [isWithdrawOpen, setIsWithdrawOpen] = useState<boolean>(false);
+  const [withdrawAmount, setWithdrawAmount] = useState<string>('');
+  const [isDetailOpen, setIsDetailOpen] = useState<boolean>(false);
+  const [selectedWithdrawId, setSelectedWithdrawId] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const walletTopUpMutation = useWalletTopUp();
+  const createWithdrawMutation = useCreateWithDraw();
+  const { data: withdrawList, isLoading: isLoadingWithdraws } = useGetListWithDraw();
+
+  // Fetch withdraw detail when needed
+  const { data: withdrawDetail, isLoading: isLoadingDetail } = useGetDetailWithDraw(
+    selectedWithdrawId || 0,
+    { enabled: !!selectedWithdrawId && isDetailOpen }
+  );
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const digitsOnly = e.target.value.replace(/[^0-9]/g, '');
     setTopUpAmount(digitsOnly);
   };
 
+  const handleWithdrawAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const digitsOnly = e.target.value.replace(/[^0-9]/g, '');
+    setWithdrawAmount(digitsOnly);
+  };
+
   const parsedAmount = topUpAmount ? Number(topUpAmount) : 0;
+  const parsedWithdrawAmount = withdrawAmount ? Number(withdrawAmount) : 0;
 
   const handleTopUp = async () => {
     try {
@@ -85,6 +117,39 @@ export default function ProfilePage() {
     } catch (error) {
       toast.error('Không thể tạo giao dịch nạp tiền');
     }
+  };
+
+  const handleWithdraw = async () => {
+    try {
+      if (!parsedWithdrawAmount || parsedWithdrawAmount < 30000) {
+        toast.error('Số tiền rút tối thiểu là 30.000 VND');
+        return;
+      }
+
+      const currentBalance = wallet?.balance || 0;
+      if (parsedWithdrawAmount > currentBalance) {
+        toast.error('Số tiền rút không được vượt quá số dư hiện tại');
+        return;
+      }
+
+      await createWithdrawMutation.mutateAsync({ amount: parsedWithdrawAmount });
+      setIsWithdrawOpen(false);
+      setWithdrawAmount('');
+      // Refresh profile to update wallet balance
+      refetch();
+    } catch (error) {
+      console.error('Withdraw error:', error);
+    }
+  };
+
+  const handleViewDetail = (withdrawId: number) => {
+    setSelectedWithdrawId(withdrawId);
+    setIsDetailOpen(true);
+  };
+
+  const handleCloseDetail = () => {
+    setIsDetailOpen(false);
+    setSelectedWithdrawId(null);
   };
 
   const form = useForm<UpdateProfileFormData>({
@@ -218,7 +283,7 @@ export default function ProfilePage() {
 
   return (
     <div>
-      <Card>
+      <Card className="my-10">
         <CardHeader>
           <CardTitle>Hồ Sơ Của Tôi</CardTitle>
           <p className="text-sm text-muted-foreground">
@@ -479,11 +544,30 @@ export default function ProfilePage() {
                       </span>
                     </div>
                   </div>
-                  <div className="mt-4">
-                    <Dialog open={isTopUpOpen} onOpenChange={setIsTopUpOpen}>
+                  <div className="mt-4 space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
                       <Button className="w-full" type="button" onClick={handleOpenTopUp}>
                         Nạp tiền vào ví
                       </Button>
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        type="button"
+                        onClick={() => {
+                          const bankAcc = getWalletBankAccount(wallet);
+                          if (!bankAcc) {
+                            router.push('/settings/bank');
+                            return;
+                          }
+                          setIsWithdrawOpen(true);
+                        }}
+                      >
+                        Rút tiền
+                      </Button>
+                    </div>
+
+                    {/* Top Up Dialog */}
+                    <Dialog open={isTopUpOpen} onOpenChange={setIsTopUpOpen}>
                       <DialogContent>
                         <DialogHeader>
                           <DialogTitle>Nạp tiền vào ví</DialogTitle>
@@ -548,6 +632,95 @@ export default function ProfilePage() {
                         </DialogFooter>
                       </DialogContent>
                     </Dialog>
+
+                    {/* Withdraw Dialog */}
+                    <Dialog open={isWithdrawOpen} onOpenChange={setIsWithdrawOpen}>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Rút tiền từ ví</DialogTitle>
+                          <DialogDescription>
+                            Vui lòng kiểm tra thông tin ví và nhập số tiền muốn rút.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-3">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Số dư hiện tại</span>
+                            <span className="font-medium text-green-600">
+                              {formatCurrency(wallet?.balance || 0, 'VND')}
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Chủ tài khoản</span>
+                            <span className="font-medium">{wallet?.accountHolder}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Ngân hàng</span>
+                            <span className="font-medium">{wallet?.bankName}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Số tài khoản</span>
+                            <span className="font-medium">
+                              {(
+                                wallet as unknown as {
+                                  bankAccount?: string;
+                                  bankAccountNumber?: string;
+                                }
+                              )?.bankAccount ||
+                                (wallet as unknown as { bankAccountNumber?: string })
+                                  ?.bankAccountNumber}
+                            </span>
+                          </div>
+                          <div className="pt-2">
+                            <Label htmlFor="withdraw-amount">Số tiền</Label>
+                            <Input
+                              id="withdraw-amount"
+                              inputMode="numeric"
+                              value={
+                                withdrawAmount ? Number(withdrawAmount).toLocaleString('vi-VN') : ''
+                              }
+                              onChange={handleWithdrawAmountChange}
+                              placeholder="Nhập số tiền"
+                              className="mt-1"
+                            />
+                            <p className="text-xs text-muted-foreground mt-2">
+                              {parsedWithdrawAmount > 0
+                                ? `Tương đương: ${formatCurrency(parsedWithdrawAmount, 'VND')}`
+                                : 'Nhập số tiền bạn muốn rút'}
+                            </p>
+                            {parsedWithdrawAmount > (wallet?.balance || 0) && (
+                              <p className="text-xs text-red-500 mt-1">
+                                Số tiền rút không được vượt quá số dư hiện tại
+                              </p>
+                            )}
+                            {parsedWithdrawAmount > 0 && parsedWithdrawAmount < 30000 && (
+                              <p className="text-xs text-red-500 mt-1">
+                                Số tiền rút tối thiểu là 30.000 VND
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <DialogFooter className="mt-4">
+                          <Button
+                            type="button"
+                            onClick={handleWithdraw}
+                            disabled={
+                              createWithdrawMutation.isPending ||
+                              parsedWithdrawAmount < 30000 ||
+                              parsedWithdrawAmount > (wallet?.balance || 0)
+                            }
+                          >
+                            {createWithdrawMutation.isPending ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Đang xử lý...
+                              </>
+                            ) : (
+                              'Xác nhận rút tiền'
+                            )}
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
                   </div>
                 </div>
               )}
@@ -572,6 +745,254 @@ export default function ProfilePage() {
           </CardFooter>
         </form>
       </Card>
+
+      {/* Withdraw History */}
+      <Card className="my-6">
+        <CardHeader>
+          <CardTitle>Lịch sử rút tiền</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Theo dõi tất cả các giao dịch rút tiền của bạn
+          </p>
+        </CardHeader>
+        <CardContent>
+          {isLoadingWithdraws ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin" />
+              <span className="ml-2">Đang tải lịch sử rút tiền...</span>
+            </div>
+          ) : withdrawList && withdrawList.length > 0 ? (
+            <div className="space-y-4">
+              {withdrawList.map((withdraw: WithdrawItem) => {
+                const getStatusConfig = (status: string) => {
+                  const statusMap: Record<
+                    string,
+                    {
+                      label: string;
+                      variant: 'default' | 'secondary' | 'destructive' | 'outline';
+                      icon: React.ComponentType<{ className?: string }>;
+                    }
+                  > = {
+                    PENDING: { label: 'Đang xử lý', variant: 'secondary', icon: Clock },
+                    APPROVED: { label: 'Đã duyệt', variant: 'default', icon: CheckCircle },
+                    COMPLETED: { label: 'Hoàn thành', variant: 'default', icon: CheckCircle },
+                    REJECTED: { label: 'Từ chối', variant: 'destructive', icon: XCircle },
+                    CANCELLED: { label: 'Đã hủy', variant: 'outline', icon: XCircle },
+                  };
+                  return (
+                    statusMap[status.toUpperCase()] || {
+                      label: status,
+                      variant: 'outline' as const,
+                      icon: Clock,
+                    }
+                  );
+                };
+
+                const statusConfig = getStatusConfig(withdraw.status);
+                const StatusIcon = statusConfig.icon;
+
+                return (
+                  <div
+                    key={withdraw.id}
+                    className="border rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-lg">
+                              {formatCurrency(withdraw.amount, 'VND')}
+                            </span>
+                            <Badge variant={statusConfig.variant} className="gap-1">
+                              <StatusIcon className="h-3 w-3" />
+                              {statusConfig.label}
+                            </Badge>
+                          </div>
+                        </div>
+                        <div className="text-sm text-muted-foreground mt-1">
+                          <p>
+                            Yêu cầu:{' '}
+                            {format(new Date(withdraw.createdAt), 'dd/MM/yyyy HH:mm', {
+                              locale: vi,
+                            })}
+                          </p>
+                          {withdraw.processedAt && (
+                            <p>
+                              Xử lý:{' '}
+                              {format(new Date(withdraw.processedAt), 'dd/MM/yyyy HH:mm', {
+                                locale: vi,
+                              })}
+                            </p>
+                          )}
+                          {withdraw.note && <p className="mt-1">Ghi chú: {withdraw.note}</p>}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleViewDetail(withdraw.id)}
+                        >
+                          <Eye className="h-4 w-4 mr-1" />
+                          Chi tiết
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <div className="mx-auto w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                <Clock className="h-6 w-6 text-gray-400" />
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Chưa có giao dịch rút tiền</h3>
+              <p className="text-gray-500">
+                Bạn chưa thực hiện giao dịch rút tiền nào. Nhấn &apos;Rút tiền&apos; để tạo yêu cầu
+                mới.
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Withdraw Detail Dialog */}
+      <Dialog open={isDetailOpen} onOpenChange={handleCloseDetail}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Chi tiết giao dịch rút tiền</DialogTitle>
+            <DialogDescription>
+              Thông tin chi tiết về yêu cầu rút tiền #{selectedWithdrawId}
+            </DialogDescription>
+          </DialogHeader>
+
+          {isLoadingDetail ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin" />
+              <span className="ml-2">Đang tải chi tiết...</span>
+            </div>
+          ) : withdrawDetail ? (
+            <div className="space-y-6">
+              {/* Transaction Info */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl font-bold">
+                    {formatCurrency(withdrawDetail.amount, 'VND')}
+                  </span>
+                  <Badge
+                    variant={
+                      withdrawDetail.status === 'COMPLETED'
+                        ? 'default'
+                        : withdrawDetail.status === 'PENDING'
+                          ? 'secondary'
+                          : withdrawDetail.status === 'APPROVED'
+                            ? 'default'
+                            : 'destructive'
+                    }
+                    className="gap-1"
+                  >
+                    {withdrawDetail.status === 'PENDING' && <Clock className="h-3 w-3" />}
+                    {(withdrawDetail.status === 'COMPLETED' ||
+                      withdrawDetail.status === 'APPROVED') && <CheckCircle className="h-3 w-3" />}
+                    {(withdrawDetail.status === 'REJECTED' ||
+                      withdrawDetail.status === 'CANCELLED') && <XCircle className="h-3 w-3" />}
+                    {withdrawDetail.status === 'PENDING' && 'Đang xử lý'}
+                    {withdrawDetail.status === 'APPROVED' && 'Đã duyệt'}
+                    {withdrawDetail.status === 'COMPLETED' && 'Hoàn thành'}
+                    {withdrawDetail.status === 'REJECTED' && 'Từ chối'}
+                    {withdrawDetail.status === 'CANCELLED' && 'Đã hủy'}
+                  </Badge>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Mã giao dịch</label>
+                      <p className="font-medium">#{withdrawDetail.id}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Ngày yêu cầu</label>
+                      <p className="font-medium">
+                        {format(new Date(withdrawDetail.createdAt), 'dd/MM/yyyy HH:mm', {
+                          locale: vi,
+                        })}
+                      </p>
+                    </div>
+                    {withdrawDetail.processedAt && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">Ngày xử lý</label>
+                        <p className="font-medium">
+                          {format(new Date(withdrawDetail.processedAt), 'dd/MM/yyyy HH:mm', {
+                            locale: vi,
+                          })}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Trạng thái</label>
+                      <p className="font-medium">
+                        {withdrawDetail.status === 'PENDING' && 'Đang chờ xử lý'}
+                        {withdrawDetail.status === 'APPROVED' && 'Đã được duyệt'}
+                        {withdrawDetail.status === 'COMPLETED' && 'Đã hoàn thành'}
+                        {withdrawDetail.status === 'REJECTED' && 'Đã bị từ chối'}
+                        {withdrawDetail.status === 'CANCELLED' && 'Đã bị hủy'}
+                      </p>
+                    </div>
+                    {withdrawDetail.note && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">Ghi chú</label>
+                        <p className="font-medium">{withdrawDetail.note}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* User Info */}
+              <div className="border-t pt-4">
+                <h4 className="font-semibold mb-3">Thông tin người duyệt</h4>
+                <div className="flex items-center gap-4">
+                  <Avatar className="w-12 h-12">
+                    <AvatarImage src={withdrawDetail.User.avatar} className="object-cover" />
+                    <AvatarFallback className="text-sm font-bold">
+                      {getNameFallback(withdrawDetail.User.name)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                      <div>
+                        <label className="text-gray-500">Họ tên</label>
+                        <p className="font-medium">{withdrawDetail.User.name}</p>
+                      </div>
+                      <div>
+                        <label className="text-gray-500">Email</label>
+                        <p className="font-medium">{withdrawDetail.User.email}</p>
+                      </div>
+                      <div>
+                        <label className="text-gray-500">Số điện thoại</label>
+                        <p className="font-medium">{withdrawDetail.User.phone}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-gray-500">Không thể tải chi tiết giao dịch</p>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={handleCloseDetail}>
+              Đóng
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

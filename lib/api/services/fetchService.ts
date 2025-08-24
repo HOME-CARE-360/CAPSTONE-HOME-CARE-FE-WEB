@@ -50,6 +50,7 @@ export interface ServiceSearchParams {
   minPrice?: number;
   maxPrice?: number;
   providerId?: number;
+  providerIds?: number[];
   sortBy?: SortBy;
   orderBy?: OrderBy;
 }
@@ -66,7 +67,12 @@ const convertServiceFilters = (filters?: ServiceSearchParams): RequestParams => 
   if (filters.categories) params.categories = filters.categories;
   if (filters.minPrice !== undefined) params.minPrice = filters.minPrice;
   if (filters.maxPrice !== undefined) params.maxPrice = filters.maxPrice;
-  if (filters.providerId !== undefined) params.providerId = filters.providerId;
+  // Accept either providerId (single) or providerIds (array). Prefer providerIds.
+  if (filters.providerIds && filters.providerIds.length > 0) {
+    params.providerIds = filters.providerIds;
+  } else if (filters.providerId !== undefined) {
+    params.providerIds = [filters.providerId];
+  }
 
   return params;
 };

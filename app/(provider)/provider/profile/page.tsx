@@ -845,7 +845,7 @@ export default function ProfilePage() {
                   }}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Số tiền không được vượt quá số dư khả dụng. (Tối thiểu 100.000đ)
+                  Số tiền không được vượt quá số dư khả dụng. (Tối thiểu 500.000đ)
                 </p>
               </div>
             </div>
@@ -863,12 +863,13 @@ export default function ProfilePage() {
                 !userData.wallet ||
                 isCreatingWithdraw ||
                 !withdrawAmount ||
-                Number(withdrawAmount) < 100000 ||
+                Number(withdrawAmount) < 500000 ||
                 Number(withdrawAmount) > (userData.wallet?.balance ?? 0)
               }
               onClick={() => {
                 const amount = Number(withdrawAmount);
-                if (!Number.isFinite(amount) || amount < 100000) return;
+                if (!Number.isFinite(amount) || amount < 500000) return;
+                if (amount > (userData.wallet?.balance ?? 0)) return;
                 createWithdraw(
                   { amount },
                   {

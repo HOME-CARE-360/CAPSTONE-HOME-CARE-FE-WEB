@@ -57,6 +57,107 @@ export interface ProposedService {
   quantity: number;
 }
 
+export interface ServiceItem {
+  id: number;
+  name: string;
+  unitPrice: number;
+  warrantyPeriod: number;
+  createdAt: string;
+  deletedAt: string | null;
+  updatedAt: string;
+  brand: string;
+  description: string;
+  isActive: boolean;
+  model: string;
+  stockQuantity: number;
+  unit: string;
+  providerId: number;
+}
+
+export interface AttachedItem {
+  serviceId: number;
+  serviceItemId: number;
+  serviceItem: ServiceItem;
+}
+
+export interface Service {
+  id: number;
+  name: string;
+  basePrice: number;
+  virtualPrice: number;
+  images: string[];
+  durationMinutes: number;
+  description: string;
+  publishedAt: string;
+  attachedItems: AttachedItem[];
+  category: {
+    name: string;
+    logo: string | null;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProposalItem {
+  id: number;
+  proposalId: number;
+  serviceId: number;
+  quantity: number;
+  createdAt: string;
+  Service: Service;
+}
+
+export interface Proposal {
+  id: number;
+  notes: string;
+  status: 'PENDING' | 'ACCEPTED' | 'REJECTED';
+  createdAt: string;
+  updatedAt: string;
+  ProposalItem: ProposalItem[];
+}
+
+export interface InspectionReport {
+  id: number;
+  note: string;
+  estimatedTime: number;
+  images: string[];
+  createdAt: string;
+}
+
+export interface Staff {
+  id: number;
+  userId: number;
+  providerId: number;
+  createdAt: string;
+  updatedAt: string;
+  isActive: boolean;
+  user: {
+    name: string;
+    email: string;
+    phone: string;
+    avatar: string | null;
+  };
+}
+
+export interface DetailBooking {
+  id: number;
+  customerId: number;
+  providerId: number;
+  note: string | null;
+  preferredDate: string;
+  status: StatusServiceRequest;
+  createdAt: string;
+  updatedAt: string;
+  location: string;
+  phoneNumber: string;
+  categoryId: number;
+  category: BookingCategory;
+  customer: BookingCustomer;
+  staff?: Staff;
+  inspectionReport?: InspectionReport;
+  Proposal?: Proposal;
+}
+
 export interface CreateProposedBookingResponse {
   success: boolean;
   code: string;

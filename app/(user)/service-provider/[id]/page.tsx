@@ -4,6 +4,7 @@ import { useGetServiceProviderInformation } from '@/hooks/useUser';
 import { useParams } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import ProviderInfoCard from './components/ProviderInfoCard';
+import ProviderServicesList from './components/ProviderServicesList';
 
 export default function ServiceProviderProfile() {
   const { id } = useParams();
@@ -114,16 +115,14 @@ export default function ServiceProviderProfile() {
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight">Nhà cung cấp dịch vụ</h1>
-            <p className="text-muted-foreground">Quản lý thông tin và cài đặt nhà cung cấp</p>
-          </div>
-        </div>
-
-        {/* Provider Info Card */}
         <ProviderInfoCard providerData={providerData} />
+        <div className="space-y-3">
+          <h2 className="text-xl font-semibold tracking-tight">Dịch vụ</h2>
+          <p className="text-sm text-muted-foreground">
+            Danh sách dịch vụ do nhà cung cấp cung cấp
+          </p>
+          <ProviderServicesList providerId={providerData.serviceProvider.id} />
+        </div>
       </div>
     </div>
   );

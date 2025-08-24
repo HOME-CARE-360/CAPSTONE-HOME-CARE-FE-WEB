@@ -54,6 +54,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         icon: UsersIcon,
       },
       {
+        title: 'Quản lý báo cáo',
+        url: '/provider/report',
+        icon: ChartBar,
+      },
+      {
         title: 'Tin nhắn',
         url: '/provider/chat',
         icon: ChartBar,

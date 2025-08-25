@@ -10,6 +10,7 @@ export function useCategories(filters?: CategorySearchParams) {
     select: (categories: Category[]) => ({
       categories: categories || [],
     }),
+    staleTime: 10 * 60 * 1000, // 10 minutes
   });
 }
 

@@ -564,8 +564,11 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
 
               <div className="mt-6">
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
+                  <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="details">Chi tiết</TabsTrigger>
+                    <TabsTrigger value="report" disabled={!canCreateReport}>
+                      Báo cáo
+                    </TabsTrigger>
                     <TabsTrigger value="proposals" disabled={!canViewProposals}>
                       Đề xuất dịch vụ
                     </TabsTrigger>
@@ -582,95 +585,6 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                         </AlertDescription>
                       </Alert>
                     )}
-
-                    {/* Workflow Progress */}
-                    <div className="space-y-4">
-                      <h3 className="text-sm font-medium text-gray-900">Tiến trình xử lý</h3>
-                      <div className="space-y-3">
-                        <div
-                          className={cn(
-                            'flex items-center gap-3 p-3 rounded-lg border',
-                            needsCheckIn
-                              ? 'bg-blue-50 border-blue-200'
-                              : 'bg-gray-50 border-gray-200'
-                          )}
-                        >
-                          <div
-                            className={cn(
-                              'w-8 h-8 rounded-full flex items-center justify-center',
-                              needsCheckIn ? 'bg-blue-500 text-white' : 'bg-green-500 text-white'
-                            )}
-                          >
-                            {needsCheckIn ? '1' : <CheckCircle className="h-4 w-4" />}
-                          </div>
-                          <div className="flex-1">
-                            <p className="font-medium text-gray-900">Check-in</p>
-                            <p className="text-sm text-gray-500">
-                              {needsCheckIn ? 'Cần thực hiện để bắt đầu' : 'Đã hoàn thành'}
-                            </p>
-                          </div>
-                          {needsCheckIn && (
-                            <Button
-                              onClick={handleCheckIn}
-                              disabled={isCheckingIn}
-                              size="sm"
-                              className="bg-blue-600 hover:bg-blue-700"
-                            >
-                              <UserCheck className="h-4 w-4 mr-2" />
-                              Check-in ngay
-                            </Button>
-                          )}
-                        </div>
-
-                        <div
-                          className={cn(
-                            'flex items-center gap-3 p-3 rounded-lg border',
-                            canCreateReport
-                              ? 'bg-green-50 border-green-200'
-                              : 'bg-gray-50 border-gray-200'
-                          )}
-                        >
-                          <div
-                            className={cn(
-                              'w-8 h-8 rounded-full flex items-center justify-center',
-                              canCreateReport
-                                ? 'bg-green-500 text-white'
-                                : isEstimated
-                                  ? 'bg-green-500 text-white'
-                                  : 'bg-gray-300 text-gray-500'
-                            )}
-                          >
-                            {canCreateReport ? (
-                              '2'
-                            ) : isEstimated ? (
-                              <CheckCircle className="h-4 w-4" />
-                            ) : (
-                              '2'
-                            )}
-                          </div>
-                          <div className="flex-1">
-                            <p className="font-medium text-gray-900">Tạo báo cáo khảo sát</p>
-                            <p className="text-sm text-gray-500">
-                              {canCreateReport
-                                ? 'Có thể thực hiện'
-                                : isEstimated
-                                  ? 'Đã hoàn thành'
-                                  : 'Chờ check-in'}
-                            </p>
-                          </div>
-                          {canCreateReport && (
-                            <Button
-                              onClick={() => setActiveTab('report')}
-                              size="sm"
-                              className="bg-green-600 hover:bg-green-700"
-                            >
-                              <FileText className="h-4 w-4 mr-2" />
-                              Tạo báo cáo
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
 
                     <Separator />
 
@@ -1256,7 +1170,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
 
         {/* Status Badge with Priority Indicator */}
         <div className="flex flex-col gap-2 mb-3">
-          <div className="flex gap-2 justify-end">
+          <div className="flex gap-2 justify-end flex-wrap">
             {canCheckIn && (
               <Button
                 onClick={handleCheckIn}
@@ -1276,7 +1190,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                   setActiveTab('report');
                 }}
                 size="sm"
-                className="h-7 px-2 text-xs bg-green-600 hover:bg-green-700"
+                className="px-2 text-xs bg-green-600 hover:bg-green-700"
               >
                 <FileText className="h-3 w-3 mr-1" />
                 Báo cáo
@@ -1294,22 +1208,22 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                 Check out
               </Button>
             )}
+
+            {/* Asset Management Buttons - Only show when can manage assets */}
+            {canManageAssets && (
+              <>
+                <Button onClick={() => setAssetsViewOpen(true)} size="sm">
+                  <Settings className="h-3 w-3 mr-1" />
+                  Xem thiết bị
+                </Button>
+
+                <Button onClick={() => setAssetCreateOpen(true)} size="sm">
+                  <Plus className="h-3 w-3 mr-1" />
+                  Tạo tài sản
+                </Button>
+              </>
+            )}
           </div>
-
-          {/* Asset Management Buttons - Only show when can manage assets */}
-          {canManageAssets && (
-            <div className="flex gap-2 justify-end">
-              <Button onClick={() => setAssetsViewOpen(true)} size="sm">
-                <Settings className="h-3 w-3 mr-1" />
-                Xem tất cả tài sản của người dùng
-              </Button>
-
-              <Button onClick={() => setAssetCreateOpen(true)} size="sm">
-                <Plus className="h-3 w-3 mr-1" />
-                Tạo tài sản
-              </Button>
-            </div>
-          )}
         </div>
 
         {/* Service Information */}

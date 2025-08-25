@@ -128,21 +128,21 @@ const getTransactionStatusConfig = (status: string) => {
 };
 
 // Translate Service Request status to Vietnamese
-const getServiceRequestStatusVi = (status: string) => {
-  const key = status?.toUpperCase?.() || '';
-  const map: Record<string, string> = {
-    WAIT_FOR_PAYMENT: 'Đang chờ thanh toán',
-    ESTIMATED: 'Đang ước lượng',
-    PENDING: 'Chờ nhà cung cấp tìm kiếm nhân viên cho bạn',
-    // CONFIRMED: 'Đã xác nhận',
-    // ACCEPTED: 'Đã chấp nhận',
-    // REJECTED: 'Từ chối',
-    IN_PROGRESS: 'Đang thực hiện',
-    // COMPLETED: 'Hoàn thành',
-    CANCELLED: 'Đã hủy',
-  };
-  return map[key] || status;
-};
+// const getServiceRequestStatusVi = (status: string) => {
+//   const key = status?.toUpperCase?.() || '';
+//   const map: Record<string, string> = {
+//     WAIT_FOR_PAYMENT: 'Đang chờ thanh toán',
+//     ESTIMATED: 'Đang ước lượng',
+//     PENDING: 'Chờ nhà cung cấp tìm kiếm nhân viên cho bạn',
+//     // CONFIRMED: 'Đã xác nhận',
+//     // ACCEPTED: 'Đã chấp nhận',
+//     // REJECTED: 'Từ chối',
+//     IN_PROGRESS: 'Đang thực hiện',
+//     // COMPLETED: 'Hoàn thành',
+//     CANCELLED: 'Đã hủy',
+//   };
+//   return map[key] || status;
+// };
 
 // Translate payment method to Vietnamese
 const getPaymentMethodVi = (method: string) => {
@@ -173,6 +173,7 @@ function isBookingArray(value: unknown): value is BookingItem[] {
 
 const ProposalSection = ({
   bookingId,
+  bookingStatus,
   serviceRequestStatus,
   transactionStatus,
   paymentTransactionStatus,
@@ -199,6 +200,11 @@ const ProposalSection = ({
   const [isPaymentErrorOpen, setIsPaymentErrorOpen] = useState(false);
   const [paymentErrorMsg, setPaymentErrorMsg] = useState<string>('Đã xảy ra lỗi khi thanh toán.');
 
+  // Don't show proposal section when booking is confirmed
+  if (bookingStatus.toUpperCase() === 'CONFIRMED') {
+    return null;
+  }
+
   if (isLoading) {
     return (
       <div className="space-y-2">
@@ -222,19 +228,28 @@ const ProposalSection = ({
     return typeof q === 'number' ? q : typeof q === 'string' ? parseInt(q, 10) || 0 : 0;
   };
 
+  // Group proposal items by createdAt timestamp and get the latest group
   const sortedItems = Array.isArray(proposal.ProposalItem)
     ? [...proposal.ProposalItem].sort(
-        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       )
     : [];
 
-  const lastProposalItem = sortedItems.length > 0 ? sortedItems[sortedItems.length - 1] : undefined;
+  // Get the latest timestamp (first item after sorting in descending order)
+  const latestTimestamp = sortedItems.length > 0 ? sortedItems[0].createdAt : null;
 
-  const totalAmount = lastProposalItem
-    ? (lastProposalItem.Service?.virtualPrice && lastProposalItem.Service.virtualPrice > 0
-        ? lastProposalItem.Service.virtualPrice
-        : (lastProposalItem.Service?.basePrice ?? 0)) * normalizeQuantity(lastProposalItem.quantity)
-    : 0;
+  // Filter only items with the latest timestamp
+  const latestProposalItems = latestTimestamp
+    ? sortedItems.filter(item => item.createdAt === latestTimestamp)
+    : [];
+
+  const totalAmount = latestProposalItems.reduce((total, item) => {
+    const price =
+      item.Service?.virtualPrice && item.Service.virtualPrice > 0
+        ? item.Service.virtualPrice
+        : (item.Service?.basePrice ?? 0);
+    return total + price * normalizeQuantity(item.quantity);
+  }, 0);
 
   const computedPaidStatus = (paymentTransactionStatus || transactionStatus || '').toUpperCase();
   const isPaid = computedPaidStatus === 'PAID' || computedPaidStatus === 'SUCCESS';
@@ -250,7 +265,7 @@ const ProposalSection = ({
   const isEstimate =
     (serviceRequestStatus || '').toUpperCase() === 'ESTIMATE' ||
     (serviceRequestStatus || '').toUpperCase() === 'ESTIMATED';
-  const hasProposalItems = sortedItems.length > 0;
+  const hasProposalItems = latestProposalItems.length > 0;
   const isRejected = (proposal.status || '').toUpperCase() === 'REJECTED';
   const canShowActions = isEstimate && hasProposalItems && !isRejected && !hasTransaction;
 
@@ -277,9 +292,9 @@ const ProposalSection = ({
         </div>
 
         {proposal.notes && <p className="mt-2 text-sm text-muted-foreground">{proposal.notes}</p>}
-        {sortedItems && sortedItems.length > 0 ? (
+        {latestProposalItems && latestProposalItems.length > 0 ? (
           <div className="mt-3 space-y-3">
-            {sortedItems.map((item, index) => (
+            {latestProposalItems.map((item, index) => (
               <div key={item.id} className="rounded-md border bg-background p-3">
                 <div className="flex items-center justify-between gap-3 text-sm">
                   <div className="flex-1 pr-2 truncate">
@@ -327,7 +342,7 @@ const ProposalSection = ({
                                 {actualServiceItem?.model && (
                                   <div className="text-xs text-muted-foreground mt-0.5">
                                     Model:{' '}
-                                    <span className="font-medium text-foreground">
+                                    <span className="text-xs font-medium text-foreground">
                                       {actualServiceItem.model}
                                     </span>
                                   </div>
@@ -351,18 +366,6 @@ const ProposalSection = ({
                                   <span className="text-muted-foreground">Bảo hành: </span>
                                   <span>{actualServiceItem?.warrantyPeriod || 0} tháng</span>
                                 </div>
-                                {/* {actualServiceItem?.unit && (
-                                <div>
-                                  <span className="text-muted-foreground">Đơn vị: </span>
-                                  <span>{actualServiceItem.unit}</span>
-                                </div>
-                              )}
-                              {typeof actualServiceItem?.stockQuantity === 'number' && (
-                                <div>
-                                  <span className="text-muted-foreground">Tồn kho: </span>
-                                  <span>{actualServiceItem.stockQuantity}</span>
-                                </div>
-                              )} */}
                               </div>
                             </div>
                           );
@@ -379,10 +382,10 @@ const ProposalSection = ({
                 </div>
               </div>
             ))}
-            {lastProposalItem && (
+            {latestTimestamp && (
               <div className="flex items-center justify-between text-xs text-muted-foreground border-t pt-2">
                 <span>Đề xuất gần nhất</span>
-                <span>{formatDate(lastProposalItem.createdAt)}</span>
+                <span>{formatDate(latestTimestamp)}</span>
               </div>
             )}
           </div>
@@ -902,12 +905,6 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
             <Separator />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
               <div>
-                <span className="text-muted-foreground">Trạng thái:</span>
-                <p className="font-medium">
-                  {getServiceRequestStatusVi(booking.ServiceRequest.status)}
-                </p>
-              </div>
-              <div>
                 <span className="text-muted-foreground">Danh mục:</span>
                 <p className="font-medium">{booking.ServiceRequest.Category.name}</p>
               </div>
@@ -1179,7 +1176,19 @@ export default function BookingsPage() {
       ? [bookingData!.bookings]
       : [];
 
+  // Helper function to check if booking is today
+  const isBookingToday = (booking: BookingItem): boolean => {
+    const today = new Date();
+    const bookingDate = new Date(booking.createdAt);
+    return (
+      bookingDate.getDate() === today.getDate() &&
+      bookingDate.getMonth() === today.getMonth() &&
+      bookingDate.getFullYear() === today.getFullYear()
+    );
+  };
+
   const statuses: { key: string; label: string; filter: (b: BookingItem) => boolean }[] = [
+    { key: 'today', label: 'Hôm nay', filter: isBookingToday },
     { key: 'all', label: 'Tất cả', filter: () => true },
     {
       key: 'pending',
@@ -1228,7 +1237,7 @@ export default function BookingsPage() {
       </div>
 
       <Tabs defaultValue="all" className="w-full">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           {statuses.map(s => (
             <TabsTrigger key={s.key} value={s.key}>
               {s.label}{' '}

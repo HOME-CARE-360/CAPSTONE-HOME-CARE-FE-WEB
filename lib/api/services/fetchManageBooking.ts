@@ -48,6 +48,7 @@ export interface UpdateProposedBookingRequest {
   services: {
     serviceId: number;
     quantity: number;
+    price: number;
   }[];
   proposalId: number;
 }
@@ -55,6 +56,7 @@ export interface UpdateProposedBookingRequest {
 export interface ProposedService {
   serviceId: number;
   quantity: number;
+  price: number;
 }
 
 export interface ServiceItem {
@@ -103,6 +105,7 @@ export interface ProposalItem {
   proposalId: number;
   serviceId: number;
   quantity: number;
+  price: number;
   createdAt: string;
   Service: Service;
 }

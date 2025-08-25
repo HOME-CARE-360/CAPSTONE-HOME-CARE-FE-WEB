@@ -51,7 +51,7 @@ export default function ServiceSuggestionsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Gợi ý dịch vụ</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Gợi ý sản phẩm</h1>
           <p className="text-muted-foreground">Khám phá các sản phẩm phù hợp với nhu cầu của bạn</p>
         </div>
 

@@ -11,6 +11,7 @@ import userService, {
   GetUserReviewsResponse,
   UserReviewsSearchParams,
   MaintenanceSuggestionParams,
+  ServiceReviewsSearchParams,
 } from '@/lib/api/services/fetchUser';
 import {
   UpdateUserProfileRequestType,
@@ -350,6 +351,19 @@ export const useGetServiceSuggestions = () => {
     queryKey: ['users', 'service-suggestions'],
     queryFn: () => userService.getServiceSuggestions(),
     enabled: true,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+};
+
+export const useGetServiceReviews = (
+  serviceId: number,
+  filters?: Partial<ServiceReviewsSearchParams>
+) => {
+  return useQuery({
+    queryKey: ['users', 'service-reviews', serviceId, filters],
+    queryFn: () =>
+      userService.getServiceReviews(serviceId, filters as ServiceReviewsSearchParams | undefined),
+    enabled: !!serviceId && !isNaN(serviceId),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 };

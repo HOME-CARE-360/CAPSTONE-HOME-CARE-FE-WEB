@@ -74,7 +74,10 @@ interface BookingCardProps {
   onStaffAssigned?: () => void;
 }
 
-interface ServiceSelection extends ProposedService {
+interface ServiceSelection {
+  serviceId: number;
+  quantity: number;
+  price?: number;
   service?: ServiceManager;
 }
 
@@ -219,7 +222,14 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
         prev.map((s, index) => (index === existingIndex ? { ...s, quantity: s.quantity + 1 } : s))
       );
     } else {
-      setSelectedServices(prev => [...prev, { serviceId: service.id, quantity: 1, service }]);
+      const price =
+        service.virtualPrice && service.virtualPrice !== 0
+          ? service.virtualPrice
+          : service.basePrice;
+      setSelectedServices(prev => [
+        ...prev,
+        { serviceId: service.id, quantity: 1, price, service },
+      ]);
     }
   };
 
@@ -230,7 +240,16 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
     }
 
     setSelectedServices(prev =>
-      prev.map(s => (s.serviceId === serviceId ? { ...s, quantity } : s))
+      prev.map(s => {
+        if (s.serviceId === serviceId) {
+          const price =
+            s.service && s.service.virtualPrice && s.service.virtualPrice !== 0
+              ? s.service.virtualPrice
+              : s.service?.basePrice || 0;
+          return { ...s, quantity, price };
+        }
+        return s;
+      })
     );
   };
 
@@ -248,6 +267,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
     const services: ProposedService[] = selectedServices.map(s => ({
       serviceId: s.serviceId,
       quantity: s.quantity,
+      price: s.price || 0,
     }));
 
     const existingProposal = detailBooking?.booking?.Proposal;
@@ -294,10 +314,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
   };
 
   const totalAmount = selectedServices.reduce((total, s) => {
-    const price =
-      s.service && s.service.virtualPrice && s.service.virtualPrice !== 0
-        ? s.service.virtualPrice
-        : s.service?.basePrice || 0;
+    const price = s.price || 0;
     return total + price * s.quantity;
   }, 0);
 
@@ -351,9 +368,24 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
       dedupMap.set(it.serviceId, it);
     }
   });
+  // Helper function to safely extract price from proposal item
+  const getItemPrice = (item: ProposalItemType): number => {
+    // Check if item has a direct price property (type-safe way)
+    const directPrice = 'price' in item && typeof item.price === 'number' ? item.price : undefined;
+
+    // Fallback to service pricing
+    const servicePrice =
+      item.Service?.virtualPrice && item.Service.virtualPrice !== 0
+        ? item.Service.virtualPrice
+        : item.Service?.basePrice;
+
+    return directPrice ?? servicePrice ?? 0;
+  };
+
   const proposalDisplayItems = Array.from(dedupMap.values()).map(item => ({
     item,
     totalQuantity: item.quantity,
+    price: getItemPrice(item),
   }));
 
   const handleAssignStaff = () => {
@@ -975,133 +1007,137 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                                 {/* Services List */}
                                 <div className="px-6 py-4">
                                   <div className="space-y-4">
-                                    {proposalDisplayItems.map(({ item, totalQuantity }, idx) => {
-                                      const firstImage = Array.isArray(item.Service?.images)
-                                        ? item.Service?.images[0]
-                                        : undefined;
-                                      const price =
-                                        typeof item.Service?.virtualPrice === 'number' &&
-                                        item.Service.virtualPrice !== 0
-                                          ? item.Service.virtualPrice
-                                          : item.Service?.basePrice || 0;
+                                    {proposalDisplayItems.map(
+                                      ({ item, totalQuantity, price }, idx) => {
+                                        const firstImage = Array.isArray(item.Service?.images)
+                                          ? item.Service?.images[0]
+                                          : undefined;
 
-                                      return (
-                                        <div
-                                          key={item.id ?? idx}
-                                          className="border border-gray-100 rounded-lg p-4 hover:shadow-sm transition-shadow"
-                                        >
-                                          <div className="flex gap-4">
-                                            {/* Service Image */}
-                                            <div className="relative w-20 h-20 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-                                              {firstImage ? (
-                                                <Image
-                                                  src={firstImage}
-                                                  alt={item.Service?.name ?? ''}
-                                                  fill
-                                                  className="object-cover"
-                                                />
-                                              ) : (
-                                                <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-                                                  <FileText className="h-8 w-8 text-gray-400" />
-                                                </div>
-                                              )}
-                                            </div>
-
-                                            {/* Service Details */}
-                                            <div className="flex-1 min-w-0">
-                                              <div className="flex items-start justify-between mb-2">
-                                                <div className="flex-1">
-                                                  <h6 className="font-medium text-gray-900 truncate">
-                                                    {item.Service?.name ?? ''}
-                                                  </h6>
-                                                  <p className="text-sm text-gray-500 mt-1 line-clamp-2">
-                                                    {item.Service?.description || 'Không có mô tả'}
-                                                  </p>
-                                                </div>
-                                                <Badge variant="outline" className="ml-3 text-xs">
-                                                  x{totalQuantity}
-                                                </Badge>
-                                              </div>
-
-                                              <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-4 text-sm text-gray-600">
-                                                  <span className="font-semibold text-gray-900">
-                                                    {price.toLocaleString('vi-VN')}đ
-                                                  </span>
-                                                  <span>{item.Service?.durationMinutes} phút</span>
-                                                </div>
-                                                <span className="text-sm font-medium text-gray-900">
-                                                  Tổng:{' '}
-                                                  {(price * totalQuantity).toLocaleString('vi-VN')}đ
-                                                </span>
-                                              </div>
-
-                                              {/* Attached Items */}
-                                              {item.Service?.attachedItems &&
-                                                item.Service.attachedItems.length > 0 && (
-                                                  <div className="mt-3 pt-3 border-t border-gray-100">
-                                                    <h6 className="text-xs font-medium text-gray-700 mb-2">
-                                                      Vật tư đi kèm (
-                                                      {item.Service.attachedItems.length})
-                                                    </h6>
-                                                    <div className="space-y-2">
-                                                      {item.Service.attachedItems.map(
-                                                        (attachedItem, itemIndex: number) => {
-                                                          const serviceItem =
-                                                            attachedItem.serviceItem;
-                                                          return (
-                                                            <div
-                                                              key={serviceItem.id || itemIndex}
-                                                              className="flex items-center justify-between p-2 bg-gray-50 rounded-md text-xs"
-                                                            >
-                                                              <div className="flex-1">
-                                                                <div className="flex items-center gap-2">
-                                                                  <span className="font-medium text-gray-900">
-                                                                    {serviceItem.name}
-                                                                  </span>
-                                                                  {serviceItem.brand && (
-                                                                    <span className="px-2 py-0.5 bg-gray-200 text-gray-700 rounded text-xs">
-                                                                      {serviceItem.brand}
-                                                                    </span>
-                                                                  )}
-                                                                  {serviceItem.model && (
-                                                                    <span className="px-2 py-0.5 bg-gray-200 text-gray-700 rounded text-xs">
-                                                                      {serviceItem.model}
-                                                                    </span>
-                                                                  )}
-                                                                </div>
-                                                                {serviceItem.description && (
-                                                                  <p className="text-gray-600 mt-1 line-clamp-1">
-                                                                    {serviceItem.description}
-                                                                  </p>
-                                                                )}
-                                                              </div>
-                                                              <div className="text-right ml-3">
-                                                                <div className="font-medium text-gray-900">
-                                                                  {serviceItem.unitPrice?.toLocaleString(
-                                                                    'vi-VN'
-                                                                  )}
-                                                                  đ
-                                                                </div>
-                                                                {serviceItem.warrantyPeriod && (
-                                                                  <div className="text-gray-500">
-                                                                    BH: {serviceItem.warrantyPeriod}{' '}
-                                                                    tháng
-                                                                  </div>
-                                                                )}
-                                                              </div>
-                                                            </div>
-                                                          );
-                                                        }
-                                                      )}
-                                                    </div>
+                                        return (
+                                          <div
+                                            key={item.id ?? idx}
+                                            className="border border-gray-100 rounded-lg p-4 hover:shadow-sm transition-shadow"
+                                          >
+                                            <div className="flex gap-4">
+                                              {/* Service Image */}
+                                              <div className="relative w-20 h-20 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                                                {firstImage ? (
+                                                  <Image
+                                                    src={firstImage}
+                                                    alt={item.Service?.name ?? ''}
+                                                    fill
+                                                    className="object-cover"
+                                                  />
+                                                ) : (
+                                                  <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                                                    <FileText className="h-8 w-8 text-gray-400" />
                                                   </div>
                                                 )}
+                                              </div>
+
+                                              {/* Service Details */}
+                                              <div className="flex-1 min-w-0">
+                                                <div className="flex items-start justify-between mb-2">
+                                                  <div className="flex-1">
+                                                    <h6 className="font-medium text-gray-900 truncate">
+                                                      {item.Service?.name ?? ''}
+                                                    </h6>
+                                                    <p className="text-sm text-gray-500 mt-1 line-clamp-2">
+                                                      {item.Service?.description ||
+                                                        'Không có mô tả'}
+                                                    </p>
+                                                  </div>
+                                                  <Badge variant="outline" className="ml-3 text-xs">
+                                                    x{totalQuantity}
+                                                  </Badge>
+                                                </div>
+
+                                                <div className="flex items-center justify-between">
+                                                  <div className="flex items-center gap-4 text-sm text-gray-600">
+                                                    <span className="font-semibold text-gray-900">
+                                                      {price.toLocaleString('vi-VN')}đ
+                                                    </span>
+                                                    <span>
+                                                      {item.Service?.durationMinutes} phút
+                                                    </span>
+                                                  </div>
+                                                  <span className="text-sm font-medium text-gray-900">
+                                                    Tổng:{' '}
+                                                    {(price * totalQuantity).toLocaleString(
+                                                      'vi-VN'
+                                                    )}
+                                                    đ
+                                                  </span>
+                                                </div>
+
+                                                {/* Attached Items */}
+                                                {item.Service?.attachedItems &&
+                                                  item.Service.attachedItems.length > 0 && (
+                                                    <div className="mt-3 pt-3 border-t border-gray-100">
+                                                      <h6 className="text-xs font-medium text-gray-700 mb-2">
+                                                        Vật tư đi kèm (
+                                                        {item.Service.attachedItems.length})
+                                                      </h6>
+                                                      <div className="space-y-2">
+                                                        {item.Service.attachedItems.map(
+                                                          (attachedItem, itemIndex: number) => {
+                                                            const serviceItem =
+                                                              attachedItem.serviceItem;
+                                                            return (
+                                                              <div
+                                                                key={serviceItem.id || itemIndex}
+                                                                className="flex items-center justify-between p-2 bg-gray-50 rounded-md text-xs"
+                                                              >
+                                                                <div className="flex-1">
+                                                                  <div className="flex items-center gap-2">
+                                                                    <span className="font-medium text-gray-900">
+                                                                      {serviceItem.name}
+                                                                    </span>
+                                                                    {serviceItem.brand && (
+                                                                      <span className="px-2 py-0.5 bg-gray-200 text-gray-700 rounded text-xs">
+                                                                        {serviceItem.brand}
+                                                                      </span>
+                                                                    )}
+                                                                    {serviceItem.model && (
+                                                                      <span className="px-2 py-0.5 bg-gray-200 text-gray-700 rounded text-xs">
+                                                                        {serviceItem.model}
+                                                                      </span>
+                                                                    )}
+                                                                  </div>
+                                                                  {serviceItem.description && (
+                                                                    <p className="text-gray-600 mt-1 line-clamp-1">
+                                                                      {serviceItem.description}
+                                                                    </p>
+                                                                  )}
+                                                                </div>
+                                                                <div className="text-right ml-3">
+                                                                  <div className="font-medium text-gray-900">
+                                                                    {serviceItem.unitPrice?.toLocaleString(
+                                                                      'vi-VN'
+                                                                    )}
+                                                                    đ
+                                                                  </div>
+                                                                  {serviceItem.warrantyPeriod && (
+                                                                    <div className="text-gray-500">
+                                                                      BH:{' '}
+                                                                      {serviceItem.warrantyPeriod}{' '}
+                                                                      tháng
+                                                                    </div>
+                                                                  )}
+                                                                </div>
+                                                              </div>
+                                                            );
+                                                          }
+                                                        )}
+                                                      </div>
+                                                    </div>
+                                                  )}
+                                              </div>
                                             </div>
                                           </div>
-                                        </div>
-                                      );
-                                    })}
+                                        );
+                                      }
+                                    )}
                                   </div>
 
                                   {/* Proposal Notes */}
@@ -1124,13 +1160,13 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                                       </span>
                                       <span className="text-lg font-semibold text-gray-900">
                                         {proposalDisplayItems
-                                          .reduce((total, { item, totalQuantity }) => {
-                                            const price =
-                                              typeof item.Service?.virtualPrice === 'number' &&
-                                              item.Service.virtualPrice !== 0
-                                                ? item.Service.virtualPrice
-                                                : item.Service?.basePrice || 0;
-                                            return total + price * totalQuantity;
+                                          .reduce((total, { item, totalQuantity, price }) => {
+                                            const itemPrice =
+                                              price ||
+                                              item.Service?.virtualPrice ||
+                                              item.Service?.basePrice ||
+                                              0;
+                                            return total + itemPrice * totalQuantity;
                                           }, 0)
                                           .toLocaleString('vi-VN')}
                                         đ
@@ -1240,11 +1276,8 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                               {detailBooking?.booking?.Proposal?.status === 'REJECTED' && (
                                 <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
                                   <p className="text-sm text-red-800">
-                                    <strong>Lưu ý:</strong> Đề xuất trước đã bị từ chối.
-                                    {detailBooking.booking.Proposal.notes && (
-                                      <span> Lý do: {detailBooking.booking.Proposal.notes}</span>
-                                    )}{' '}
-                                    Vui lòng xem xét và đề xuất lại với thông tin phù hợp hơn.
+                                    <strong>Lưu ý:</strong> Đề xuất trước đã bị từ chối. Vui lòng
+                                    xem xét và đề xuất lại với thông tin phù hợp hơn.
                                   </p>
                                 </div>
                               )}
@@ -1374,12 +1407,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                                   </h3>
                                   <div className="space-y-3">
                                     {selectedServices.map(item => {
-                                      const price =
-                                        item.service &&
-                                        item.service.virtualPrice &&
-                                        item.service.virtualPrice !== 0
-                                          ? item.service.virtualPrice
-                                          : item.service?.basePrice || 0;
+                                      const price = item.price || 0;
                                       return (
                                         <div
                                           key={item.serviceId}

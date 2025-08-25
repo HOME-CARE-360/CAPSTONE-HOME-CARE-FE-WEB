@@ -119,17 +119,20 @@ export function ProviderCard({ provider, size = 'md' }: ProviderCardProps) {
               <span className="text-xs text-slate-500">đơn hoàn thành</span>
             </div>
 
-            <div className="flex items-center gap-1">
+            <div className="flex items-center justify-between gap-1">
               {Array.from({ length: 5 }).map((_, i) => (
                 <Star
                   key={i}
                   className={`w-3 h-3 transition-colors duration-200 ${
-                    i < Math.min(provider.completedBookingsCount, 5)
+                    i < Math.min(provider.rating.average, 5)
                       ? 'text-yellow-400 fill-current'
                       : 'text-slate-300'
                   }`}
                 />
               ))}
+              <span className="text-xs text-slate-500">
+                {provider.rating.totalReviews} đánh giá
+              </span>
             </div>
           </div>
 

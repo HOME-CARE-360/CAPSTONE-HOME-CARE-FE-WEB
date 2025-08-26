@@ -1202,7 +1202,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                 onClick={() => setCheckoutOpen(true)}
                 size="sm"
                 variant="ghost"
-                className="h-7 px-2 text-xs bg-purple-600 hover:bg-purple-700"
+                className="h-7 px-2 text-xs bg-green-500 hover:bg-green-600 hover:text-white"
               >
                 <CheckCircle className="h-3 w-3 mr-1" />
                 Check out

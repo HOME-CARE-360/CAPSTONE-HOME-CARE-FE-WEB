@@ -206,7 +206,7 @@ export function useLogin() {
             // Use setTimeout to ensure token is set before redirect
             setTimeout(() => {
               if (isServiceProvider(decoded)) {
-                router.push('/provider/manage-services');
+                router.push('/provider/dashboard');
               } else if (isStaff(decoded)) {
                 router.push('/staff/dashboard');
               } else if (isManager(decoded)) {

@@ -173,7 +173,6 @@ function isBookingArray(value: unknown): value is BookingItem[] {
 
 const ProposalSection = ({
   bookingId,
-  bookingStatus,
   serviceRequestStatus,
   transactionStatus,
   paymentTransactionStatus,
@@ -200,11 +199,6 @@ const ProposalSection = ({
   const [isPaymentErrorOpen, setIsPaymentErrorOpen] = useState(false);
   const [paymentErrorMsg, setPaymentErrorMsg] = useState<string>('Đã xảy ra lỗi khi thanh toán.');
 
-  // Don't show proposal section when booking is confirmed
-  if (bookingStatus.toUpperCase() === 'CONFIRMED') {
-    return null;
-  }
-
   if (isLoading) {
     return (
       <div className="space-y-2">
@@ -228,22 +222,12 @@ const ProposalSection = ({
     return typeof q === 'number' ? q : typeof q === 'string' ? parseInt(q, 10) || 0 : 0;
   };
 
-  // Group proposal items by createdAt timestamp and get the latest group
-  const sortedItems = Array.isArray(proposal.ProposalItem)
-    ? [...proposal.ProposalItem].sort(
-        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      )
+  // Get all pending proposal items across all timestamps
+  const allPendingItems = Array.isArray(proposal.ProposalItem)
+    ? proposal.ProposalItem.filter(item => item.status === 'PENDING')
     : [];
 
-  // Get the latest timestamp (first item after sorting in descending order)
-  const latestTimestamp = sortedItems.length > 0 ? sortedItems[0].createdAt : null;
-
-  // Filter only items with the latest timestamp
-  const latestProposalItems = latestTimestamp
-    ? sortedItems.filter(item => item.createdAt === latestTimestamp)
-    : [];
-
-  const totalAmount = latestProposalItems.reduce((total, item) => {
+  const totalAmount = allPendingItems.reduce((total, item) => {
     const price =
       item.Service?.virtualPrice && item.Service.virtualPrice > 0
         ? item.Service.virtualPrice
@@ -265,7 +249,7 @@ const ProposalSection = ({
   const isEstimate =
     (serviceRequestStatus || '').toUpperCase() === 'ESTIMATE' ||
     (serviceRequestStatus || '').toUpperCase() === 'ESTIMATED';
-  const hasProposalItems = latestProposalItems.length > 0;
+  const hasProposalItems = allPendingItems.length > 0;
   const isRejected = (proposal.status || '').toUpperCase() === 'REJECTED';
   const canShowActions = isEstimate && hasProposalItems && !isRejected && !hasTransaction;
 
@@ -292,9 +276,9 @@ const ProposalSection = ({
         </div>
 
         {proposal.notes && <p className="mt-2 text-sm text-muted-foreground">{proposal.notes}</p>}
-        {latestProposalItems && latestProposalItems.length > 0 ? (
+        {allPendingItems.length > 0 ? (
           <div className="mt-3 space-y-3">
-            {latestProposalItems.map((item, index) => (
+            {allPendingItems.map((item, index) => (
               <div key={item.id} className="rounded-md border bg-background p-3">
                 <div className="flex items-center justify-between gap-3 text-sm">
                   <div className="flex-1 pr-2 truncate">
@@ -382,12 +366,6 @@ const ProposalSection = ({
                 </div>
               </div>
             ))}
-            {latestTimestamp && (
-              <div className="flex items-center justify-between text-xs text-muted-foreground border-t pt-2">
-                <span>Đề xuất gần nhất</span>
-                <span>{formatDate(latestTimestamp)}</span>
-              </div>
-            )}
           </div>
         ) : (
           <div className="mt-3 p-3 text-center text-sm text-muted-foreground border rounded-md bg-muted/20">
@@ -1236,7 +1214,7 @@ export default function BookingsPage() {
         <p className="text-muted-foreground">Theo dõi tất cả các đặt dịch vụ của bạn</p>
       </div>
 
-      <Tabs defaultValue="all" className="w-full">
+      <Tabs defaultValue="today" className="w-full">
         <TabsList className="grid w-full grid-cols-7">
           {statuses.map(s => (
             <TabsTrigger key={s.key} value={s.key}>

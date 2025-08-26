@@ -24,6 +24,58 @@ services:
       start_period: 40s
     networks:
       - app-network
+    depends_on:
+      - n8n
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=${N8N_USER:-admin}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD:-password}
+      - N8N_HOST=${N8N_HOST:-localhost}
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=${N8N_PROTOCOL:-http}
+      - N8N_USER_MANAGEMENT_DISABLED=false
+      - N8N_DISABLE_PRODUCTION_MAIN_PROCESS=false
+      - N8N_LOG_LEVEL=${N8N_LOG_LEVEL:-info}
+      - N8N_DATABASE_TYPE=postgresdb
+      - N8N_DATABASE_POSTGRESDB_HOST=postgres
+      - N8N_DATABASE_POSTGRESDB_PORT=5432
+      - N8N_DATABASE_POSTGRESDB_DATABASE=${N8N_DB_NAME:-n8n}
+      - N8N_DATABASE_POSTGRESDB_USER=${N8N_DB_USER:-n8n}
+      - N8N_DATABASE_POSTGRESDB_PASSWORD=${N8N_DB_PASSWORD:-n8n}
+      - N8N_DATABASE_POSTGRESDB_SCHEMA=public
+      - WEBHOOK_URL=${WEBHOOK_URL:-http://localhost:5678/}
+      - GENERIC_TIMEZONE=${GENERIC_TIMEZONE:-UTC}
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./n8n-workflows:/home/node/.n8n/workflows
+    networks:
+      - app-network
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: n8n-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${N8N_DB_NAME:-n8n}
+      - POSTGRES_USER=${N8N_DB_USER:-n8n}
+      - POSTGRES_PASSWORD=${N8N_DB_PASSWORD:-n8n}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+volumes:
+  n8n_data:
+  postgres_data:
 
 networks:
   app-network:

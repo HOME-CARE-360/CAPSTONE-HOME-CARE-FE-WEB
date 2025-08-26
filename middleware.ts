@@ -116,7 +116,7 @@ export default function middleware(request: NextRequest) {
         // Redirect to appropriate dashboard based on role when accessing root
         if (pathname === '/') {
           if (isServiceProvider(decodedToken)) {
-            return NextResponse.redirect(new URL('/provider/manage-services', request.url));
+            return NextResponse.redirect(new URL('/provider/dashboard', request.url));
           }
           if (isStaff(decodedToken)) {
             return NextResponse.redirect(new URL('/staff/dashboard', request.url));

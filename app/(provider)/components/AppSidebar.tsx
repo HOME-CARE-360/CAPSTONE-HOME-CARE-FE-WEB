@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { House, Package, UsersIcon, LayoutDashboardIcon, ChartBar } from 'lucide-react';
+import { House, Package, UsersIcon, LayoutDashboardIcon, ChartBar, TrendingUp } from 'lucide-react';
 import { NavMain } from '@/components/common/navMain';
 import { SiteSideFooter } from '@/app/(provider)/components/SiteSideFooter';
 import {
@@ -63,6 +63,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         title: 'Tin nhắn',
         url: '/provider/chat',
         icon: ChartBar,
+      },
+      {
+        title: 'Giao dịch của bạn',
+        url: '/provider/transaction',
+        icon: TrendingUp,
       },
     ],
   };

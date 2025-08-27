@@ -20,7 +20,7 @@ export default function TransactionsPage() {
   const getGatewayDisplayName = (gateway: string) => {
     switch (gateway) {
       case 'INTERNAL_WALLET':
-        return 'Ví nội bộ';
+        return 'Ví HomeCare';
       case 'PAYOS':
         return 'PayOS';
       case 'INTERNAL':

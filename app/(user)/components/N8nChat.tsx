@@ -8,6 +8,8 @@ export default function N8nChat() {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const n8nChatUrl = process.env.NEXT_PUBLIC_N8N_CHAT;
 
+  console.log('n8nChatUrl', n8nChatUrl);
+
   useEffect(() => {
     if (n8nChatUrl && chatContainerRef.current) {
       try {

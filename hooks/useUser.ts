@@ -13,6 +13,7 @@ import userService, {
   MaintenanceSuggestionParams,
   ServiceReviewsSearchParams,
   GetTransactionsResponse,
+  GetProviderTransactionsResponse,
 } from '@/lib/api/services/fetchUser';
 import {
   UpdateUserProfileRequestType,
@@ -374,6 +375,16 @@ export const useGetTransactions = () => {
   return useQuery<GetTransactionsResponse>({
     queryKey: ['users', 'transactions'],
     queryFn: () => userService.getTransactions(),
+    enabled: isAuthenticated,
+    staleTime: 60 * 1000,
+  });
+};
+
+export const useGetProviderTransactions = () => {
+  const isAuthenticated = useAuthStore(state => state.isAuthenticated);
+  return useQuery<GetProviderTransactionsResponse>({
+    queryKey: ['users', 'provider-transactions'],
+    queryFn: () => userService.getProviderTransactions(),
     enabled: isAuthenticated,
     staleTime: 60 * 1000,
   });

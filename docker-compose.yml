@@ -9,12 +9,14 @@ services:
       args:
         NODE_ENV: ${NODE_ENV:-production}
         NEXT_PUBLIC_API_URL_BACKEND: ${NEXT_PUBLIC_API_URL_BACKEND}
+        NEXT_PUBLIC_N8N_CHAT: ${NEXT_PUBLIC_N8N_CHAT}
     ports:
       - '${PORT:-3000}:3000'
     environment:
       - NODE_ENV=${NODE_ENV:-production}
       - PORT=${PORT:-3000}
       - NEXT_PUBLIC_API_URL_BACKEND=${NEXT_PUBLIC_API_URL_BACKEND}
+      - NEXT_PUBLIC_N8N_CHAT=${NEXT_PUBLIC_N8N_CHAT}
     restart: unless-stopped
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:3000/api/health']

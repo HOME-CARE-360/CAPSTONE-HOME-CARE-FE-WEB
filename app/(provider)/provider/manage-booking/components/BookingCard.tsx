@@ -688,8 +688,8 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
 
                         {/* Actions */}
                         <div className="space-y-4">
-                          {/* Overdue Notice */}
-                          {isPreferredDateOverdue && (
+                          {/* Overdue Notice - only show for pending bookings */}
+                          {isPending && isPreferredDateOverdue && (
                             <Alert className="border-red-200 bg-red-50">
                               <AlertTriangle className="h-4 w-4 text-red-600" />
                               <AlertDescription>

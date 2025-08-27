@@ -863,6 +863,11 @@ export const userService = {
       throw error;
     }
   },
+
+  getTransactions: async (): Promise<GetTransactionsResponse> => {
+    const response = await apiService.get<GetTransactionsResponse>('/users/transactions');
+    return response.data;
+  },
 };
 
 export interface ServiceReview {
@@ -918,6 +923,63 @@ export interface ServiceReviewsSearchParams extends RequestParams {
   rating?: number;
   page?: number;
   limit?: number;
+}
+
+// Transactions
+export interface WalletTransactionItem {
+  id: number;
+  gateway: string;
+  occurredAt: string;
+  transactionDate: string;
+  createdAt: string;
+  accountNumber: string | null;
+  subAccount: string | null;
+  amountIn: number;
+  amountOut: number;
+  accumulated: number;
+  referenceNumber: string | null;
+  transactionContent: string;
+  status: string;
+  serviceRequestId: number | null;
+  withdrawalRequestId: number | null;
+}
+
+export interface PaginatedTransactionsMeta {
+  totalItems: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  sortBy?: string;
+  sortOrder?: string;
+}
+
+export interface ProposalPaymentsSection {
+  items: unknown[];
+  totalItems: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  sortBy?: string;
+  sortOrder?: string;
+}
+
+export interface WalletSection extends PaginatedTransactionsMeta {
+  moneyIn: WalletTransactionItem[];
+  moneyOut: WalletTransactionItem[];
+}
+
+export interface GetTransactionsResponse {
+  data: {
+    success: boolean;
+    code: string;
+    message: string;
+    data: {
+      proposalPayments: ProposalPaymentsSection;
+      wallet: WalletSection;
+    };
+    statusCode: number;
+    timestamp: string;
+  };
 }
 
 export default userService;

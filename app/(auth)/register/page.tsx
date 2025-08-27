@@ -6,6 +6,7 @@ import { CustomerRegistrationForm } from './components/CustomerRegistrationForm'
 import { ProviderRegistrationForm } from './components/ProviderRegistrationForm';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
+import Link from 'next/link';
 
 export default function RegisterPage() {
   const [activeTab, setActiveTab] = useState<'customer' | 'provider'>('customer');
@@ -13,6 +14,11 @@ export default function RegisterPage() {
   return (
     <div className="container relative min-h-screen flex-col items-center justify-center grid lg:max-w-none lg:grid-cols-2 lg:px-0">
       <div className="lg:p-8">
+        <div className="flex w-full justify-center pb-2">
+          <Link href="/">
+            <Image src="/images/logo.png" alt="HomeCare logo" width={100} height={100} />
+          </Link>
+        </div>
         <Card className="mx-auto w-full max-w-[500px]">
           <CardHeader className="space-y-2">
             <CardTitle className="text-2xl font-semibold tracking-tight text-center">

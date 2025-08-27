@@ -12,6 +12,7 @@ import userService, {
   UserReviewsSearchParams,
   MaintenanceSuggestionParams,
   ServiceReviewsSearchParams,
+  GetTransactionsResponse,
 } from '@/lib/api/services/fetchUser';
 import {
   UpdateUserProfileRequestType,
@@ -365,5 +366,15 @@ export const useGetServiceReviews = (
       userService.getServiceReviews(serviceId, filters as ServiceReviewsSearchParams | undefined),
     enabled: !!serviceId && !isNaN(serviceId),
     staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+};
+
+export const useGetTransactions = () => {
+  const isAuthenticated = useAuthStore(state => state.isAuthenticated);
+  return useQuery<GetTransactionsResponse>({
+    queryKey: ['users', 'transactions'],
+    queryFn: () => userService.getTransactions(),
+    enabled: isAuthenticated,
+    staleTime: 60 * 1000,
   });
 };

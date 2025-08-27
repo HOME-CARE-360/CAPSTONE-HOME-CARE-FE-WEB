@@ -1,9 +1,12 @@
 'use client';
 
+import { useCallback, useMemo, useState } from 'react';
 import { useGetTopDiscountedServices } from '@/hooks/useUser';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { ServiceCard } from '@/components/ServiceCard';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 // Interface for transformed service to match ServiceCard requirements
 interface TransformedService {
@@ -23,6 +26,25 @@ interface TransformedService {
 export function TopDiscountedServices() {
   const { data, isLoading, error } = useGetTopDiscountedServices();
   const services = data?.data.items ?? [];
+  const pageSize = 4;
+  const totalPages = Math.max(1, Math.ceil(services.length / pageSize));
+  const [page, setPage] = useState(0);
+
+  const canPrev = page > 0;
+  const canNext = page < totalPages - 1;
+
+  const visibleIndexes = useMemo(() => {
+    const start = page * pageSize;
+    return [start, start + 1, start + 2, start + 3];
+  }, [page]);
+
+  const goPrev = useCallback(() => {
+    if (canPrev) setPage(p => Math.max(0, p - 1));
+  }, [canPrev]);
+
+  const goNext = useCallback(() => {
+    if (canNext) setPage(p => Math.min(totalPages - 1, p + 1));
+  }, [canNext, totalPages]);
 
   if (error) {
     return null; // Fail silently for landing page
@@ -82,20 +104,69 @@ export function TopDiscountedServices() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {transformedServices.map((service, index) => (
-            <div key={service.id} className="relative group">
-              {/* Category Badge Overlay */}
-              <div className="absolute top-4 right-4 z-20">
-                <Badge variant="secondary" className="bg-white/90 text-slate-700 shadow-lg">
-                  {services[index].category.name}
-                </Badge>
-              </div>
+        {/* Carousel Row */}
+        <div className="relative">
+          {/* Left control (stick to left) */}
+          <div className="absolute -left-12 top-1/4 z-20">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={goPrev}
+              disabled={!canPrev}
+              aria-label="Xem trước"
+              className="rounded-full shadow-sm"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+          </div>
 
-              <ServiceCard service={service} priority={index < 4} size="md" />
-            </div>
-          ))}
+          {/* Visible items (4 per view) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {visibleIndexes.map((idx, i) => {
+              const svc = transformedServices[idx];
+              if (!svc) return <div key={`empty-${i}`} />;
+              return (
+                <div key={svc.id} className="relative group">
+                  <div className="absolute top-4 right-4 z-20">
+                    <Badge variant="secondary" className="bg-white/90 text-slate-700 shadow-lg">
+                      {services[idx]?.category?.name}
+                    </Badge>
+                  </div>
+                  <ServiceCard service={svc} priority={idx < 4} size="md" />
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Right control */}
+          <div className="absolute -right-12 top-1/4 z-20">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={goNext}
+              disabled={!canNext}
+              aria-label="Xem thêm"
+              className="rounded-full shadow-sm"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
+
+        {/* Page indicators */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2 mt-6">
+            {Array.from({ length: totalPages }).map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                className={`h-2 w-2 rounded-full ${i === page ? 'bg-slate-900' : 'bg-slate-300'}`}
+                onClick={() => setPage(i)}
+                aria-label={`Tới trang ${i + 1}`}
+              />
+            ))}
+          </div>
+        )}
 
         {services.length === 0 && (
           <div className="text-center py-12">

@@ -51,7 +51,6 @@ export function CategoryCard({ category, onEdit }: CategoryCardProps) {
         )}
         {/* Badges overlay */}
         <div className="absolute top-4 left-4 flex gap-2">
-          <Badge className="bg-green-500 backdrop-blur-sm z-10">Danh mục</Badge>
           {category.parentCategory?.name && (
             <Badge className="bg-green-500 backdrop-blur-sm z-10">
               {category.parentCategory.name}

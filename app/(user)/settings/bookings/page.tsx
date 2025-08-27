@@ -224,7 +224,7 @@ const ProposalSection = ({
 
   // Get all pending proposal items across all timestamps
   const allPendingItems = Array.isArray(proposal.ProposalItem)
-    ? proposal.ProposalItem.filter(item => item.status === 'PENDING')
+    ? proposal.ProposalItem.filter(item => item.status === 'PENDING' || item.status === 'ACCEPTED')
     : [];
 
   const totalAmount = allPendingItems.reduce((total, item) => {

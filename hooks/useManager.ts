@@ -11,6 +11,8 @@ import {
   WithdrawItem,
   UpdateWithdrawRequest,
   UpdateWithdrawResponse,
+  UpdateReportRequest,
+  UpdateReportResponse,
 } from '@/lib/api/services/fetchManager';
 import { useAuthStore } from '@/lib/store/authStore';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -74,6 +76,25 @@ export const useGetListReport = (filters?: Partial<ReportSearchParams>) => {
   return useQuery<ReportListResponse>({
     queryKey: ['getListReport', filters],
     queryFn: () => managerSerivce.getListReport(filters as ReportSearchParams | undefined),
+  });
+};
+
+export const useUpdateReport = () => {
+  const queryClient = useQueryClient();
+  return useMutation<UpdateReportResponse, unknown, UpdateReportRequest>({
+    mutationKey: ['updateReport'],
+    mutationFn: payload => managerSerivce.updateReport(payload),
+    onSuccess: res => {
+      toast.success(res?.message || 'Cập nhật báo cáo thành công');
+      queryClient.invalidateQueries({ queryKey: ['getListReport'] });
+    },
+    onError: (error: unknown) => {
+      const message =
+        typeof error === 'object' && error !== null && 'message' in error
+          ? (error as { message: string }).message
+          : 'Có lỗi xảy ra khi cập nhật báo cáo';
+      toast.error(message);
+    },
   });
 };
 

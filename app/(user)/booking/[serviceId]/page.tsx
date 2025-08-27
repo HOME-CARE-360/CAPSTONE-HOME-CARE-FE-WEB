@@ -561,10 +561,10 @@ export default function NewBookingPage() {
       const response = await createBooking(bookingRequest);
 
       // Show success message with booking ID
-      toast.success('Đặt lịch thành công!', {
-        description: `Mã đặt lịch: BK${response.data}`,
-        duration: 5000,
-      });
+      // toast.success('Đặt lịch thành công!', {
+      //   description: `Mã đặt lịch: BK${response.data}`,
+      //   duration: 5000,
+      // });
 
       // Check if response has checkout URL for payment
       if (response.data && 'checkoutUrl' in response.data && response.data.checkoutUrl) {

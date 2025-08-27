@@ -92,19 +92,20 @@ export function NavigationBar() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
+  const [debouncedQuery, setDebouncedQuery] = useState('');
 
   // Fetch categories for search
   const { data: categoriesData } = useCategories();
 
   // Fetch services based on search query and category
   const { data: servicesData, isLoading: isLoadingServices } = useServices({
-    name: searchQuery || undefined,
+    name: debouncedQuery || undefined,
     categories: selectedCategory ? [selectedCategory] : undefined,
     limit: 10,
   });
 
   const categories = categoriesData?.categories || [];
-  const services = servicesData?.services || [];
+  const services = (servicesData?.services || []) as Service[];
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -114,6 +115,15 @@ export function NavigationBar() {
       // The useServices hook will automatically refetch with the new query
     }
   };
+
+  // Debounce search input to ensure API has time to fetch and support diacritics
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const trimmed = searchQuery.trim();
+      setDebouncedQuery(trimmed);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
 
   const handleCategorySelect = (categoryId: number) => {
     setSelectedCategory(categoryId);
@@ -224,7 +234,7 @@ export function NavigationBar() {
 
       {/* Search Dialog */}
       <CommandDialog open={searchOpen} onOpenChange={setSearchOpen}>
-        <Command className="rounded-lg border shadow-md w-[800px] max-w-[90vw]">
+        <Command className="rounded-lg border shadow-md w-full">
           <CommandInput
             placeholder="Tìm kiếm dịch vụ theo tên..."
             value={searchQuery}
@@ -305,7 +315,7 @@ export function NavigationBar() {
             )}
 
             {/* Services Section */}
-            {searchQuery && (
+            {debouncedQuery && (
               <CommandGroup heading="Dịch vụ tìm thấy">
                 {isLoadingServices ? (
                   <div className="flex items-center justify-center py-4">
@@ -345,23 +355,23 @@ export function NavigationBar() {
                       </div>
                     </CommandItem>
                   ))
-                ) : searchQuery.length >= 2 ? (
+                ) : debouncedQuery.length >= 1 ? (
                   <div className="py-4 text-center text-sm text-muted-foreground">
-                    Không tìm thấy dịch vụ nào phù hợp với {searchQuery}
+                    Không tìm thấy dịch vụ nào phù hợp với {debouncedQuery}
                   </div>
                 ) : null}
               </CommandGroup>
             )}
 
             {/* Search Results Summary */}
-            {searchQuery && (
+            {debouncedQuery && (
               <CommandGroup heading="Hành động">
                 <CommandItem
                   onSelect={handleSearchSubmit}
                   className="flex items-center gap-2 cursor-pointer bg-primary text-primary-foreground"
                 >
                   <Search className="h-4 w-4" />
-                  <span>Tìm kiếm {searchQuery}</span>
+                  <span>Tìm kiếm {debouncedQuery}</span>
                   {selectedCategory && (
                     <span>
                       trong danh mục{' '}

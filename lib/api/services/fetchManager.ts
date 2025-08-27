@@ -107,11 +107,49 @@ export interface ServiceSearchParams {
 }
 
 // Reports
+export interface ReportUser {
+  name: string;
+  phone: string;
+  email: string;
+  avatar: string | null;
+}
+
+export interface ReportCustomerProfile {
+  id: number;
+  userId: number;
+  address: string | null;
+  dateOfBirth: string | null;
+  gender: string | null;
+  createdAt: string;
+  updatedAt: string;
+  user: ReportUser;
+}
+
+export interface ReportServiceProvider {
+  id: number;
+  description: string | null;
+  address: string | null;
+  createdAt: string;
+  updatedAt: string;
+  userId: number;
+  companyType: CompanyType | string;
+  industry: string | null;
+  licenseNo: string | null;
+  logo: string | null;
+  taxId: string | null;
+  verificationStatus: VerificationStatus | string;
+  verifiedAt: string | null;
+  verifiedById: number | null;
+  user: ReportUser;
+}
+
 export interface Report {
   id: number;
-  customerId: number;
-  providerId: number;
   bookingId: number;
+  reporterId: number;
+  reporterType: 'CUSTOMER' | 'PROVIDER' | string;
+  reportedCustomerId: number | null;
+  reportedProviderId: number | null;
   reason: string;
   description: string;
   imageUrls: string[];
@@ -120,6 +158,9 @@ export interface Report {
   reviewedAt: string | null;
   reviewedById: number | null;
   note: string | null;
+  reviewResponse: string | null;
+  CustomerProfile?: ReportCustomerProfile | null;
+  ServiceProvider?: ReportServiceProvider | null;
 }
 
 export interface ReportListResponse {
@@ -189,6 +230,19 @@ export interface UpdateWithdrawRequest {
 }
 
 export interface UpdateWithdrawResponse {
+  message: string;
+}
+
+// Update Report
+export interface UpdateReportRequest {
+  id: number;
+  status: 'PENDING' | 'REJECTED' | 'RESOLVED' | 'UNDER_REVIEW';
+  reviewedAt?: string | null;
+  reviewedById?: number | null;
+  note?: string | null;
+}
+
+export interface UpdateReportResponse {
   message: string;
 }
 
@@ -297,6 +351,14 @@ export const managerSerivce = {
   getListReport: async (filters?: ReportSearchParams): Promise<ReportListResponse> => {
     const params = convertReportFilters(filters);
     const response = await apiService.get<ReportListResponse>('/managers/get-list-report', params);
+    return response.data;
+  },
+
+  updateReport: async (payload: UpdateReportRequest): Promise<UpdateReportResponse> => {
+    const response = await apiService.patch<UpdateReportResponse, UpdateReportRequest>(
+      '/managers/update-report',
+      payload
+    );
     return response.data;
   },
 

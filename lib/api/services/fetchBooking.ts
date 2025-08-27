@@ -91,6 +91,7 @@ export enum StatusBooking {
   CONFIRMED = 'CONFIRMED',
   COMPLETED = 'COMPLETED',
   CANCELLED = 'CANCELLED',
+  STAFF_COMPLETED = 'STAFF_COMPLETED',
 }
 
 export enum StatusServiceRequest {

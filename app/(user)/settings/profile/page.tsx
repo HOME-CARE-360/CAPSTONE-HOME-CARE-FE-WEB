@@ -952,33 +952,38 @@ export default function ProfilePage() {
               </div>
 
               {/* User Info */}
-              <div className="border-t pt-4">
-                <h4 className="font-semibold mb-3">Thông tin người duyệt</h4>
-                <div className="flex items-center gap-4">
-                  <Avatar className="w-12 h-12">
-                    <AvatarImage src={withdrawDetail.User.avatar} className="object-cover" />
-                    <AvatarFallback className="text-sm font-bold">
-                      {getNameFallback(withdrawDetail.User.name)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-                      <div>
-                        <label className="text-gray-500">Họ tên</label>
-                        <p className="font-medium">{withdrawDetail.User.name}</p>
-                      </div>
-                      <div>
-                        <label className="text-gray-500">Email</label>
-                        <p className="font-medium">{withdrawDetail.User.email}</p>
-                      </div>
-                      <div>
-                        <label className="text-gray-500">Số điện thoại</label>
-                        <p className="font-medium">{withdrawDetail.User.phone}</p>
+              {withdrawDetail.User && (
+                <div className="border-t pt-4">
+                  <h4 className="font-semibold mb-3">Thông tin người duyệt</h4>
+                  <div className="flex items-center gap-4">
+                    <Avatar className="w-12 h-12">
+                      <AvatarImage
+                        src={withdrawDetail.User.avatar || ''}
+                        className="object-cover"
+                      />
+                      <AvatarFallback className="text-sm font-bold">
+                        {getNameFallback(withdrawDetail.User.name)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                        <div>
+                          <label className="text-gray-500">Họ tên</label>
+                          <p className="font-medium">{withdrawDetail.User.name}</p>
+                        </div>
+                        <div>
+                          <label className="text-gray-500">Email</label>
+                          <p className="font-medium">{withdrawDetail.User.email}</p>
+                        </div>
+                        <div>
+                          <label className="text-gray-500">Số điện thoại</label>
+                          <p className="font-medium">{withdrawDetail.User.phone}</p>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           ) : (
             <div className="text-center py-8">

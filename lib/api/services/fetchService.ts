@@ -15,6 +15,9 @@ export interface Service {
   description: string;
   Category: Category;
   provider: string;
+  publishedAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 // API response types
@@ -30,16 +33,9 @@ export interface ServiceDetailResponse {
   data: Service;
 }
 
-export interface SortBy {
-  createdAt: string;
-  price: number;
-  discount: string;
-}
+export type SortBy = 'createdAt' | 'price' | 'discount';
 
-export interface OrderBy {
-  asc: string;
-  desc: string;
-}
+export type OrderBy = 'asc' | 'desc';
 
 // Search parameters
 export interface ServiceSearchParams {
@@ -67,6 +63,8 @@ const convertServiceFilters = (filters?: ServiceSearchParams): RequestParams => 
   if (filters.categories) params.categories = filters.categories;
   if (filters.minPrice !== undefined) params.minPrice = filters.minPrice;
   if (filters.maxPrice !== undefined) params.maxPrice = filters.maxPrice;
+  if (filters.sortBy) params.sortBy = filters.sortBy;
+  if (filters.orderBy) params.orderBy = filters.orderBy;
   // Accept either providerId (single) or providerIds (array). Prefer providerIds.
   if (filters.providerIds && filters.providerIds.length > 0) {
     params.providerIds = filters.providerIds;

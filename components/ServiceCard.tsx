@@ -17,9 +17,16 @@ interface ServiceCardProps {
   priority?: boolean;
   onHover?: (serviceId: string | null) => void;
   size?: 'sm' | 'md';
+  className?: string;
 }
 
-export function ServiceCard({ service, priority = false, onHover, size = 'md' }: ServiceCardProps) {
+export function ServiceCard({
+  service,
+  priority = false,
+  onHover,
+  size = 'md',
+  className,
+}: ServiceCardProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
   const [preloadedImages, setPreloadedImages] = useState<number[]>([0]);
@@ -137,11 +144,13 @@ export function ServiceCard({ service, priority = false, onHover, size = 'md' }:
     <>
       <Link href={`/service/${service.id}`}>
         <div
-          className="overflow-hidden transition-all duration-300 flex flex-col"
+          className={cn('overflow-hidden transition-all duration-300 flex flex-col', className)}
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
         >
-          <div className="relative aspect-square size-full mb-2 group">
+          <div
+            className={cn('relative aspect-square size-full mb-2 group', size === 'sm' && 'mb-1')}
+          >
             {isImageLoading && (
               <div className="absolute inset-0 bg-gray-200 animate-pulse rounded-xl" />
             )}
@@ -216,7 +225,7 @@ export function ServiceCard({ service, priority = false, onHover, size = 'md' }:
               </div>
             )}
           </div>
-          <div className="px-1">
+          <div className={cn('px-1', size === 'sm' && 'px-0')}>
             <div className="flex justify-between items-center">
               <div>
                 <p className={cn('text-xl font-semibold', size === 'sm' && 'text-base')}>

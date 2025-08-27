@@ -454,6 +454,8 @@ export interface GetUserProposalResponse {
       proposalId: number;
       serviceId: number;
       quantity: number | string;
+      status: string;
+      price: number;
       createdAt: string;
       Service: {
         id: number;
@@ -474,9 +476,25 @@ export interface GetUserProposalResponse {
         categoryId: number;
         unit: 'PER_JOB' | 'PER_HOUR' | string;
         status: 'ACCEPTED' | 'PENDING' | 'REJECTED' | string;
+        Category?: {
+          id: number;
+          name: string;
+        };
         serviceItems?: ServiceItem[];
       };
     }[];
+    customerAssets?: {
+      id: number;
+      categoryId: number;
+      brand: string;
+      model: string;
+      serial: string;
+      nickname: string;
+      lastMaintenanceDate: string | null;
+      totalMaintenanceCount: number;
+    }[];
+    inspectedAssets?: unknown[];
+    assetsByCategory?: Record<string, unknown[]>;
   };
   statusCode: number;
   timestamp: string; // ISO 8601
@@ -583,6 +601,10 @@ export interface TopProvider {
     avatar: string | null;
   };
   completedBookingsCount: number;
+  rating: {
+    average: number;
+    totalReviews: number;
+  };
 }
 
 export interface TopProvidersResponse {
@@ -825,6 +847,77 @@ export const userService = {
       throw error;
     }
   },
+
+  getServiceReviews: async (
+    serviceId: number,
+    params?: ServiceReviewsSearchParams
+  ): Promise<GetServiceReviewsResponse> => {
+    try {
+      const response = await apiService.get<GetServiceReviewsResponse>(
+        `/users/services/${serviceId}/reviews`,
+        params
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Get Service Reviews Error:', error);
+      throw error;
+    }
+  },
 };
+
+export interface ServiceReview {
+  id: number;
+  rating: number;
+  comment: string;
+  createdAt: string;
+  booking: {
+    id: number;
+    status: string;
+  };
+  serviceId: number | null;
+  customer: {
+    id: number;
+    user: {
+      id: number;
+      name: string;
+      email: string;
+      phone: string;
+      avatar: string | null;
+    };
+  };
+}
+
+export interface ServiceReviewsSummary {
+  averageRating: number;
+  totalReviews: number;
+  histogram: {
+    [key: string]: number;
+  };
+}
+
+export interface GetServiceReviewsResponse {
+  success: boolean;
+  code: string;
+  message: string;
+  data: {
+    serviceId: number;
+    reviews: ServiceReview[];
+    summary: ServiceReviewsSummary;
+    totalItems: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    sortBy: string;
+    sortOrder: string;
+  };
+  statusCode: number;
+  timestamp: string;
+}
+
+export interface ServiceReviewsSearchParams extends RequestParams {
+  rating?: number;
+  page?: number;
+  limit?: number;
+}
 
 export default userService;

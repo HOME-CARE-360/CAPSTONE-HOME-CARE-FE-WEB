@@ -24,6 +24,7 @@ export function useServices(filters?: ServiceSearchParams) {
       page: response.page || 1,
       totalPages: response.totalPages || 1,
     }),
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }
 

@@ -92,7 +92,7 @@ export function TopDiscountedServices() {
                 </Badge>
               </div>
 
-              <ServiceCard service={service} priority={index < 3} size="md" />
+              <ServiceCard service={service} priority={index < 4} size="md" />
             </div>
           ))}
         </div>

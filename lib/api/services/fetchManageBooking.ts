@@ -48,6 +48,7 @@ export interface UpdateProposedBookingRequest {
   services: {
     serviceId: number;
     quantity: number;
+    price: number;
   }[];
   proposalId: number;
 }
@@ -55,6 +56,7 @@ export interface UpdateProposedBookingRequest {
 export interface ProposedService {
   serviceId: number;
   quantity: number;
+  price: number;
 }
 
 export interface ServiceItem {
@@ -103,6 +105,7 @@ export interface ProposalItem {
   proposalId: number;
   serviceId: number;
   quantity: number;
+  price: number;
   createdAt: string;
   Service: Service;
 }
@@ -171,6 +174,59 @@ export interface UpdateProposedBookingResponse {
   message: string;
 }
 
+// Report booking
+export type ReporterType = 'CUSTOMER' | 'PROVIDER';
+
+export enum ReportReason {
+  NO_SHOW = 'NO_SHOW',
+  INVALID_ADDRESS = 'INVALID_ADDRESS',
+  // INAPPROPRIATE_BEHAVIOR = 'INAPPROPRIATE_BEHAVIOR',
+  PAYMENT_ISSUE = 'PAYMENT_ISSUE',
+  OTHER = 'OTHER',
+}
+
+export interface ReportBookingRequest {
+  description: string;
+  imageUrls: string[];
+  note: string;
+  reporterType: ReporterType;
+  reason: ReportReason | string;
+  reportedCustomerId: number;
+  reportedProviderId: number;
+  bookingId: number;
+}
+
+export interface ReportBookingResponse {
+  message: string;
+}
+
+// List reports
+export interface BookingReportItem {
+  id: number;
+  bookingId: number;
+  reporterId: number;
+  reporterType: ReporterType;
+  reportedCustomerId: number;
+  reportedProviderId: number;
+  reason: ReportReason | string;
+  description: string;
+  imageUrls: string[];
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  createdAt: string;
+  reviewedAt: string | null;
+  reviewedById: number | null;
+  note: string | null;
+  reviewResponse: string | null;
+}
+
+export interface GetReportListResponse {
+  data: BookingReportItem[];
+  totalItems: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 export interface ManageBookingResponse {
   data: Booking[];
   totalItems: number;
@@ -224,5 +280,18 @@ export const serviceManageBooking = {
       UpdateProposedBookingRequest
     >(`/manage-bookings/edit-proposed`, data);
     return response.data;
+  },
+
+  reportBooking: async (data: ReportBookingRequest): Promise<ReportBookingResponse> => {
+    const response = await apiService.post<ReportBookingResponse, ReportBookingRequest>(
+      `/manage-bookings/report-booking`,
+      data
+    );
+    return response.data;
+  },
+
+  getReportList: async (): Promise<GetReportListResponse> => {
+    const response = await apiService.get(`/manage-bookings/get-list-report`);
+    return response.data as GetReportListResponse;
   },
 };

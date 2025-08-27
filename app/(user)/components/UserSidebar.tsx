@@ -19,6 +19,7 @@ const serviceItems = [
   { label: 'Dịch vụ yêu thích', value: 'favorites', href: '/settings/favorites' },
   { label: 'Báo cáo của bạn', value: 'report', href: '/settings/report' },
   { label: 'Đánh giá của bạn', value: 'review', href: '/settings/review' },
+  { label: 'Giao dịch của bạn', value: 'transaction', href: '/settings/transaction' },
 ];
 
 export default function UserSidebar() {

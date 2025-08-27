@@ -863,6 +863,19 @@ export const userService = {
       throw error;
     }
   },
+
+  // Provider transactions
+  getProviderTransactions: async (): Promise<GetProviderTransactionsResponse> => {
+    const response = await apiService.get<GetProviderTransactionsResponse>(
+      '/users/provider-transactions'
+    );
+    return response.data;
+  },
+
+  getTransactions: async (): Promise<GetTransactionsResponse> => {
+    const response = await apiService.get<GetTransactionsResponse>('/users/transactions');
+    return response.data;
+  },
 };
 
 export interface ServiceReview {
@@ -918,6 +931,99 @@ export interface ServiceReviewsSearchParams extends RequestParams {
   rating?: number;
   page?: number;
   limit?: number;
+}
+
+// Transactions
+export interface WalletTransactionItem {
+  id: number;
+  gateway: string;
+  occurredAt: string;
+  transactionDate: string;
+  createdAt: string;
+  accountNumber: string | null;
+  subAccount: string | null;
+  amountIn: number;
+  amountOut: number;
+  accumulated: number;
+  referenceNumber: string | null;
+  transactionContent: string;
+  status: string;
+  serviceRequestId: number | null;
+  withdrawalRequestId: number | null;
+}
+
+export interface PaginatedTransactionsMeta {
+  totalItems: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  sortBy?: string;
+  sortOrder?: string;
+}
+
+export interface ProposalPaymentsSection {
+  items: unknown[];
+  totalItems: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  sortBy?: string;
+  sortOrder?: string;
+}
+
+export interface WalletSection extends PaginatedTransactionsMeta {
+  moneyIn: WalletTransactionItem[];
+  moneyOut: WalletTransactionItem[];
+}
+
+export interface GetTransactionsResponse {
+  data: {
+    success: boolean;
+    code: string;
+    message: string;
+    data: {
+      proposalPayments: ProposalPaymentsSection;
+      wallet: WalletSection;
+    };
+    statusCode: number;
+    timestamp: string;
+  };
+}
+
+// Provider transactions (provider wallet activities)
+export interface ProviderTransactionItem {
+  id: number;
+  gateway: string;
+  transactionDate: string;
+  accountNumber: string | null;
+  subAccount: string | null;
+  amountIn: number;
+  amountOut: number;
+  accumulated: number;
+  referenceNumber: string | null;
+  transactionContent: string | null;
+  body: string | null;
+  createdAt: string;
+  serviceRequestId: number | null;
+  status: string;
+  userId: number;
+  withdrawalRequestId: number | null;
+  ServiceRequest: unknown | null;
+}
+
+export interface GetProviderTransactionsResponse {
+  success: boolean;
+  code: string;
+  message: string;
+  data: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    data: ProviderTransactionItem[];
+  };
+  statusCode: number;
+  timestamp: string;
 }
 
 export default userService;

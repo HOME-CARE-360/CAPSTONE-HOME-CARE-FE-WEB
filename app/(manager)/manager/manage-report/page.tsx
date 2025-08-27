@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import type { ComponentType } from 'react';
-import { useGetListReport } from '@/hooks/useManager';
+import { useGetListReport, useUpdateReport, useGetManagerProfile } from '@/hooks/useManager';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import {
   Select,
@@ -30,6 +30,14 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import {
   CalendarClock,
   Filter,
@@ -86,54 +94,120 @@ export default function ManageReportPage() {
     status: status === 'ALL' ? undefined : status,
   });
 
+  // current manager profile (publics/get-me)
+  const { data: me } = useGetManagerProfile();
+  const currentUserId = me?.data?.id;
+
+  // update report mutation
+  const { mutate: updateReport, isPending: isUpdating } = useUpdateReport();
+  const [errorDialogOpen, setErrorDialogOpen] = useState(false);
+  const [errorDialogMsg, setErrorDialogMsg] = useState<string>('');
+  const [lockedReportId, setLockedReportId] = useState<number | null>(null);
+
+  // Update dialog (single button action) state
+  const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
+  const [selectedReportId, setSelectedReportId] = useState<number | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState<'PENDING' | 'RESOLVED' | 'REJECTED'>(
+    'PENDING'
+  );
+  const [note, setNote] = useState<string>('');
+
+  const handleSubmitUpdate = () => {
+    if (!selectedReportId) return;
+    updateReport(
+      {
+        id: selectedReportId,
+        status: selectedStatus,
+        reviewedAt: new Date().toISOString(),
+        reviewedById: currentUserId ?? undefined,
+        note: note?.trim() ? note.trim() : undefined,
+      },
+      {
+        onSuccess: () => {
+          setUpdateDialogOpen(false);
+          setSelectedReportId(null);
+          setNote('');
+        },
+        onError: (err: unknown) => {
+          setLockedReportId(selectedReportId);
+          const msg =
+            typeof err === 'object' && err !== null && 'message' in err
+              ? String((err as { message?: string }).message || '')
+              : '';
+          setErrorDialogMsg(
+            msg || 'Không thể cập nhật báo cáo. Vui lòng thử lại hoặc liên hệ hỗ trợ.'
+          );
+          setErrorDialogOpen(true);
+        },
+      }
+    );
+  };
+
   const totalPages = data?.totalPages ?? 1;
   const reports = data?.data ?? [];
 
   const columns = useMemo<ColumnDef<Report>[]>(
     () => [
+      // {
+      //   accessorKey: 'id',
+      //   header: ({ column }) => {
+      //     return (
+      //       <Button
+      //         variant="ghost"
+      //         onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+      //         className="h-8 px-2 text-left justify-start font-medium"
+      //       >
+      //         ID
+      //         <ArrowUpDown className="ml-2 h-4 w-4" />
+      //       </Button>
+      //     );
+      //   },
+      //   cell: ({ row }) => (
+      //     <div className="font-mono text-sm font-medium text-muted-foreground">
+      //       #{row.original.id}
+      //     </div>
+      //   ),
+      //   size: 80,
+      // },
+      // {
+      //   accessorKey: 'bookingId',
+      //   header: ({ column }) => {
+      //     return (
+      //       <Button
+      //         variant="ghost"
+      //         onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+      //         className="h-8 px-2 text-left justify-start font-medium"
+      //       >
+      //         Booking
+      //         <ArrowUpDown className="ml-2 h-4 w-4" />
+      //       </Button>
+      //     );
+      //   },
+      //   cell: ({ row }) => (
+      //     <div className="font-mono text-sm">
+      //       <Badge variant="outline" className="font-medium">
+      //         #{row.original.bookingId}
+      //       </Badge>
+      //     </div>
+      //   ),
+      //   size: 100,
+      // },
       {
-        accessorKey: 'id',
-        header: ({ column }) => {
-          return (
-            <Button
-              variant="ghost"
-              onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-              className="h-8 px-2 text-left justify-start font-medium"
-            >
-              ID
-              <ArrowUpDown className="ml-2 h-4 w-4" />
-            </Button>
-          );
-        },
+        accessorKey: 'imageUrls',
+        header: 'Hình ảnh',
         cell: ({ row }) => (
-          <div className="font-mono text-sm font-medium text-muted-foreground">
-            #{row.original.id}
+          <div className="flex gap-2">
+            {(row.original.imageUrls || []).slice(0, 3).map((url, idx) => (
+              <img
+                key={idx}
+                src={url}
+                alt={`report-${row.original.id}-${idx}`}
+                className="w-10 h-10 rounded object-cover border"
+              />
+            ))}
           </div>
         ),
-        size: 80,
-      },
-      {
-        accessorKey: 'bookingId',
-        header: ({ column }) => {
-          return (
-            <Button
-              variant="ghost"
-              onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-              className="h-8 px-2 text-left justify-start font-medium"
-            >
-              Booking
-              <ArrowUpDown className="ml-2 h-4 w-4" />
-            </Button>
-          );
-        },
-        cell: ({ row }) => (
-          <div className="font-mono text-sm">
-            <Badge variant="outline" className="font-medium">
-              #{row.original.bookingId}
-            </Badge>
-          </div>
-        ),
-        size: 100,
+        size: 160,
       },
       {
         accessorKey: 'reason',
@@ -156,15 +230,27 @@ export default function ManageReportPage() {
         accessorKey: 'description',
         header: 'Mô tả',
         cell: ({ row }) => (
-          <div className="max-w-[360px]">
+          <div className="w-80">
             <div className="flex items-start gap-2">
               <FileText className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-              <p
-                className="text-sm text-muted-foreground leading-5 line-clamp-3"
-                title={row.original.description}
-              >
-                {row.original.description}
-              </p>
+              <div className="space-y-1">
+                <p
+                  className="text-sm text-muted-foreground leading-5"
+                  title={row.original.description}
+                >
+                  {row.original.description}
+                </p>
+                {row.original.note && (
+                  <p className="text-xs text-muted-foreground">
+                    Ghi chú: <span className="text-foreground">{row.original.note}</span>
+                  </p>
+                )}
+                {row.original.reviewResponse && (
+                  <p className="text-xs text-muted-foreground">
+                    Phản hồi: <span className="text-foreground">{row.original.reviewResponse}</span>
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         ),
@@ -196,7 +282,97 @@ export default function ManageReportPage() {
             >
               <StatusIcon className="w-3 h-3 mr-1" />
               {statusTextMap[status] || status}
+              {row.original.reporterType && (
+                <span className="ml-2 text-[10px] opacity-80">[{row.original.reporterType}]</span>
+              )}
             </Badge>
+          );
+        },
+        size: 140,
+      },
+      {
+        accessorKey: 'CustomerProfile',
+        header: 'Khách hàng',
+        cell: ({ row }) => {
+          const cp = row.original.CustomerProfile;
+          return cp ? (
+            <div className="flex items-center gap-2 max-w-[280px]">
+              <img
+                src={cp.user?.avatar || ''}
+                alt={cp.user?.name || ''}
+                className="w-8 h-8 rounded-full border object-cover"
+              />
+              <div className="min-w-0">
+                <div className="text-sm font-medium truncate">{cp.user?.name}</div>
+                <div className="text-xs text-muted-foreground truncate">{cp.user?.email}</div>
+                <div className="text-xs text-muted-foreground truncate">{cp.user?.phone}</div>
+              </div>
+            </div>
+          ) : (
+            <span className="text-xs text-muted-foreground">--</span>
+          );
+        },
+        size: 260,
+      },
+      {
+        accessorKey: 'ServiceProvider',
+        header: 'Nhà cung cấp',
+        cell: ({ row }) => {
+          const sp = row.original.ServiceProvider;
+          return sp ? (
+            <div className="flex items-center gap-2 max-w-[320px]">
+              <div className="w-8 h-8 rounded-full border bg-muted flex items-center justify-center overflow-hidden">
+                {sp.logo ? (
+                  <img
+                    src={sp.logo}
+                    alt={sp.user?.name || ''}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-[10px] px-1 text-muted-foreground">
+                    {sp.user?.name?.slice(0, 2).toUpperCase() || '--'}
+                  </span>
+                )}
+              </div>
+              <div className="min-w-0">
+                <div className="text-sm font-medium truncate">{sp.user?.name}</div>
+                <div className="text-xs text-muted-foreground truncate">{sp.user?.email}</div>
+                <div className="text-xs text-muted-foreground truncate">{sp.address}</div>
+              </div>
+            </div>
+          ) : (
+            <span className="text-xs text-muted-foreground">--</span>
+          );
+        },
+        size: 320,
+      },
+      {
+        id: 'actions',
+        header: 'Hành động',
+        cell: ({ row }) => {
+          if (lockedReportId === row.original.id) {
+            return <span className="text-xs text-muted-foreground">--</span>;
+          }
+          return (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="default"
+                size="sm"
+                disabled={isUpdating}
+                onClick={() => {
+                  setSelectedReportId(row.original.id);
+                  setSelectedStatus(
+                    (row.original.status?.toUpperCase?.() as 'PENDING' | 'RESOLVED' | 'REJECTED') ||
+                      'PENDING'
+                  );
+                  setNote(row.original.note || '');
+                  setUpdateDialogOpen(true);
+                }}
+                title="Cập nhật báo cáo"
+              >
+                Cập nhật
+              </Button>
+            </div>
           );
         },
         size: 140,
@@ -446,6 +622,69 @@ export default function ManageReportPage() {
           </CardContent>
         </Card>
       </div>
+      {/* Error Dialog */}
+      <Dialog open={errorDialogOpen} onOpenChange={setErrorDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Lỗi cập nhật</DialogTitle>
+          </DialogHeader>
+          <div className="text-sm text-muted-foreground">{errorDialogMsg}</div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setErrorDialogOpen(false)}>
+              Đóng
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Update Dialog */}
+      <Dialog open={updateDialogOpen} onOpenChange={setUpdateDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cập nhật báo cáo</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="text-sm">Mã báo cáo: #{selectedReportId ?? '--'}</div>
+            <div className="space-y-2">
+              <Label htmlFor="status">Trạng thái</Label>
+              <Select
+                value={selectedStatus}
+                onValueChange={v => setSelectedStatus(v as 'PENDING' | 'RESOLVED' | 'REJECTED')}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="PENDING">Chờ xử lý</SelectItem>
+                  <SelectItem value="RESOLVED">Đã xử lý</SelectItem>
+                  <SelectItem value="REJECTED">Từ chối</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {/* <div className="space-y-2">
+              <Label htmlFor="note">Ghi chú</Label>
+              <Textarea
+                id="note"
+                placeholder="Nhập ghi chú (tùy chọn)"
+                value={note}
+                onChange={e => setNote(e.target.value)}
+                className="min-h-[96px]"
+              />
+            </div> */}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setUpdateDialogOpen(false)}
+              disabled={isUpdating}
+            >
+              Hủy
+            </Button>
+            <Button onClick={handleSubmitUpdate} disabled={isUpdating}>
+              Lưu
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

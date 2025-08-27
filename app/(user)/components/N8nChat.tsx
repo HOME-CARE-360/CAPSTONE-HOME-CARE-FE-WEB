@@ -21,7 +21,7 @@ export default function N8nChat() {
             borderRadius: '12px',
             fontFamily: 'Inter, system-ui, sans-serif',
           },
-          initialMessages: ['Xin chào! 👋', 'Tôi là Danhyeye. Tôi có thể giúp gì cho bạn hôm nay?'],
+          initialMessages: ['Xin chào! 👋', 'Tôi là HomeCare. Tôi có thể giúp gì cho bạn hôm nay?'],
           i18n: {
             en: {
               title: 'Xin chào! 👋',

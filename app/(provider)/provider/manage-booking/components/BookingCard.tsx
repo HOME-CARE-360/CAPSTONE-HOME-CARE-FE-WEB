@@ -144,6 +144,13 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
   const isInProgress = booking.status === 'IN_PROGRESS';
   const isPending = booking.status === 'PENDING';
 
+  // Overdue if current time is past the preferred date/time
+  const isPreferredDateOverdue = (() => {
+    const preferred = new Date(booking.preferredDate).getTime();
+    const now = Date.now();
+    return now > preferred;
+  })();
+
   // Determine if we should show proposal tab
   // Show when: no inspection report OR booking is estimated OR proposal is rejected
   const shouldShowProposalTab =
@@ -155,11 +162,11 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
   const shouldShowQuickActions = shouldShowProposalTab && !isPending;
 
   // Determine if we should show staff assignment section
-  // Show staff assignment only when booking is pending AND no staff is assigned
-  const shouldShowStaffAssignment = isPending && !hasStaffAssigned;
+  // Show staff assignment only when booking is pending AND no staff is assigned AND not overdue
+  const shouldShowStaffAssignment = isPending && !hasStaffAssigned && !isPreferredDateOverdue;
 
   // Check if this is a pending booking that needs immediate attention
-  const needsStaffAssignment = isPending && !hasStaffAssigned;
+  const needsStaffAssignment = isPending && !hasStaffAssigned && !isPreferredDateOverdue;
 
   // Report booking state
   const [reportSheetOpen, setReportSheetOpen] = useState(false);
@@ -452,6 +459,11 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                   <SheetTitle className="text-xl font-bold flex items-center gap-2">
                     <Calendar className="h-5 w-5" />
                     Chi tiết đặt lịch
+                    {isPreferredDateOverdue && (
+                      <Badge variant="destructive" className="ml-2">
+                        Quá hạn
+                      </Badge>
+                    )}
                     {needsStaffAssignment && (
                       <Badge variant="destructive" className="ml-2">
                         Cần phân công
@@ -676,6 +688,20 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
 
                         {/* Actions */}
                         <div className="space-y-4">
+                          {/* Overdue Notice */}
+                          {isPreferredDateOverdue && (
+                            <Alert className="border-red-200 bg-red-50">
+                              <AlertTriangle className="h-4 w-4 text-red-600" />
+                              <AlertDescription>
+                                Lịch hẹn đã quá thời gian (
+                                {format(new Date(booking.preferredDate), 'dd/MM/yyyy - HH:mm', {
+                                  locale: vi,
+                                })}
+                                ). Phân công nhân viên tạm thời bị ẩn cho đơn quá hạn. Vui lòng Liên
+                                Hệ với khách hàng để huỷ booking
+                              </AlertDescription>
+                            </Alert>
+                          )}
                           {/* Quick Actions */}
                           {shouldShowQuickActions && (
                             <div className="space-y-3">
@@ -699,7 +725,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
 
                           {shouldShowQuickActions && <Separator />}
 
-                          {/* Staff Assignment - Always show for pending bookings */}
+                          {/* Staff Assignment - show only when pending, not assigned and not overdue */}
                           {shouldShowStaffAssignment && (
                             <div
                               className={cn(

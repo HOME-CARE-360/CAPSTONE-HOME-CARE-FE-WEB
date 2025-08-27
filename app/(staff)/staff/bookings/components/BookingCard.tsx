@@ -22,7 +22,7 @@ import {
   Plus,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Booking, StatusServiceRequest } from '@/lib/api/services/fetchBooking';
+import { Booking, StatusBooking, StatusServiceRequest } from '@/lib/api/services/fetchBooking';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -226,6 +226,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
   const canManageAssets = isInProgress && hasCheckedIn;
 
   const isProposalAccepted = (proposalData?.data?.status || '').toUpperCase() === 'ACCEPTED';
+  const isStaffCompleted = booking.status === StatusBooking.STAFF_COMPLETED;
 
   const handleCheckIn = () => {
     setCheckinOpen(true);
@@ -1197,7 +1198,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
               </Button>
             )}
 
-            {isEstimated && isProposalAccepted && (
+            {isEstimated && isProposalAccepted && !isStaffCompleted && (
               <Button
                 onClick={() => setCheckoutOpen(true)}
                 size="sm"

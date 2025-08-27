@@ -6,9 +6,9 @@ import { createChat } from '@n8n/chat';
 
 export default function N8nChat() {
   const chatContainerRef = useRef<HTMLDivElement>(null);
-  const n8nChatUrl = process.env.NEXT_PUBLIC_N8N_CHAT;
+  const n8nChatUrl = 'https://n8n.homecare.io.vn/webhook/4f24cea2-47b5-45cc-a36e-0165132382b5/chat';
 
-  console.log('n8nChatUrl', n8nChatUrl);
+  console.log(n8nChatUrl);
 
   useEffect(() => {
     if (n8nChatUrl && chatContainerRef.current) {

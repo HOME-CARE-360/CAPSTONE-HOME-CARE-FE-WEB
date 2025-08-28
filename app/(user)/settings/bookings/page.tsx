@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Fragment } from 'react';
+import { useState } from 'react';
 import {
   useCustomerBooking,
   useGetUserProposal,
@@ -83,7 +83,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { useForm } from 'react-hook-form';
@@ -91,6 +90,13 @@ import { useCreateReport, useCreateReview, useCompleteBooking } from '@/hooks/us
 import { useUploadImage } from '@/hooks/useImage';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useGetOrCreateConversation } from '@/hooks/useConversation';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 //Booking status
 const getStatusConfig = (status: string) => {
@@ -143,6 +149,23 @@ const getTransactionStatusConfig = (status: string) => {
 //   };
 //   return map[key] || status;
 // };
+
+// Report reasons enum
+enum ReportReason {
+  POOR_SERVICE_QUALITY = 'POOR_SERVICE_QUALITY',
+  STAFF_BEHAVIOR = 'STAFF_BEHAVIOR',
+  TECHNICAL_ISSUES = 'TECHNICAL_ISSUES',
+}
+
+// Report reason labels
+const getReportReasonLabel = (reason: ReportReason): string => {
+  const map: Record<ReportReason, string> = {
+    [ReportReason.POOR_SERVICE_QUALITY]: 'Chất lượng dịch vụ kém',
+    [ReportReason.STAFF_BEHAVIOR]: 'Thái độ nhân viên không tốt',
+    [ReportReason.TECHNICAL_ISSUES]: 'Vấn đề kỹ thuật',
+  };
+  return map[reason] || reason;
+};
 
 // Translate payment method to Vietnamese
 const getPaymentMethodVi = (method: string) => {
@@ -591,7 +614,7 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
   );
 
   type ReportFormValues = {
-    reason: string;
+    reason: ReportReason;
     description: string;
     imageUrls: string[];
   };
@@ -604,7 +627,7 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
     setValue,
     watch,
   } = useForm<ReportFormValues>({
-    defaultValues: { reason: '', description: '', imageUrls: [] },
+    defaultValues: { reason: ReportReason.POOR_SERVICE_QUALITY, description: '', imageUrls: [] },
   });
 
   const imageUrls = watch('imageUrls');
@@ -632,7 +655,7 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
       {
         onSuccess: () => {
           setIsReportOpen(false);
-          reset();
+          reset({ reason: ReportReason.POOR_SERVICE_QUALITY, description: '', imageUrls: [] });
         },
       }
     );
@@ -1008,12 +1031,25 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
           <form onSubmit={handleSubmit(onSubmitReport)} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor={`reason-${booking.id}`}>Lý do</Label>
-              <Input
-                id={`reason-${booking.id}`}
-                placeholder="Nhập lý do báo cáo"
-                aria-invalid={!!errors.reason}
-                {...register('reason', { required: true, minLength: 3 })}
-              />
+              <Select
+                value={watch('reason')}
+                onValueChange={value => setValue('reason', value as ReportReason)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Chọn lý do báo cáo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ReportReason.POOR_SERVICE_QUALITY}>
+                    {getReportReasonLabel(ReportReason.POOR_SERVICE_QUALITY)}
+                  </SelectItem>
+                  <SelectItem value={ReportReason.STAFF_BEHAVIOR}>
+                    {getReportReasonLabel(ReportReason.STAFF_BEHAVIOR)}
+                  </SelectItem>
+                  <SelectItem value={ReportReason.TECHNICAL_ISSUES}>
+                    {getReportReasonLabel(ReportReason.TECHNICAL_ISSUES)}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor={`description-${booking.id}`}>Mô tả chi tiết</Label>

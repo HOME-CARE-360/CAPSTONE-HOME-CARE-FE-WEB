@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/sidebar';
 import { LucideIcon } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 
 type NavItem = {
   title: string;
@@ -81,9 +82,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               asChild
               className="data-[slot=sidebar-menu-button]:!p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             >
-              <a href="/" className="flex items-center">
-                <Image src="/images/logo.png" alt="HomeCare 360" width={80} height={80} />
-              </a>
+              <Link href="/" className="flex items-center justify-center w-full">
+                <Image
+                  src="/images/logo.png"
+                  alt="HomeCare 360"
+                  width={40}
+                  height={40}
+                  className="object-cover"
+                />
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

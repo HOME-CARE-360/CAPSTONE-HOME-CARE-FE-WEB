@@ -12,6 +12,8 @@ import {
   ReportBookingRequest,
   ReportBookingResponse,
   GetReportListResponse,
+  ReportDetailResponse,
+  UpdateReportBookingRequest,
 } from '@/lib/api/services/fetchManageBooking';
 import { useState, useMemo } from 'react';
 import { toast } from 'sonner';
@@ -239,4 +241,44 @@ export const useReportList = () => {
   });
 
   return { data, isLoading, error, refetch };
+};
+
+export const useReportDetail = (id: number, enabled: boolean = false) => {
+  const { data, isLoading, error, refetch } = useQuery<ReportDetailResponse>({
+    queryKey: ['manage-bookings', 'report-detail', id],
+    queryFn: () => serviceManageBooking.getReportDetail(id),
+    enabled: enabled && id > 0,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  });
+
+  return { data, isLoading, error, refetch };
+};
+
+export const useUpdateReportBooking = () => {
+  const queryClient = useQueryClient();
+
+  const { mutate, isPending, error } = useMutation<
+    ReportBookingResponse,
+    Error,
+    UpdateReportBookingRequest
+  >({
+    mutationFn: (data: UpdateReportBookingRequest) =>
+      serviceManageBooking.updateReportBooking(data),
+    onSuccess: () => {
+      toast.success('Cập nhật báo cáo thành công');
+      queryClient.invalidateQueries({ queryKey: ['manage-bookings', 'report-list'] });
+      queryClient.invalidateQueries({ queryKey: ['manage-bookings', 'report-detail'] });
+    },
+    onError: (error: unknown) => {
+      let errorMessage = 'Có lỗi xảy ra khi cập nhật báo cáo';
+      if (typeof error === 'object' && error !== null && 'message' in error) {
+        const errorObj = error as { message: string };
+        errorMessage = errorObj.message || errorMessage;
+      }
+      toast.error(errorMessage);
+    },
+  });
+
+  return { mutate, isPending, error };
 };

@@ -38,7 +38,6 @@ export function useCreateStaff() {
       return response;
     },
     onSuccess: () => {
-      toast.success('Tạo nhân viên thành công');
       queryClient.invalidateQueries({ queryKey: ['staffs'] });
     },
     onError: (error: unknown) => {

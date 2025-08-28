@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { SiteHeader } from '@/app/(manager)/components/SiteHeader';
 import { useGetListWithdraw, useGetWithdrawDetail, useUpdateWithdraw } from '@/hooks/useManager';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -11,35 +11,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  ColumnDef,
-  SortingState,
-  flexRender,
-  getCoreRowModel,
-  getSortedRowModel,
-  useReactTable,
-} from '@tanstack/react-table';
 import { cn } from '@/lib/utils';
 import { Currency, formatCurrency } from '@/utils/numbers/formatCurrency';
-import { CalendarClock, ArrowUpDown, Filter, Eye, CheckCircle, Clock, XCircle } from 'lucide-react';
+import {
+  CalendarClock,
+  Filter,
+  Eye,
+  CheckCircle,
+  Clock,
+  XCircle,
+  RefreshCcw,
+  ChevronRight,
+  ChevronLeft,
+} from 'lucide-react';
 import {
   Pagination,
   PaginationContent,
   PaginationItem,
   PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
 } from '@/components/ui/pagination';
 import {
   Sheet,
@@ -75,7 +67,6 @@ export default function ManageWithdrawPage() {
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
   const [status, setStatus] = useState<WithdrawStatus>('ALL');
-  const [sorting, setSorting] = useState<SortingState>([]);
   const [selectedId, setSelectedId] = useState<number | undefined>(undefined);
   const [open, setOpen] = useState(false);
 
@@ -104,214 +95,9 @@ export default function ManageWithdrawPage() {
     }
   }, [detail]);
 
-  const columns = useMemo<ColumnDef<(typeof rows)[number]>[]>(
-    () => [
-      // {
-      //   accessorKey: 'id',
-      //   header: ({ column }) => (
-      //     <Button
-      //       variant="ghost"
-      //       onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-      //       className="h-8 px-2 text-left justify-start font-medium"
-      //     >
-      //       ID
-      //       <ArrowUpDown className="ml-2 h-4 w-4" />
-      //     </Button>
-      //   ),
-      //   cell: ({ row }) => <span className="font-mono text-sm">#{row.original.id}</span>,
-      //   size: 80,
-      // },
-      {
-        accessorKey: 'User.name',
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-            className="h-8 px-2 text-left justify-start font-medium"
-          >
-            Người dùng
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
-        cell: ({ row }) => {
-          // Handle both response structures
-          const user = row.original.User || row.original.User_WithdrawalRequest_userIdToUser;
-          return (
-            <div className="flex flex-col min-w-0">
-              <span className="font-medium text-sm truncate">{user?.name ?? 'N/A'}</span>
-              <span className="text-xs text-muted-foreground truncate">{user?.email ?? 'N/A'}</span>
-              {user?.phone && (
-                <span className="text-xs text-muted-foreground truncate">{user.phone}</span>
-              )}
-            </div>
-          );
-        },
-        size: 200,
-      },
-      {
-        accessorKey: 'amount',
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-            className="h-8 px-2 text-left justify-start font-medium"
-          >
-            Số tiền
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
-        cell: ({ row }) => (
-          <span className="font-semibold text-lg">
-            {formatCurrency(row.original.amount, Currency.VND)}
-          </span>
-        ),
-        size: 120,
-      },
-      {
-        accessorKey: 'status',
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-            className="h-8 px-2 text-left justify-start font-medium"
-          >
-            Trạng thái
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
-        cell: ({ row }) => (
-          <Badge
-            className={cn(
-              'border',
-              statusColorMap[row.original.status] ?? 'bg-slate-50 text-slate-700 border-slate-200'
-            )}
-          >
-            {statusTextMap[row.original.status] ?? row.original.status}
-          </Badge>
-        ),
-        size: 120,
-      },
-      {
-        accessorKey: 'createdAt',
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-            className="h-8 px-2 text-left justify-start font-medium"
-          >
-            Thời gian tạo
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
-        cell: ({ row }) => (
-          <div className="inline-flex items-center gap-2 text-muted-foreground whitespace-nowrap">
-            <CalendarClock className="h-4 w-4" />
-            <div className="text-sm">
-              <div className="font-medium text-foreground">
-                {new Date(row.original.createdAt).toLocaleDateString('vi-VN')}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {new Date(row.original.createdAt).toLocaleTimeString('vi-VN')}
-              </div>
-            </div>
-          </div>
-        ),
-        size: 160,
-      },
-      {
-        accessorKey: 'processedAt',
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-            className="h-8 px-2 text-left justify-start font-medium"
-          >
-            Thời gian xử lý
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
-        cell: ({ row }) => (
-          <div className="text-sm">
-            {row.original.processedAt ? (
-              <div className="inline-flex items-center gap-2 text-muted-foreground whitespace-nowrap">
-                <CheckCircle className="h-4 w-4 text-green-600" />
-                <div>
-                  <div className="font-medium text-foreground">
-                    {new Date(row.original.processedAt).toLocaleDateString('vi-VN')}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {new Date(row.original.processedAt).toLocaleTimeString('vi-VN')}
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="inline-flex items-center gap-2 text-muted-foreground">
-                <Clock className="h-4 w-4 text-amber-600" />
-                <span className="text-sm">Chưa xử lý</span>
-              </div>
-            )}
-          </div>
-        ),
-        size: 160,
-      },
-      {
-        accessorKey: 'note',
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-            className="h-8 px-2 text-left justify-start font-medium"
-          >
-            Ghi chú
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
-        cell: ({ row }) => (
-          <div className="text-sm max-w-[200px]">
-            {row.original.note ? (
-              <span className="line-clamp-2 text-muted-foreground" title={row.original.note}>
-                {row.original.note}
-              </span>
-            ) : (
-              <span className="text-muted-foreground">-</span>
-            )}
-          </div>
-        ),
-        size: 200,
-      },
-      {
-        id: 'actions',
-        header: 'Hành động',
-        cell: ({ row }) => (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => {
-              setSelectedId(row.original.id);
-              setOpen(true);
-            }}
-          >
-            <Eye className="h-4 w-4 mr-2" /> Chi tiết
-          </Button>
-        ),
-        size: 120,
-      },
-    ],
-    []
-  );
-
-  const table = useReactTable({
-    data: rows,
-    columns,
-    state: { sorting },
-    onSortingChange: setSorting,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-  });
-
   const headerActions = (
     <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between w-full gap-3">
         <Select value={status} onValueChange={v => setStatus(v as WithdrawStatus)}>
           <SelectTrigger className="w-[200px] h-10">
             <SelectValue placeholder="Trạng thái" />
@@ -356,11 +142,9 @@ export default function ManageWithdrawPage() {
           </SelectContent>
         </Select>
         <Button variant="outline" onClick={() => refetch()} disabled={isFetching} className="h-10">
+          <RefreshCcw className={cn('h-4 w-4 mr-2', isFetching && 'animate-spin')} />
           Làm mới
         </Button>
-      </div>
-      <div className="text-sm text-muted-foreground">
-        Trang {page} / {totalPages}
       </div>
     </div>
   );
@@ -368,64 +152,239 @@ export default function ManageWithdrawPage() {
   return (
     <div className="p-0 md:p-0">
       <SiteHeader title="Quản lý rút tiền" />
-      <div className="p-4 md:p-6 pt-0 space-y-6">
-        <Card className="border-0 shadow-lg">
+      <div className="p-4 pt-0 space-y-6">
+        <div>
           <CardHeader className="space-y-6 pb-6">{headerActions}</CardHeader>
           <CardContent className="px-6 pb-6">
             {isLoading ? (
               <div className="space-y-4">
-                <div className="rounded-lg border">
-                  {Array.from({ length: 6 }).map((_, idx) => (
-                    <div key={idx} className="p-4 border-b last:border-b-0">
-                      <Skeleton className="h-8 w-full" />
-                    </div>
-                  ))}
-                </div>
+                {Array.from({ length: 6 }).map((_, idx) => (
+                  <Card key={idx} className="border">
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-4">
+                        <Skeleton className="w-16 h-16 rounded" />
+                        <div className="flex-1 space-y-2">
+                          <Skeleton className="h-4 w-32" />
+                          <Skeleton className="h-3 w-48" />
+                          <Skeleton className="h-3 w-36" />
+                        </div>
+                        <Skeleton className="w-20 h-8" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
             ) : (
-              <div className="rounded-lg border overflow-hidden">
-                <Table>
-                  <TableHeader className="bg-muted/30">
-                    {table.getHeaderGroups().map(headerGroup => (
-                      <TableRow key={headerGroup.id} className="border-b hover:bg-transparent">
-                        {headerGroup.headers.map(header => (
-                          <TableHead key={header.id} className="h-12 px-4 font-semibold">
-                            {header.isPlaceholder
-                              ? null
-                              : flexRender(header.column.columnDef.header, header.getContext())}
-                          </TableHead>
-                        ))}
-                      </TableRow>
-                    ))}
-                  </TableHeader>
-                  <TableBody>
-                    {table.getRowModel().rows.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={columns.length} className="h-32 text-center">
-                          <div className="text-sm text-muted-foreground">
-                            Không có yêu cầu rút tiền
+              <div className="space-y-4">
+                {rows.length === 0 ? (
+                  <Card className="border">
+                    <CardContent className="p-8 text-center">
+                      <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                          <span className="text-lg">💰</span>
+                        </div>
+                        <p className="text-sm font-medium">Không có yêu cầu rút tiền</p>
+                        <p className="text-xs">Hãy thử thay đổi bộ lọc</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  rows.map((withdraw, index) => (
+                    <Card
+                      key={withdraw.id}
+                      className={cn(
+                        'border transition-all duration-200 hover:shadow-md',
+                        index % 2 === 0 && 'bg-muted/10'
+                      )}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex flex-col lg:flex-row gap-4">
+                          {/* Left Section - User Info and Amount */}
+                          <div className="flex-shrink-0 space-y-3 w-1/3">
+                            <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+                              <div className="w-12 h-12 rounded-full border bg-muted flex items-center justify-center overflow-hidden">
+                                {withdraw.User?.avatar ||
+                                withdraw.User_WithdrawalRequest_userIdToUser?.avatar ? (
+                                  <Image
+                                    width={48}
+                                    height={48}
+                                    src={
+                                      withdraw.User?.avatar ||
+                                      withdraw.User_WithdrawalRequest_userIdToUser?.avatar ||
+                                      ''
+                                    }
+                                    alt="Avatar"
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <span className="text-sm text-muted-foreground">
+                                    {(
+                                      withdraw.User?.name ||
+                                      withdraw.User_WithdrawalRequest_userIdToUser?.name ||
+                                      'U'
+                                    )
+                                      ?.slice(0, 1)
+                                      .toUpperCase()}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="text-sm font-medium truncate">
+                                  {withdraw.User?.name ||
+                                    withdraw.User_WithdrawalRequest_userIdToUser?.name ||
+                                    'N/A'}
+                                </div>
+                                <div className="text-xs text-muted-foreground truncate">
+                                  {withdraw.User?.email ||
+                                    withdraw.User_WithdrawalRequest_userIdToUser?.email ||
+                                    'N/A'}
+                                </div>
+                                {(withdraw.User?.phone ||
+                                  withdraw.User_WithdrawalRequest_userIdToUser?.phone) && (
+                                  <div className="text-xs text-muted-foreground truncate">
+                                    {withdraw.User?.phone ||
+                                      withdraw.User_WithdrawalRequest_userIdToUser?.phone}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="text-center">
+                              <div className="text-2xl font-bold text-primary">
+                                {formatCurrency(withdraw.amount, Currency.VND)}
+                              </div>
+                              <div className="text-xs text-muted-foreground">Số tiền yêu cầu</div>
+                            </div>
                           </div>
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      table.getRowModel().rows.map((row, index) => (
-                        <TableRow
-                          key={row.id}
-                          className={cn(
-                            'hover:bg-muted/50 transition-colors duration-150',
-                            index % 2 === 0 && 'bg-muted/10'
-                          )}
-                        >
-                          {row.getVisibleCells().map(cell => (
-                            <TableCell key={cell.id} className="px-4 py-4">
-                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                            </TableCell>
-                          ))}
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
+
+                          {/* Center Section - Details and Timeline */}
+                          <div className="flex-1 space-y-3">
+                            <div className="flex items-start gap-2">
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                  <Badge variant="outline" className="text-xs backdrop-blur-sm">
+                                    {statusTextMap[withdraw.status] ?? withdraw.status}
+                                  </Badge>
+                                </div>
+
+                                {withdraw.note && (
+                                  <p className="text-sm text-muted-foreground">
+                                    <span className="font-medium">Ghi chú:</span> {withdraw.note}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Timeline Information */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              <div className="flex items-center gap-2 text-sm">
+                                <CalendarClock className="h-4 w-4 text-muted-foreground" />
+                                <div>
+                                  <div className="font-medium text-foreground">
+                                    {new Date(withdraw.createdAt).toLocaleDateString('vi-VN')}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {new Date(withdraw.createdAt).toLocaleTimeString('vi-VN')}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2 text-sm">
+                                {withdraw.processedAt ? (
+                                  <>
+                                    <CheckCircle className="h-4 w-4 text-green-600" />
+                                    <div>
+                                      <div className="font-medium text-foreground">
+                                        {new Date(withdraw.processedAt).toLocaleDateString('vi-VN')}
+                                      </div>
+                                      <div className="text-xs text-muted-foreground">
+                                        {new Date(withdraw.processedAt).toLocaleTimeString('vi-VN')}
+                                      </div>
+                                    </div>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Clock className="h-4 w-4 text-amber-600" />
+                                    <span className="text-sm text-muted-foreground">
+                                      Chưa xử lý
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Bank Information */}
+                            {(() => {
+                              const user =
+                                withdraw.User || withdraw.User_WithdrawalRequest_userIdToUser;
+                              const wallet = user?.Wallet;
+                              return wallet ? (
+                                <div className="p-3 bg-muted/20 rounded-lg">
+                                  <div className="grid grid-cols-2 gap-2 text-xs">
+                                    <div className="text-muted-foreground">Ngân hàng:</div>
+                                    <div className="font-medium">{wallet.bankName || '--'}</div>
+
+                                    <div className="text-muted-foreground">Số tài khoản:</div>
+                                    <div className="font-mono font-medium">
+                                      {wallet.bankAccount || '--'}
+                                    </div>
+
+                                    <div className="text-muted-foreground">Số dư hiện tại:</div>
+                                    <div className="font-bold text-green-600">
+                                      {formatCurrency(wallet.balance, Currency.VND)}
+                                    </div>
+                                  </div>
+                                </div>
+                              ) : null;
+                            })()}
+                          </div>
+
+                          {/* Right Section - Actions */}
+                          <div className="flex-shrink-0 space-y-3">
+                            <div className="flex justify-end">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setSelectedId(withdraw.id);
+                                  setOpen(true);
+                                }}
+                                className="w-full"
+                              >
+                                <Eye className="h-4 w-4 mr-2" /> Chi tiết
+                              </Button>
+                            </div>
+
+                            {/* Status Analysis */}
+                            {(() => {
+                              const user =
+                                withdraw.User || withdraw.User_WithdrawalRequest_userIdToUser;
+                              const wallet = user?.Wallet;
+                              const canWithdraw = wallet && wallet.balance >= withdraw.amount;
+                              const isProcessed = withdraw.status !== 'PENDING';
+
+                              if (isProcessed) return null;
+
+                              return (
+                                <div className="text-center">
+                                  {canWithdraw ? (
+                                    <Badge className="bg-green-100 text-green-700 border-green-200 text-xs">
+                                      <CheckCircle className="h-4 w-4 mr-2" /> Có thể rút tiền
+                                    </Badge>
+                                  ) : (
+                                    <Badge className="bg-red-100 hover:bg-red-200 text-red-700 border-red-200 text-xs">
+                                      Số dư không đủ
+                                    </Badge>
+                                  )}
+                                </div>
+                              );
+                            })()}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
               </div>
             )}
 
@@ -440,13 +399,16 @@ export default function ManageWithdrawPage() {
               <Pagination>
                 <PaginationContent>
                   <PaginationItem>
-                    <PaginationPrevious
-                      href="#"
-                      onClick={e => {
-                        e.preventDefault();
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
                         if (page > 1) setPage(page - 1);
                       }}
-                    />
+                      disabled={page <= 1}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
                   </PaginationItem>
                   {Array.from({ length: Math.min(totalPages, 5) }).map((_, index) => {
                     const start = Math.max(1, Math.min(page - 2, totalPages - 4));
@@ -468,19 +430,22 @@ export default function ManageWithdrawPage() {
                     );
                   })}
                   <PaginationItem>
-                    <PaginationNext
-                      href="#"
-                      onClick={e => {
-                        e.preventDefault();
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
                         if (page < totalPages) setPage(page + 1);
                       }}
-                    />
+                      disabled={page >= totalPages}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
                   </PaginationItem>
                 </PaginationContent>
               </Pagination>
             </div>
           </CardContent>
-        </Card>
+        </div>
       </div>
 
       <Sheet open={open} onOpenChange={setOpen}>
@@ -579,13 +544,13 @@ export default function ManageWithdrawPage() {
                     <div className="grid grid-cols-1 gap-4 p-4 bg-muted/20 rounded-lg">
                       <div className="grid grid-cols-2 gap-3 text-sm">
                         <div className="text-muted-foreground">Ngân hàng</div>
-                        <div className="font-medium">{wallet.bankName ?? 'N/A'}</div>
+                        <div className="font-medium">{wallet.bankName ?? '--'}</div>
 
                         <div className="text-muted-foreground">Số tài khoản</div>
-                        <div className="font-mono font-medium">{wallet.bankAccount ?? 'N/A'}</div>
+                        <div className="font-mono font-medium">{wallet.bankAccount ?? '--'}</div>
 
                         <div className="text-muted-foreground">Chủ tài khoản</div>
-                        <div className="font-medium">{wallet.accountHolder ?? 'N/A'}</div>
+                        <div className="font-medium">{wallet.accountHolder ?? '--'}</div>
 
                         <div className="text-muted-foreground">Số dư ví hiện tại</div>
                         <div className="font-bold text-lg text-green-600">
@@ -691,7 +656,7 @@ export default function ManageWithdrawPage() {
                             </Badge>
                           ) : (
                             <Badge className="bg-red-100 text-red-700 border-red-200">
-                              Số dư không đủ
+                              Đang xử lý
                             </Badge>
                           )}
                         </div>
@@ -749,12 +714,6 @@ export default function ManageWithdrawPage() {
                             Chờ duyệt
                           </div>
                         </SelectItem>
-                        <SelectItem value="APPROVED">
-                          <div className="flex items-center gap-2">
-                            <CheckCircle className="h-4 w-4 text-green-600" />
-                            Đã duyệt
-                          </div>
-                        </SelectItem>
                         <SelectItem value="REJECTED">
                           <div className="flex items-center gap-2">
                             <XCircle className="h-4 w-4 text-red-600" />
@@ -765,6 +724,12 @@ export default function ManageWithdrawPage() {
                           <div className="flex items-center gap-2">
                             <XCircle className="h-4 w-4 text-red-600" />
                             Đã hủy
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="APPROVED">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                            Đã duyệt
                           </div>
                         </SelectItem>
                         <SelectItem value="COMPLETED">
@@ -821,8 +786,8 @@ export default function ManageWithdrawPage() {
                   <div className="flex-1 p-3 bg-muted/20 rounded-lg">
                     <p className="text-sm text-muted-foreground text-center">
                       {detail.status === 'COMPLETED'
-                        ? '✅ Yêu cầu đã được hoàn thành'
-                        : '❌ Yêu cầu đã bị từ chối'}
+                        ? 'Yêu cầu đã được hoàn thành'
+                        : 'Yêu cầu đã bị từ chối'}
                     </p>
                   </div>
                 )}

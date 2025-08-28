@@ -124,7 +124,7 @@ export function ServiceCard({
               />
             )
         )}
-        <div className="absolute top-4 left-4 flex gap-2">
+        <div className="absolute top-4 left-4 flex flex-wrap gap-2">
           {service.category && (
             <Badge
               variant="outline"
@@ -218,7 +218,7 @@ export function ServiceCard({
         </div>
         <div
           className={cn(
-            'flex justify-between items-center mb-2 text-foreground text-sm',
+            'flex justify-between items-center my-2 text-foreground text-sm',
             size === 'sm' && 'text-xs'
           )}
         >

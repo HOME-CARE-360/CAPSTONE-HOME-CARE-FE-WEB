@@ -30,6 +30,35 @@ export interface Booking {
   customer: BookingCustomer;
 }
 
+// New interface for the actual API response structure
+export interface ServiceRequestWithBooking {
+  id: number;
+  customerId: number;
+  providerId: number;
+  note: string | null;
+  preferredDate: string;
+  status: StatusServiceRequest;
+  createdAt: string;
+  updatedAt: string;
+  location: string;
+  phoneNumber: string;
+  categoryId: number;
+  category: BookingCategory;
+  customer: BookingCustomer;
+  booking: {
+    id: number;
+    customerId: number;
+    providerId: number;
+    status: string;
+    deletedAt: string | null;
+    createdAt: string;
+    updatedAt: string;
+    staffId: number | null;
+    serviceRequestId: number;
+    completedAt: string | null;
+  };
+}
+
 export interface AssignStaffToBookingRequest {
   staffId: number;
   customerId: number;
@@ -180,9 +209,6 @@ export type ReporterType = 'CUSTOMER' | 'PROVIDER';
 export enum ReportReason {
   NO_SHOW = 'NO_SHOW',
   INVALID_ADDRESS = 'INVALID_ADDRESS',
-  // INAPPROPRIATE_BEHAVIOR = 'INAPPROPRIATE_BEHAVIOR',
-  PAYMENT_ISSUE = 'PAYMENT_ISSUE',
-  OTHER = 'OTHER',
 }
 
 export interface ReportBookingRequest {
@@ -194,6 +220,15 @@ export interface ReportBookingRequest {
   reportedCustomerId: number;
   reportedProviderId: number;
   bookingId: number;
+}
+
+export interface UpdateReportBookingRequest {
+  id: number;
+  description: string;
+  imageUrls: string[];
+  note: string;
+  reporterType: ReporterType;
+  reason: ReportReason | string;
 }
 
 export interface ReportBookingResponse {
@@ -211,7 +246,7 @@ export interface BookingReportItem {
   reason: ReportReason | string;
   description: string;
   imageUrls: string[];
-  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'RESOLVED';
   createdAt: string;
   reviewedAt: string | null;
   reviewedById: number | null;
@@ -227,8 +262,83 @@ export interface GetReportListResponse {
   totalPages: number;
 }
 
+// Report detail interfaces
+export interface ReportDetailBooking {
+  id: number;
+  customerId: number;
+  providerId: number;
+  status: string;
+  deletedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  staffId: number;
+  serviceRequestId: number;
+  completedAt: string | null;
+  Proposal: unknown | null;
+}
+
+export interface ReportDetailCustomerProfile {
+  id: number;
+  userId: number;
+  address: string;
+  dateOfBirth: string;
+  gender: string;
+  createdAt: string;
+  updatedAt: string;
+  user: {
+    name: string;
+    phone: string;
+    email: string;
+    avatar: string;
+  };
+}
+
+export interface ReportDetailServiceProvider {
+  id: number;
+  description: string;
+  address: string;
+  createdAt: string;
+  updatedAt: string;
+  userId: number;
+  companyType: string;
+  industry: string | null;
+  licenseNo: string | null;
+  logo: string | null;
+  taxId: string;
+  verificationStatus: string;
+  verifiedAt: string;
+  verifiedById: number | null;
+  user: {
+    name: string;
+    phone: string;
+    email: string;
+    avatar: string | null;
+  };
+}
+
+export interface ReportDetailResponse {
+  id: number;
+  bookingId: number;
+  reporterId: number;
+  reporterType: ReporterType;
+  reportedCustomerId: number;
+  reportedProviderId: number;
+  reason: ReportReason | string;
+  description: string;
+  imageUrls: string[];
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'RESOLVED';
+  createdAt: string;
+  reviewedAt: string | null;
+  reviewedById: number | null;
+  note: string | null;
+  reviewResponse: string | null;
+  Booking: ReportDetailBooking;
+  CustomerProfile: ReportDetailCustomerProfile;
+  ServiceProvider: ReportDetailServiceProvider;
+}
+
 export interface ManageBookingResponse {
-  data: Booking[];
+  data: ServiceRequestWithBooking[];
   totalItems: number;
   page: number;
   limit: number;
@@ -293,5 +403,18 @@ export const serviceManageBooking = {
   getReportList: async (): Promise<GetReportListResponse> => {
     const response = await apiService.get(`/manage-bookings/get-list-report`);
     return response.data as GetReportListResponse;
+  },
+
+  getReportDetail: async (id: number): Promise<ReportDetailResponse> => {
+    const response = await apiService.get(`/manage-bookings/get-report-detail/${id}`);
+    return response.data as ReportDetailResponse;
+  },
+
+  updateReportBooking: async (data: UpdateReportBookingRequest): Promise<ReportBookingResponse> => {
+    const response = await apiService.patch<ReportBookingResponse, UpdateReportBookingRequest>(
+      `/manage-bookings/update-report-booking`,
+      data
+    );
+    return response.data;
   },
 };

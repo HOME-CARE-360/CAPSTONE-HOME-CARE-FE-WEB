@@ -171,6 +171,22 @@ export interface ReportListResponse {
   totalPages: number;
 }
 
+export interface ReportDetail extends Report {
+  Booking: {
+    id: number;
+    customerId: number;
+    providerId: number;
+    status: string;
+    deletedAt: string | null;
+    createdAt: string;
+    updatedAt: string;
+    staffId: number | null;
+    serviceRequestId: number;
+    completedAt: string | null;
+    Proposal: unknown;
+  } | null;
+}
+
 export interface ReportSearchParams {
   page?: number;
   limit?: number;
@@ -236,10 +252,10 @@ export interface UpdateWithdrawResponse {
 // Update Report
 export interface UpdateReportRequest {
   id: number;
-  status: 'PENDING' | 'REJECTED' | 'RESOLVED' | 'UNDER_REVIEW';
-  reviewedAt?: string | null;
-  reviewedById?: number | null;
+  status: 'PENDING' | 'REJECTED' | 'RESOLVED';
   note?: string | null;
+  reporterId?: number;
+  amount?: number;
 }
 
 export interface UpdateReportResponse {
@@ -352,6 +368,11 @@ export const managerSerivce = {
     const params = convertReportFilters(filters);
     const response = await apiService.get<ReportListResponse>('/managers/get-list-report', params);
     return response.data;
+  },
+
+  getReportDetail: async (id: number): Promise<ReportDetail> => {
+    const response = await apiService.get<ReportDetail>(`/managers/get-report-detail/${id}`);
+    return response.data as ReportDetail;
   },
 
   updateReport: async (payload: UpdateReportRequest): Promise<UpdateReportResponse> => {

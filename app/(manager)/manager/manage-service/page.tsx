@@ -36,7 +36,7 @@ export default function ManageServicePage() {
       <SiteHeader title="Quản lý dịch vụ" />
       <div className="space-y-6">
         {/* Filter Bar */}
-        <div className="flex items-center gap-3 bg-white border-b-2 p-4">
+        <div className="flex items-center gap-3 border-b-2 p-4">
           <div className="relative flex-1 max-w-md w-full">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <form

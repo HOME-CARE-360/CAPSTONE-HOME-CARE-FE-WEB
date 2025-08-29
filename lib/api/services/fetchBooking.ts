@@ -456,7 +456,24 @@ export interface CompleteBookingRequest {
   bookingId: number;
 }
 
+export interface CancelServiceRequestRequest {
+  serviceRequestId: number;
+}
+
 export interface CompleteBookingResponse {
+  success: boolean;
+  code: string;
+  message: string;
+  data?: {
+    id: number;
+    status: string;
+    updatedAt: string;
+  };
+  statusCode: number;
+  timestamp: string;
+}
+
+export interface CancelServiceRequestResponse {
   success: boolean;
   code: string;
   message: string;
@@ -568,6 +585,18 @@ export const serviceBooking = {
       return response.data as CompleteBookingResponse;
     } catch (error) {
       console.error('Complete Booking Error:', error);
+      throw error;
+    }
+  },
+
+  cancelServiceRequest: async (
+    data: CancelServiceRequestRequest
+  ): Promise<CancelServiceRequestResponse> => {
+    try {
+      const response = await apiService.patch(`/manage-bookings/cancel-service-request`, data);
+      return response.data as CancelServiceRequestResponse;
+    } catch (error) {
+      console.error('Cancel Service Request Error:', error);
       throw error;
     }
   },

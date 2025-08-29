@@ -1,21 +1,9 @@
 import { create } from 'zustand';
 import { getCookie, setCookie, deleteCookie } from 'cookies-next';
 import apiService, { setAuthErrorHandler } from '@/lib/api/core';
-import { jwtDecode, JwtPayload } from 'jwt-decode';
 import fetchAuth from '@/lib/api/services/fetchAuth';
+import { decodeJwt } from '@/utils/jwt';
 import router from 'next/router';
-
-// Define the structure of the decoded token
-interface DecodedToken extends JwtPayload {
-  id?: string;
-  userId?: string;
-  user_id?: string;
-  uid?: string;
-  name: string;
-  email: string;
-  role: string;
-  avatar?: string;
-}
 
 interface User {
   id: string;
@@ -44,23 +32,35 @@ interface AuthState {
 // Function to decode the token and extract user info
 const getUserFromToken = (token: string): User | null => {
   try {
-    const decoded = jwtDecode<DecodedToken>(token);
-    // The user ID can be in 'id', 'sub' (standard), 'userId', 'user_id', or 'uid'
-    const userId = decoded.id || decoded.sub || decoded.userId || decoded.user_id || decoded.uid;
+    // Use the custom decodeJwt function that matches your JWT structure
+    const decoded = decodeJwt(token);
+
+    if (!decoded) {
+      console.error('Failed to decode token using custom decoder');
+      return null;
+    }
+
+    // Extract user ID from the decoded token
+    const userId = decoded.userId?.toString() || decoded.uuid;
 
     if (!userId) {
-      console.error(
-        'Token does not contain a valid user ID claim (checked: id, sub, userId, user_id, uid).'
-      );
+      console.error('Token does not contain a valid user ID');
       return null;
+    }
+
+    // Get the primary role from the roles array
+    let primaryRole = 'USER'; // default fallback
+    if (decoded.roles && Array.isArray(decoded.roles) && decoded.roles.length > 0) {
+      // Use the first role as primary, or find a specific role
+      primaryRole = decoded.roles[0].name;
     }
 
     return {
       id: userId,
-      name: decoded.name,
-      email: decoded.email,
-      role: decoded.role,
-      avatar: decoded.avatar,
+      name: 'User', // You might want to fetch this from user profile API
+      email: 'user@example.com', // You might want to fetch this from user profile API
+      role: primaryRole,
+      avatar: undefined, // You might want to fetch this from user profile API
     };
   } catch (error) {
     console.error('Failed to decode token:', error);

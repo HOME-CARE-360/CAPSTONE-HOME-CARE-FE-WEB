@@ -218,6 +218,9 @@ export const useReportBooking = () => {
       toast.success('Gửi báo cáo thành công');
       queryClient.invalidateQueries({ queryKey: ['manage-bookings'] });
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['report-list'] });
+      queryClient.invalidateQueries({ queryKey: ['report-detail'] });
+      queryClient.invalidateQueries({ queryKey: ['users', 'booking'] });
     },
     onError: (error: unknown) => {
       let errorMessage = 'Có lỗi xảy ra khi gửi báo cáo';

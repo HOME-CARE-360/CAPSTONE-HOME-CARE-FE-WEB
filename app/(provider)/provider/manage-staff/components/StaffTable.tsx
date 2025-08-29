@@ -98,9 +98,9 @@ export function StaffTable({
     return (
       <div className="flex items-center justify-center h-64 border rounded-lg border-destructive bg-destructive/10">
         <div className="flex flex-col items-center gap-2 text-center max-w-md p-6">
-          <div className="text-lg font-medium text-destructive">Error Loading Staff</div>
+          <div className="text-lg font-medium text-destructive">Lỗi tải dữ liệu nhân viên</div>
           <p className="text-sm text-muted-foreground">
-            {error.message || 'Failed to load staff data. Please try again later.'}
+            {error.message || 'Lỗi tải dữ liệu nhân viên. Vui lòng thử lại sau.'}
           </p>
         </div>
       </div>

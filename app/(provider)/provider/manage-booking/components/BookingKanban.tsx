@@ -6,7 +6,7 @@ import { Alert } from '@/components/ui/alert';
 import { AlertCircle, Clock, CheckCircle, Archive } from 'lucide-react';
 import { AlertTitle } from '@/components/ui/alert';
 import { AlertDescription } from '@/components/ui/alert';
-import { Booking } from '@/lib/api/services/fetchManageBooking';
+import { ServiceRequestWithBooking } from '@/lib/api/services/fetchManageBooking';
 import { useManageBookings, useBookingFilters } from '@/hooks/useManageBooking';
 import { StatusServiceRequest } from '@/lib/api/services/fetchBooking';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,6 +34,12 @@ const COMPLETED_COLUMNS = [
     id: 'ESTIMATED',
     title: 'Đang ước lượng',
     description: 'Dịch vụ đang được ước lượng',
+    icon: CheckCircle,
+  },
+  {
+    id: 'COMPLETED',
+    title: 'Đã hoàn thành',
+    description: 'Đặt lịch đã hoàn thành',
     icon: CheckCircle,
   },
   {
@@ -99,21 +105,45 @@ export function BookingKanban({ onRefresh }: BookingKanbanProps) {
   const { data: bookings, isLoading, error } = useManageBookings(filters.params);
   const [activeTab, setActiveTab] = useState('active');
 
-  const bookingsArray = bookings?.data || [];
+  const bookingsArray: ServiceRequestWithBooking[] = bookings?.data || [];
 
   const groupedBookings = {
-    PENDING: bookingsArray.filter(booking => booking.status === StatusServiceRequest.PENDING),
-    IN_PROGRESS: bookingsArray.filter(
-      booking => booking.status === StatusServiceRequest.IN_PROGRESS
+    PENDING: bookingsArray.filter(
+      (booking: ServiceRequestWithBooking) => booking.status === StatusServiceRequest.PENDING
     ),
-    ESTIMATED: bookingsArray.filter(booking => booking.status === StatusServiceRequest.ESTIMATED),
-    CANCELLED: bookingsArray.filter(booking => booking.status === StatusServiceRequest.CANCELLED),
+    IN_PROGRESS: bookingsArray.filter(
+      (booking: ServiceRequestWithBooking) => booking.status === StatusServiceRequest.IN_PROGRESS
+    ),
+    ESTIMATED: bookingsArray.filter(
+      (booking: ServiceRequestWithBooking) =>
+        booking.status === StatusServiceRequest.ESTIMATED && !booking.booking?.completedAt
+    ),
+    COMPLETED: bookingsArray.filter(
+      (booking: ServiceRequestWithBooking) =>
+        booking.booking?.status === 'COMPLETED' ||
+        (booking.status === StatusServiceRequest.ESTIMATED && booking.booking?.completedAt)
+    ),
+    CANCELLED: bookingsArray.filter(
+      (booking: ServiceRequestWithBooking) => booking.status === StatusServiceRequest.CANCELLED
+    ),
   };
 
-  const renderKanbanColumns = (columns: typeof ACTIVE_COLUMNS) => (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+  const activeBookingsCount = groupedBookings.PENDING.length + groupedBookings.IN_PROGRESS.length;
+  const completedBookingsCount =
+    groupedBookings.ESTIMATED.length +
+    groupedBookings.COMPLETED.length +
+    groupedBookings.CANCELLED.length;
+
+  const renderKanbanColumns = (columns: typeof ACTIVE_COLUMNS | typeof COMPLETED_COLUMNS) => (
+    <div
+      className={`grid gap-6 ${
+        columns === COMPLETED_COLUMNS
+          ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
+          : 'grid-cols-1 md:grid-cols-2'
+      }`}
+    >
       {columns.map(column => {
-        const columnBookings = groupedBookings[column.id as Booking['status']];
+        const columnBookings = groupedBookings[column.id as keyof typeof groupedBookings];
         return (
           <Card key={column.id} className="border-0 shadow-sm bg-gray-50/50">
             <CardHeader className="pb-4">
@@ -144,11 +174,11 @@ export function BookingKanban({ onRefresh }: BookingKanbanProps) {
                   <p className="text-xs text-gray-400 mt-1">Danh sách đặt lịch theo trạng thái</p>
                 </div>
               ) : (
-                columnBookings.map(booking => (
+                columnBookings.map((booking: ServiceRequestWithBooking) => (
                   <BookingCard
                     key={booking.id.toString()}
                     booking={booking}
-                    status={column.id as Booking['status']}
+                    status={column.id as ServiceRequestWithBooking['status']}
                     isDragging={false}
                     isLoading={false}
                     onStaffAssigned={onRefresh}
@@ -165,6 +195,23 @@ export function BookingKanban({ onRefresh }: BookingKanbanProps) {
   if (isLoading) {
     return (
       <div className="space-y-6">
+        <Tabs value="active" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="active" className="flex items-center gap-2">
+              Đang xử lý
+              <Badge variant="secondary" className="text-xs">
+                {activeBookingsCount}
+              </Badge>
+            </TabsTrigger>
+            <TabsTrigger value="completed" className="flex items-center gap-2">
+              Đang ước lượng, Đã hoàn thành & Đã huỷ
+              <Badge variant="outline" className="text-xs">
+                {completedBookingsCount}
+              </Badge>
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="active" className="mt-6"></TabsContent>
+        </Tabs>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
           {ACTIVE_COLUMNS.map(column => (
             <Card key={column.id} className="border-0 shadow-sm bg-gray-50/50">
@@ -206,11 +253,6 @@ export function BookingKanban({ onRefresh }: BookingKanbanProps) {
     );
   }
 
-  const activeBookingsCount = groupedBookings.PENDING.length + groupedBookings.IN_PROGRESS.length;
-
-  const completedBookingsCount =
-    groupedBookings.ESTIMATED.length + groupedBookings.CANCELLED.length;
-
   return (
     <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -222,7 +264,7 @@ export function BookingKanban({ onRefresh }: BookingKanbanProps) {
             </Badge>
           </TabsTrigger>
           <TabsTrigger value="completed" className="flex items-center gap-2">
-            Đang trong quá trình
+            Đang ước lượng, Đã hoàn thành & Đã huỷ
             <Badge variant="outline" className="text-xs">
               {completedBookingsCount}
             </Badge>

@@ -4,7 +4,7 @@ import { Service, ServiceStatus } from '@/lib/api/services/fetchManager';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
-import { Clock, CheckCircle, ChevronLeft, ChevronRight, Package } from 'lucide-react';
+import { Clock, CheckCircle, ChevronLeft, ChevronRight, Package, XCircle } from 'lucide-react';
 import { useState } from 'react';
 import { useChangeService } from '@/hooks/useManager';
 import {
@@ -100,7 +100,7 @@ export function ServiceCard({ service }: ServiceCardProps) {
         )}
 
         {/* Overlays */}
-        <div className="absolute top-4 left-4 flex gap-2">
+        <div className="absolute top-4 left-4 flex flex-wrap gap-2 z-10">
           {service.Category?.name && (
             <Badge className="bg-green-500 backdrop-blur-sm z-10">{service.Category.name}</Badge>
           )}
@@ -109,8 +109,8 @@ export function ServiceCard({ service }: ServiceCardProps) {
               -{discountPercent}%
             </Badge>
           )} */}
+          <div>{statusBadge(service.status)}</div>
         </div>
-        <div className="absolute top-4 right-4">{statusBadge(service.status)}</div>
 
         {isHovered && images.length > 1 && (
           <>
@@ -198,13 +198,8 @@ export function ServiceCard({ service }: ServiceCardProps) {
             </AlertDialog>
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={isPending}
-                  className="flex-1 border-gray-300 text-black hover:bg-gray-50"
-                >
-                  Từ chối
+                <Button variant="destructive" size="sm" disabled={isPending} className="flex-1">
+                  <XCircle className="h-4 w-4 mr-2" /> Từ chối
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>

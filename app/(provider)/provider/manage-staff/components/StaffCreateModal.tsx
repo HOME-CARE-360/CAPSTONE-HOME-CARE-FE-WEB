@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { staffFormSchema, StaffFormData } from '@/schemaValidations/staff.schema';
@@ -26,7 +26,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { User, Mail, Phone, Lock, Shield, Users } from 'lucide-react';
+import { User, Mail, Phone, Lock, Shield, Users, Eye, EyeOff } from 'lucide-react';
 import Image from 'next/image';
 
 interface StaffCreateModalProps {
@@ -47,6 +47,8 @@ export default function StaffCreateModal({
   isLoading = false,
 }: StaffCreateModalProps) {
   const { data: categoryStaff, isLoading: isCategoriesLoading } = useCategories();
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const {
     control,
@@ -225,11 +227,25 @@ export default function StaffCreateModal({
                           <Input
                             {...field}
                             id="password"
-                            type="password"
+                            type={showPassword ? 'text' : 'password'}
                             placeholder="Tối thiểu 6 ký tự"
-                            className="pl-10"
+                            className="pl-10 pr-10"
                             disabled={isLoading}
                           />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                            onClick={() => setShowPassword(!showPassword)}
+                            disabled={isLoading}
+                          >
+                            {showPassword ? (
+                              <EyeOff className="h-4 w-4 text-muted-foreground" />
+                            ) : (
+                              <Eye className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </Button>
                         </div>
                       )}
                     />
@@ -251,11 +267,25 @@ export default function StaffCreateModal({
                           <Input
                             {...field}
                             id="confirmPassword"
-                            type="password"
+                            type={showConfirmPassword ? 'text' : 'password'}
                             placeholder="Nhập lại mật khẩu"
-                            className="pl-10"
+                            className="pl-10 pr-10"
                             disabled={isLoading}
                           />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            disabled={isLoading}
+                          >
+                            {showConfirmPassword ? (
+                              <EyeOff className="h-4 w-4 text-muted-foreground" />
+                            ) : (
+                              <Eye className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </Button>
                         </div>
                       )}
                     />

@@ -85,8 +85,7 @@ export function ServiceItemCard({ serviceItem, onEdit }: ServiceItemCardProps) {
         </div>
 
         {/* Status Badges Overlay */}
-        <div className="absolute top-4 left-4 flex gap-2">
-          <Badge className="bg-green-500 backdrop-blur-sm z-10">Vật tư</Badge>
+        <div className="absolute top-4 left-4 flex flex-wrap gap-2">
           {serviceItem.brand && (
             <Badge className="bg-green-500 backdrop-blur-sm z-10">{serviceItem.brand}</Badge>
           )}

@@ -19,7 +19,6 @@ import {
   Users,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Booking } from '@/lib/api/services/fetchManageBooking';
 import type { GetDetailBookingResponse } from '@/lib/api/services/fetchBooking';
 import { useDetailBooking } from '@/hooks/useBooking';
 import { cn } from '@/lib/utils';
@@ -65,10 +64,11 @@ import { useRouter } from 'next/navigation';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { useUploadImage } from '@/hooks/useImage';
 import { ReportReason } from '@/lib/api/services/fetchManageBooking';
+import { ServiceRequestWithBooking } from '@/lib/api/services/fetchManageBooking';
 
 interface BookingCardProps {
-  booking: Booking;
-  status?: Booking['status'];
+  booking: ServiceRequestWithBooking;
+  status?: ServiceRequestWithBooking['status'];
   isDragging?: boolean;
   isLoading?: boolean;
   onStaffAssigned?: () => void;
@@ -158,8 +158,12 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
     booking.status === 'ESTIMATED' ||
     detailBooking?.booking?.Proposal?.status === 'REJECTED';
 
-  // Hide quick actions and proposal tab when booking is pending
-  const shouldShowQuickActions = shouldShowProposalTab && !isPending;
+  // Show quick actions when: proposal tab should show AND not pending AND not completed/cancelled
+  const shouldShowQuickActions =
+    shouldShowProposalTab &&
+    !isPending &&
+    booking.booking?.status !== 'COMPLETED' &&
+    booking.booking?.status !== 'CANCELLED';
 
   // Determine if we should show staff assignment section
   // Show staff assignment only when booking is pending AND no staff is assigned AND not overdue
@@ -198,7 +202,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
         description: reportDescription.trim(),
         imageUrls: reportImages,
         note: reportNote.trim(),
-        reporterType: 'CUSTOMER',
+        reporterType: 'PROVIDER',
         reason: reportReason,
         reportedCustomerId: booking.customerId,
         reportedProviderId: booking.providerId,
@@ -459,11 +463,13 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                   <SheetTitle className="text-xl font-bold flex items-center gap-2">
                     <Calendar className="h-5 w-5" />
                     Chi tiết đặt lịch
-                    {isPreferredDateOverdue && (
-                      <Badge variant="destructive" className="ml-2">
-                        Quá hạn
-                      </Badge>
-                    )}
+                    {isPreferredDateOverdue &&
+                      booking.booking?.status !== 'COMPLETED' &&
+                      booking.booking?.status !== 'CANCELLED' && (
+                        <Badge variant="destructive" className="ml-2">
+                          Quá hạn
+                        </Badge>
+                      )}
                     {needsStaffAssignment && (
                       <Badge variant="destructive" className="ml-2">
                         Cần phân công
@@ -688,8 +694,8 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
 
                         {/* Actions */}
                         <div className="space-y-4">
-                          {/* Overdue Notice */}
-                          {isPreferredDateOverdue && (
+                          {/* Overdue Notice - only show for pending bookings */}
+                          {isPending && isPreferredDateOverdue && (
                             <Alert className="border-red-200 bg-red-50">
                               <AlertTriangle className="h-4 w-4 text-red-600" />
                               <AlertDescription>
@@ -1658,11 +1664,11 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                   <SelectValue placeholder="Chọn lý do" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={ReportReason.NO_SHOW}>Khách không xuất hiện</SelectItem>
+                  <SelectItem value={ReportReason.NO_SHOW}>Khách không có ở nhà</SelectItem>
                   <SelectItem value={ReportReason.INVALID_ADDRESS}>Địa chỉ không hợp lệ</SelectItem>
                   {/* <SelectItem value={ReportReason.INAPPROPRIATE_BEHAVIOR}>Ứng xử không phù hợp</SelectItem> */}
-                  <SelectItem value={ReportReason.PAYMENT_ISSUE}>Vấn đề thanh toán</SelectItem>
-                  <SelectItem value={ReportReason.OTHER}>Khác</SelectItem>
+                  {/* <SelectItem value={ReportReason.PAYMENT_ISSUE}>Vấn đề thanh toán</SelectItem> */}
+                  {/* <SelectItem value={ReportReason.OTHER}>Khác</SelectItem> */}
                 </SelectContent>
               </Select>
             </div>

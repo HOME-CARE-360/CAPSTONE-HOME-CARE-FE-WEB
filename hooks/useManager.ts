@@ -6,6 +6,7 @@ import {
   ChangeStatusServiceRequest,
   ReportSearchParams,
   ReportListResponse,
+  ReportDetail,
   WithdrawListResponse,
   WithdrawSearchParams,
   WithdrawItem,
@@ -79,6 +80,17 @@ export const useGetListReport = (filters?: Partial<ReportSearchParams>) => {
   });
 };
 
+export const useGetReportDetail = (id?: number) => {
+  return useQuery<ReportDetail | undefined>({
+    queryKey: ['getReportDetail', id],
+    queryFn: async () => {
+      if (!id) return undefined;
+      return managerSerivce.getReportDetail(id);
+    },
+    enabled: !!id,
+  });
+};
+
 export const useUpdateReport = () => {
   const queryClient = useQueryClient();
   return useMutation<UpdateReportResponse, unknown, UpdateReportRequest>({
@@ -87,12 +99,18 @@ export const useUpdateReport = () => {
     onSuccess: res => {
       toast.success(res?.message || 'Cập nhật báo cáo thành công');
       queryClient.invalidateQueries({ queryKey: ['getListReport'] });
+      queryClient.invalidateQueries({ queryKey: ['getReportDetail'] });
     },
     onError: (error: unknown) => {
-      const message =
-        typeof error === 'object' && error !== null && 'message' in error
-          ? (error as { message: string }).message
-          : 'Có lỗi xảy ra khi cập nhật báo cáo';
+      // Prefer structured API error message
+      let message = 'Có lỗi xảy ra khi cập nhật báo cáo';
+      if (typeof error === 'object' && error !== null) {
+        const err = error as { message?: string; statusCode?: number } & Record<string, unknown>;
+        if (err.message) message = err.message;
+      }
+      // Log to console for debugging specific validation errors (422 etc.)
+      // eslint-disable-next-line no-console
+      console.error('Update report error:', error);
       toast.error(message);
     },
   });

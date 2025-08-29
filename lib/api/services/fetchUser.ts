@@ -867,13 +867,13 @@ export const userService = {
   // Provider transactions
   getProviderTransactions: async (): Promise<GetProviderTransactionsResponse> => {
     const response = await apiService.get<GetProviderTransactionsResponse>(
-      '/users/provider-transactions'
+      '/publics/provider-transactions'
     );
     return response.data;
   },
 
   getTransactions: async (): Promise<GetTransactionsResponse> => {
-    const response = await apiService.get<GetTransactionsResponse>('/users/transactions');
+    const response = await apiService.get<GetTransactionsResponse>('/publics/transactions');
     return response.data;
   },
 };

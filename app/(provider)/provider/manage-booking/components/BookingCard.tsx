@@ -111,6 +111,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
     {
       categories: [booking.categoryId],
       orderBy: 'asc',
+      isActive: true,
     },
     {
       enabled: open,

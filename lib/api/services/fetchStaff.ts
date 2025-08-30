@@ -247,6 +247,7 @@ export interface StaffSearchParams {
   name?: string;
   page?: number;
   limit?: number;
+  isActive?: boolean;
 }
 
 // Convert StaffSearchParams to RequestParams
@@ -262,7 +263,7 @@ const convertStaffFilters = (filters?: StaffSearchParams): RequestParams => {
   if (filters.name) params.name = filters.name;
   if (filters.page) params.page = filters.page;
   if (filters.limit) params.limit = filters.limit;
-
+  if (filters.isActive) params.isActive = filters.isActive;
   return params;
 };
 

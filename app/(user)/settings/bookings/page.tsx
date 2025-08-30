@@ -7,6 +7,7 @@ import {
   useUpdateUserProposal,
   useCancelServiceRequest,
 } from '@/hooks/useUser';
+import { useReportBooking } from '@/hooks/useManageBooking';
 import { CustomerBooking } from '@/lib/api/services/fetchUser';
 
 // Define proper types to avoid 'any'
@@ -86,7 +87,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { useForm } from 'react-hook-form';
-import { useCreateReport, useCreateReview, useCompleteBooking } from '@/hooks/useBooking';
+import { useCreateReview, useCompleteBooking } from '@/hooks/useBooking';
 import { useUploadImage } from '@/hooks/useImage';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useGetOrCreateConversation } from '@/hooks/useConversation';
@@ -617,6 +618,7 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
     reason: ReportReason;
     description: string;
     imageUrls: string[];
+    note: string;
   };
 
   const {
@@ -631,7 +633,7 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
   });
 
   const imageUrls = watch('imageUrls');
-  const { mutate: createReport, isPending: isReporting } = useCreateReport();
+  const { mutate: reportBooking, isPending: isReporting } = useReportBooking();
   const { mutateAsync: uploadImage, isPending: isUploading } = useUploadImage();
   const { mutate: cancelServiceRequest, isPending: isCancelling } = useCancelServiceRequest();
   const { mutate: completeBooking, isPending: isCompleting } = useCompleteBooking();
@@ -643,14 +645,16 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
   };
 
   const onSubmitReport = (values: ReportFormValues) => {
-    createReport(
+    reportBooking(
       {
+        description: values.description,
+        imageUrls: values.imageUrls,
+        note: values.note,
+        reporterType: 'CUSTOMER',
+        reason: values.reason,
+        reportedCustomerId: booking.customerId,
+        reportedProviderId: booking.providerId,
         bookingId: booking.id,
-        data: {
-          reason: values.reason,
-          description: values.description,
-          imageUrls: values.imageUrls,
-        },
       },
       {
         onSuccess: () => {
@@ -703,24 +707,27 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
-            {booking.ServiceRequest?.status?.toUpperCase() === 'PENDING' && (
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={isCancelling}
-                onClick={() => cancelServiceRequest({ serviceRequestId: booking.serviceRequestId })}
-                aria-label="Hủy yêu cầu dịch vụ"
-              >
-                {isCancelling ? (
-                  <span className="flex items-center gap-2">
-                    <Loader2 className="animate-spin h-4 w-4" />
-                    Đang hủy...
-                  </span>
-                ) : (
-                  'Hủy yêu cầu'
-                )}
-              </Button>
-            )}
+            {booking.ServiceRequest?.status?.toUpperCase() === 'PENDING' &&
+              booking.status.toUpperCase() !== 'CANCELLED' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={isCancelling}
+                  onClick={() =>
+                    cancelServiceRequest({ serviceRequestId: booking.serviceRequestId })
+                  }
+                  aria-label="Hủy yêu cầu dịch vụ"
+                >
+                  {isCancelling ? (
+                    <span className="flex items-center gap-2">
+                      <Loader2 className="animate-spin h-4 w-4" />
+                      Đang hủy...
+                    </span>
+                  ) : (
+                    'Hủy yêu cầu'
+                  )}
+                </Button>
+              )}
             {booking.status?.toUpperCase() === 'STAFF_COMPLETED' && (
               <Button
                 variant="default"
@@ -750,25 +757,24 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
                 )}
               </Button>
             )}
+            {/* Always allow reporting */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsReportOpen(true)}
+              aria-label="Báo cáo sự cố cho đơn đặt này"
+            >
+              <Flag className="h-4 w-4 mr-1" /> Báo cáo
+            </Button>
             {booking.status?.toUpperCase() === 'COMPLETED' && (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsReportOpen(true)}
-                  aria-label="Báo cáo sự cố cho đơn đặt này"
-                >
-                  <Flag className="h-4 w-4 mr-1" /> Báo cáo
-                </Button>
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={() => setIsReviewOpen(true)}
-                  aria-label="Đánh giá dịch vụ cho đơn đặt này"
-                >
-                  <Star className="h-4 w-4 mr-1" /> Đánh giá
-                </Button>
-              </>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => setIsReviewOpen(true)}
+                aria-label="Đánh giá dịch vụ cho đơn đặt này"
+              >
+                <Star className="h-4 w-4 mr-1" /> Đánh giá
+              </Button>
             )}
             <Button
               variant="ghost"
@@ -1058,6 +1064,15 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
                 placeholder="Mô tả vấn đề bạn gặp phải"
                 aria-invalid={!!errors.description}
                 {...register('description', { required: true, minLength: 10 })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor={`note-${booking.id}`}>Ghi chú</Label>
+              <Textarea
+                id={`note-${booking.id}`}
+                placeholder="Ghi chú cho nhân viên"
+                aria-invalid={!!errors.note}
+                {...register('note', { required: true, minLength: 10 })}
               />
             </div>
             <div className="space-y-2">

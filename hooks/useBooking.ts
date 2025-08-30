@@ -12,6 +12,8 @@ import {
   CreateReviewResponse,
   CompleteBookingRequest,
   CompleteBookingResponse,
+  CancelServiceRequestRequest,
+  CancelServiceRequestResponse,
   isBankTransferData,
   isWalletPaymentData,
 } from '@/lib/api/services/fetchBooking';
@@ -226,6 +228,34 @@ export const useCompleteBooking = () => {
     mutationFn: (data: CompleteBookingRequest) => serviceBooking.completeBooking(data),
     onSuccess: () => {
       toast.success('Hoàn thành đơn hàng thành công!');
+      window.location.reload();
+    },
+    onError: (error: Error) => {
+      let errorMessage = 'Đã xảy ra lỗi không mong muốn';
+      if (typeof error === 'object' && error !== null && 'message' in error) {
+        const errorObj = error as { message: string | ValidationError[] };
+        if (Array.isArray(errorObj.message)) {
+          errorMessage = errorObj.message[0]?.message || errorMessage;
+        } else if (typeof errorObj.message === 'string') {
+          errorMessage = errorObj.message;
+        }
+      }
+      toast.error(errorMessage);
+    },
+  });
+
+  return { data, isPending, error, mutate, mutateAsync };
+};
+
+export const useCancelServiceRequest = () => {
+  const { data, isPending, error, mutate, mutateAsync } = useMutation<
+    CancelServiceRequestResponse,
+    Error,
+    CancelServiceRequestRequest
+  >({
+    mutationFn: (data: CancelServiceRequestRequest) => serviceBooking.cancelServiceRequest(data),
+    onSuccess: () => {
+      toast.success('Hủy yêu cầu dịch vụ thành công!');
       window.location.reload();
     },
     onError: (error: Error) => {

@@ -2,7 +2,6 @@ import type React from 'react';
 import '@/app/globals.css';
 import type { Metadata } from 'next';
 import Header from '@/components/Header';
-import N8nChat from '@/app/(user)/components/N8nChat';
 
 export const metadata: Metadata = {
   title: 'HomeCare 360 - Your Comprehensive Home Service Solution',
@@ -19,7 +18,6 @@ export default function UserLayout({
     <div className="font-mann">
       <Header />
       {children}
-      <N8nChat />
     </div>
   );
 }

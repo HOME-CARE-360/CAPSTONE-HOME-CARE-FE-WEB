@@ -14,6 +14,8 @@ import userService, {
   ServiceReviewsSearchParams,
   GetTransactionsResponse,
   GetProviderTransactionsResponse,
+  ChatRequest,
+  ChatResponse,
 } from '@/lib/api/services/fetchUser';
 import {
   UpdateUserProfileRequestType,
@@ -387,5 +389,19 @@ export const useGetProviderTransactions = () => {
     queryFn: () => userService.getProviderTransactions(),
     enabled: isAuthenticated,
     staleTime: 60 * 1000,
+  });
+};
+
+export const useChat = () => {
+  return useMutation<ChatResponse, Error, ChatRequest>({
+    mutationFn: (data: ChatRequest) => userService.chat(data),
+    onError: (error: Error) => {
+      let errorMessage = 'Có lỗi xảy ra khi gửi tin nhắn';
+      if (typeof error === 'object' && error !== null && 'message' in error) {
+        const errorObj = error as { message: string };
+        errorMessage = errorObj.message || errorMessage;
+      }
+      toast.error(errorMessage);
+    },
   });
 };

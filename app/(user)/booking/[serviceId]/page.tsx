@@ -603,7 +603,7 @@ export default function NewBookingPage() {
   // Show loading state if critical data is still loading
   if (isDataLoading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="h-screen bg-background">
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-6xl mx-auto">
             {/* Page Header */}

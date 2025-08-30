@@ -31,6 +31,16 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Separator } from '@/components/ui/separator';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
@@ -65,6 +75,7 @@ import { ImageUpload } from '@/components/ui/image-upload';
 import { useUploadImage } from '@/hooks/useImage';
 import { ReportReason } from '@/lib/api/services/fetchManageBooking';
 import { ServiceRequestWithBooking } from '@/lib/api/services/fetchManageBooking';
+import { useCancelServiceRequest } from '@/hooks/useBooking';
 
 interface BookingCardProps {
   booking: ServiceRequestWithBooking;
@@ -107,6 +118,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
   );
 
   const { mutate: assignStaff, isPending: isAssigning } = useAssignStaffToBooking();
+  const { mutate: cancelServiceRequest, isPending: isCancelling } = useCancelServiceRequest();
 
   // Proposed services hooks - only fetch when sheet is open
   const { data: servicesData, isLoading: isLoadingServices } = useServiceManager(
@@ -178,14 +190,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
   const [reportDescription, setReportDescription] = useState('');
   const [reportNote, setReportNote] = useState('');
   const [reportImages, setReportImages] = useState<string[]>([]);
-
-  const isOverduePending = (() => {
-    if (!isPending) return false;
-    const preferred = new Date(booking.preferredDate).getTime();
-    const now = Date.now();
-    const thirtyMinMs = 30 * 60 * 1000;
-    return now - preferred >= thirtyMinMs;
-  })();
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
 
   const handleUpload = async (file: File): Promise<string> => {
     const res = await uploadMutation.mutateAsync(file);
@@ -215,6 +220,23 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
           setReportImages([]);
           setReportReason(ReportReason.NO_SHOW);
           setReportSheetOpen(false);
+        },
+      }
+    );
+  };
+
+  const handleCancelServiceRequest = () => {
+    setCancelDialogOpen(true);
+  };
+
+  const confirmCancelServiceRequest = () => {
+    cancelServiceRequest(
+      { serviceRequestId: booking.id },
+      {
+        onSuccess: () => {
+          toast.success('Hủy yêu cầu dịch vụ thành công');
+          setCancelDialogOpen(false);
+          onStaffAssigned?.();
         },
       }
     );
@@ -708,6 +730,28 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                               </AlertDescription>
                             </Alert>
                           )}
+
+                          {/* Cancel Service Request Button */}
+
+                          {/* <div className="space-y-3">
+                              <h4 className="text-sm font-medium text-gray-700">Hành động</h4>
+                              <Button
+                                variant="destructive"
+                                className="w-full"
+                                onClick={handleCancelServiceRequest}
+                                disabled={isCancelling}
+                              >
+                                {isCancelling ? (
+                                  <>
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    Đang hủy...
+                                  </>
+                                ) : (
+                                  'Hủy yêu cầu'
+                                )}
+                              </Button>
+                            </div> */}
+
                           {/* Quick Actions */}
                           {shouldShowQuickActions && (
                             <div className="space-y-3">
@@ -1635,16 +1679,35 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                   'Liên hệ'
                 )}
               </Button>
-              {isOverduePending && (
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  className="ml-2"
-                  onClick={() => setReportSheetOpen(true)}
-                >
-                  Báo cáo
-                </Button>
-              )}
+              {/* Always show report button for all statuses */}
+              <Button
+                variant="outline"
+                size="sm"
+                className="ml-2"
+                onClick={() => setReportSheetOpen(true)}
+              >
+                Báo cáo
+              </Button>
+              {/* Only show cancel button when status is not CANCELLED or COMPLETED */}
+              {booking.booking?.status !== 'CANCELLED' &&
+                booking.booking?.status !== 'COMPLETED' && (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="ml-2"
+                    onClick={handleCancelServiceRequest}
+                    disabled={isCancelling}
+                  >
+                    {isCancelling ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Đang hủy...
+                      </>
+                    ) : (
+                      'Hủy yêu cầu'
+                    )}
+                  </Button>
+                )}
             </div>
           </div>
         </div>
@@ -1721,6 +1784,35 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* Cancel Service Request Alert Dialog */}
+      <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xác nhận hủy yêu cầu</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn có chắc chắn muốn hủy yêu cầu dịch vụ này? Hành động này không thể hoàn tác.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmCancelServiceRequest}
+              className="bg-red-600 hover:bg-red-700"
+              disabled={isCancelling}
+            >
+              {isCancelling ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Đang hủy...
+                </>
+              ) : (
+                'Xác nhận hủy'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

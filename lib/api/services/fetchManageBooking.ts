@@ -394,25 +394,25 @@ export const serviceManageBooking = {
 
   reportBooking: async (data: ReportBookingRequest): Promise<ReportBookingResponse> => {
     const response = await apiService.post<ReportBookingResponse, ReportBookingRequest>(
-      `/manage-bookings/report-booking`,
+      `/publics/report-booking`,
       data
     );
     return response.data;
   },
 
   getReportList: async (): Promise<GetReportListResponse> => {
-    const response = await apiService.get(`/manage-bookings/get-list-report`);
+    const response = await apiService.get(`/publics/get-list-report`);
     return response.data as GetReportListResponse;
   },
 
   getReportDetail: async (id: number): Promise<ReportDetailResponse> => {
-    const response = await apiService.get(`/manage-bookings/get-report-detail/${id}`);
+    const response = await apiService.get(`/publics/get-report-detail/${id}`);
     return response.data as ReportDetailResponse;
   },
 
   updateReportBooking: async (data: UpdateReportBookingRequest): Promise<ReportBookingResponse> => {
     const response = await apiService.patch<ReportBookingResponse, UpdateReportBookingRequest>(
-      `/manage-bookings/update-report-booking`,
+      `/publics/update-report-booking`,
       data
     );
     return response.data;

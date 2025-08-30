@@ -876,6 +876,17 @@ export const userService = {
     const response = await apiService.get<GetTransactionsResponse>('/publics/transactions');
     return response.data;
   },
+
+  // Chat with AI
+  chat: async (data: ChatRequest): Promise<ChatResponse> => {
+    try {
+      const response = await apiService.post<ChatResponse, ChatRequest>('/services/chat', data);
+      return response.data;
+    } catch (error) {
+      console.error('Chat Error:', error);
+      throw error;
+    }
+  },
 };
 
 export interface ServiceReview {
@@ -931,6 +942,74 @@ export interface ServiceReviewsSearchParams extends RequestParams {
   rating?: number;
   page?: number;
   limit?: number;
+}
+
+// Chat API interfaces
+export interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export interface ChatRequest {
+  message: string;
+  history?: ChatMessage[];
+}
+
+export interface ChatService {
+  id: number;
+  name: string;
+  basePrice: number;
+  virtualPrice: number;
+  durationMinutes: number;
+  status: string;
+  unit: string;
+  Category: {
+    id: number;
+    name: string;
+  };
+  provider: {
+    id: number;
+    user: {
+      name: string;
+    };
+  };
+}
+
+export interface ChatProvider {
+  id: number;
+  description: string;
+  address: string;
+  createdAt: string;
+  updatedAt: string;
+  userId: number;
+  companyType: string;
+  industry: string | null;
+  licenseNo: string | null;
+  logo: string | null;
+  taxId: string;
+  verificationStatus: string;
+  verifiedAt: string;
+  verifiedById: number | null;
+  user: {
+    id: number;
+    name: string;
+    email: string;
+    phone: string;
+  };
+  services: {
+    id: number;
+    name: string;
+    basePrice: number;
+    status: string;
+  }[];
+}
+
+export interface ChatResponse {
+  content: string;
+  data: {
+    services: ChatService[];
+    providers: ChatProvider[];
+  };
 }
 
 // Transactions

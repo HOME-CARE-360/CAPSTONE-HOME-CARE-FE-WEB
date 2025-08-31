@@ -4,6 +4,7 @@ import {
   serviceBooking,
   StaffBookingResponse,
   StaffBookingDetailResponse,
+  StaffInspectionDetailResponse,
   GetDetailBookingResponse,
   CreateReportRequest,
   CreateReportResponse,
@@ -70,16 +71,39 @@ export const useCreateBooking = () => {
 
       router.push('/settings/bookings');
     },
-    onError: (error: Error) => {
+    onError: (error: unknown) => {
       let errorMessage = 'An unexpected error occurred';
+
       if (typeof error === 'object' && error !== null && 'message' in error) {
         const errorObj = error as { message: string | ValidationError[] };
+
         if (Array.isArray(errorObj.message)) {
-          errorMessage = errorObj.message[0]?.message || errorMessage;
+          const firstError = errorObj.message[0];
+
+          if (firstError && typeof firstError === 'object' && 'error' in firstError) {
+            const nestedError = firstError.error;
+
+            if (nestedError && typeof nestedError === 'object' && 'message' in nestedError) {
+              const nestedMessage = nestedError.message;
+
+              if (Array.isArray(nestedMessage) && nestedMessage[0]?.message) {
+                errorMessage = nestedMessage[0].message;
+              } else if (typeof nestedMessage === 'string') {
+                errorMessage = nestedMessage;
+              } else {
+                errorMessage = errorMessage; // Keep default message instead of firstError.message
+              }
+            } else {
+              errorMessage = errorMessage; // Keep default message instead of firstError.message
+            }
+          } else {
+            errorMessage = firstError?.message || errorMessage;
+          }
         } else if (typeof errorObj.message === 'string') {
           errorMessage = errorObj.message;
         }
       }
+
       toast.error(errorMessage);
       router.push('/settings/bookings');
     },
@@ -102,6 +126,16 @@ export const useStaffBookingDetail = (bookingId: number, options?: { enabled?: b
     queryKey: ['staff-booking-detail', bookingId],
     queryFn: () => serviceBooking.getStaffBookingDetail(bookingId),
     enabled: options?.enabled !== undefined ? options.enabled : !!bookingId,
+  });
+
+  return { data, isLoading, error };
+};
+
+export const useStaffInspectionDetail = (inspectionId: number, options?: { enabled?: boolean }) => {
+  const { data, isLoading, error } = useQuery<StaffInspectionDetailResponse>({
+    queryKey: ['staff-inspection-detail', inspectionId],
+    queryFn: () => serviceBooking.getStaffInspectionDetail(inspectionId),
+    enabled: options?.enabled !== undefined ? options.enabled : !!inspectionId,
   });
 
   return { data, isLoading, error };

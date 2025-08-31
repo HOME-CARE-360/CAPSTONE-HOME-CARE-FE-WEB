@@ -111,6 +111,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
     {
       categories: [booking.categoryId],
       orderBy: 'asc',
+      isActive: true,
     },
     {
       enabled: open,
@@ -458,26 +459,32 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
           isLoading && 'opacity-50 pointer-events-none'
         )}
       >
-        <div className="p-4">
+        <div className="p-3 sm:p-4">
           {/* Header Section */}
           <div className="flex items-start justify-between mb-3">
-            <div className="flex items-center gap-3">
-              <Avatar className="h-10 w-10 border-2 border-gray-50">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+              <Avatar className="h-8 w-8 sm:h-10 sm:w-10 border-2 border-gray-50 flex-shrink-0">
                 <AvatarImage src={booking.customer.avatar || undefined} />
-                <AvatarFallback className="bg-gray-100 text-gray-700 font-medium">
+                <AvatarFallback className="bg-gray-100 text-gray-700 font-medium text-xs sm:text-sm">
                   {initials}
                 </AvatarFallback>
               </Avatar>
-              <div className="flex-1">
-                <h3 className="font-medium text-gray-900">{booking.customer.name}</h3>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-medium text-gray-900 text-sm sm:text-base truncate">
+                  {booking.customer.name}
+                </h3>
                 <p className="text-xs text-gray-500">BK{booking.id}</p>
               </div>
             </div>
 
             <Sheet open={open} onOpenChange={setOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-gray-50">
-                  <Eye className="h-4 w-4 text-gray-500" />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-7 sm:h-8 sm:w-8 p-0 hover:bg-gray-50 flex-shrink-0"
+                >
+                  <Eye className="h-3 w-3 sm:h-4 sm:w-4 text-gray-500" />
                 </Button>
               </SheetTrigger>
               <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
@@ -1612,28 +1619,30 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
 
           {/* Service Information */}
           <div className="flex items-center gap-2 mb-3">
-            <div className="w-6 h-6 bg-gray-100 rounded flex items-center justify-center">
+            <div className="w-5 h-5 sm:w-6 sm:h-6 bg-gray-100 rounded flex items-center justify-center flex-shrink-0">
               {booking.category.logo ? (
                 <Image
                   src={booking.category.logo}
                   alt=""
-                  className="w-4 h-4"
+                  className="w-3 h-3 sm:w-4 sm:h-4"
                   width={100}
                   height={100}
                 />
               ) : (
-                <div className="w-4 h-4 bg-gray-300 rounded" />
+                <div className="w-3 h-3 sm:w-4 sm:h-4 bg-gray-300 rounded" />
               )}
             </div>
-            <span className="text-sm font-medium text-gray-700">{booking.category.name}</span>
+            <span className="text-xs sm:text-sm font-medium text-gray-700 truncate">
+              {booking.category.name}
+            </span>
           </div>
 
           {/* Contact Information */}
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-gray-400" />
-              <div className="flex flex-col">
-                <span className="text-sm text-gray-600">
+              <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-gray-400 flex-shrink-0" />
+              <div className="flex flex-col min-w-0 flex-1">
+                <span className="text-xs sm:text-sm text-gray-600">
                   {format(new Date(booking.preferredDate), 'dd/MM/yyyy', { locale: vi })}
                 </span>
                 <span className="text-xs text-gray-500">
@@ -1643,22 +1652,23 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Phone className="h-4 w-4 text-gray-400" />
-              <span className="text-sm text-gray-600 truncate">
+              <Phone className="h-3 w-3 sm:h-4 sm:w-4 text-gray-400 flex-shrink-0" />
+              <span className="text-xs sm:text-sm text-gray-600 truncate">
                 {booking.customer.phone || '--'}
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-gray-400" />
-              <span className="text-sm text-gray-600 truncate" title={booking.location}>
+              <MapPin className="h-3 w-3 sm:h-4 sm:w-4 text-gray-400 flex-shrink-0" />
+              <span className="text-xs sm:text-sm text-gray-600 truncate" title={booking.location}>
                 {booking.location}
               </span>
             </div>
-            <div className="pt-2">
+            <div className="pt-2 flex flex-col sm:flex-row gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 disabled={isCreatingConv}
+                className="w-full sm:w-auto text-xs sm:text-sm"
                 onClick={() =>
                   getOrCreateConv(
                     { receiverId: Number(booking.customerId) },
@@ -1672,8 +1682,9 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
               >
                 {isCreatingConv ? (
                   <span className="flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Liên hệ...
+                    <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
+                    <span className="hidden sm:inline">Liên hệ...</span>
+                    <span className="sm:hidden">Liên hệ...</span>
                   </span>
                 ) : (
                   'Liên hệ'
@@ -1683,7 +1694,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
               <Button
                 variant="outline"
                 size="sm"
-                className="ml-2"
+                className="w-full sm:w-auto text-xs sm:text-sm"
                 onClick={() => setReportSheetOpen(true)}
               >
                 Báo cáo
@@ -1694,14 +1705,15 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                   <Button
                     variant="destructive"
                     size="sm"
-                    className="ml-2"
+                    className="w-full sm:w-auto text-xs sm:text-sm"
                     onClick={handleCancelServiceRequest}
                     disabled={isCancelling}
                   >
                     {isCancelling ? (
                       <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Đang hủy...
+                        <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 animate-spin" />
+                        <span className="hidden sm:inline">Đang hủy...</span>
+                        <span className="sm:hidden">Đang hủy...</span>
                       </>
                     ) : (
                       'Hủy yêu cầu'

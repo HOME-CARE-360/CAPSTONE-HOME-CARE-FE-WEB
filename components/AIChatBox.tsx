@@ -29,11 +29,11 @@ import Image from 'next/image';
 interface AIChatBoxProps {
   className?: string;
 }
-
 interface ChatMessageWithData extends ChatMessage {
   data?: {
-    services: ChatService[];
-    providers: ChatProvider[];
+    services?: ChatService[];
+    service?: ChatService;
+    providers?: ChatProvider[];
   };
 }
 
@@ -45,6 +45,7 @@ export function AIChatBox({ className }: AIChatBoxProps) {
   const [typingContent, setTypingContent] = useState('');
   const [chatData, setChatData] = useState<{
     content: string;
+    service?: ChatService;
     services: ChatService[];
     providers: ChatProvider[];
   } | null>(null);
@@ -78,7 +79,11 @@ export function AIChatBox({ className }: AIChatBoxProps) {
           const aiMessage: ChatMessageWithData = {
             role: 'assistant',
             content: content,
-            data: chatData,
+            data: {
+              services: chatData.services,
+              providers: chatData.providers,
+              service: chatData.service,
+            },
           };
           setMessages(prev => [...prev, aiMessage]);
           setIsTyping(false);
@@ -115,6 +120,7 @@ export function AIChatBox({ className }: AIChatBoxProps) {
             content: response.content,
             services: response.data?.services || [],
             providers: response.data?.providers || [],
+            service: response.data?.service,
           });
           setIsTyping(true);
           setTypingContent('');
@@ -256,33 +262,52 @@ export function AIChatBox({ className }: AIChatBoxProps) {
 
     // Split content by lines and process each line
     const lines = content.split('\n');
+    const processedLines: JSX.Element[] = [];
+    let inTable = false;
 
-    return lines.map((line, index) => {
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
       const trimmedLine = line.trim();
+
+      // Check if this line is part of a markdown table
+      if (trimmedLine.includes('|') && trimmedLine.split('|').length > 2) {
+        if (!inTable) {
+          inTable = true;
+        }
+        // Skip all table lines since we have service cards
+        continue;
+      } else if (inTable) {
+        // End of table, skip it
+        inTable = false;
+        continue;
+      }
 
       // Handle headers
       if (trimmedLine.startsWith('### ')) {
-        return (
-          <h3 key={index} className="text-lg font-bold text-gray-900 mb-2 mt-3 first:mt-0">
+        processedLines.push(
+          <h3 key={i} className="text-lg font-bold text-gray-900 mb-2 mt-3 first:mt-0">
             {trimmedLine.replace('### ', '')}
           </h3>
         );
+        continue;
       }
 
       if (trimmedLine.startsWith('## ')) {
-        return (
-          <h2 key={index} className="text-xl font-bold text-gray-900 mb-3 mt-4 first:mt-0">
+        processedLines.push(
+          <h2 key={i} className="text-xl font-bold text-gray-900 mb-3 mt-4 first:mt-0">
             {trimmedLine.replace('## ', '')}
           </h2>
         );
+        continue;
       }
 
       if (trimmedLine.startsWith('# ')) {
-        return (
-          <h1 key={index} className="text-2xl font-bold text-gray-900 mb-3 mt-4 first:mt-0">
+        processedLines.push(
+          <h1 key={i} className="text-2xl font-bold text-gray-900 mb-3 mt-4 first:mt-0">
             {trimmedLine.replace('# ', '')}
           </h1>
         );
+        continue;
       }
 
       // Handle bullet points
@@ -319,33 +344,36 @@ export function AIChatBox({ className }: AIChatBoxProps) {
             elements.push(<span key={`text-end`}>{content.slice(lastIndex)}</span>);
           }
 
-          return (
-            <div key={index} className="flex items-start gap-2">
+          processedLines.push(
+            <div key={i} className="flex items-start gap-2">
               <span className="text-gray-500">•</span>
               <span className="text-sm text-gray-700">{elements}</span>
             </div>
           );
+          continue;
         }
 
         // Regular bullet point without bold text
-        return (
-          <div key={index} className="flex items-start gap-2 mb-1">
+        processedLines.push(
+          <div key={i} className="flex items-start gap-2 mb-1">
             <span className="text-gray-500 mt-1">•</span>
             <span className="text-sm text-gray-700">{content}</span>
           </div>
         );
+        continue;
       }
 
       // Handle numbered lists
       if (/^\d+\.\s/.test(trimmedLine)) {
-        return (
-          <div key={index} className="flex items-start gap-2 mb-1">
+        processedLines.push(
+          <div key={i} className="flex items-start gap-2 mb-1">
             <span className="text-gray-500 text-sm font-medium min-w-[20px]">
               {trimmedLine.match(/^\d+\./)?.[0]}
             </span>
             <span className="text-sm text-gray-700">{trimmedLine.replace(/^\d+\.\s*/, '')}</span>
           </div>
         );
+        continue;
       }
 
       // Handle bold text (**text**) - process all lines for inline bold text
@@ -379,25 +407,29 @@ export function AIChatBox({ className }: AIChatBoxProps) {
           elements.push(<span key={`text-end`}>{trimmedLine.slice(lastIndex)}</span>);
         }
 
-        return (
-          <p key={index} className="text-sm text-gray-800 mb-2">
+        processedLines.push(
+          <p key={i} className="text-sm text-gray-800 mb-2">
             {elements}
           </p>
         );
+        continue;
       }
 
       // Handle empty lines
       if (trimmedLine === '') {
-        return <div key={index} className="h-2" />;
+        processedLines.push(<div key={i} className="h-2" />);
+        continue;
       }
 
       // Regular text
-      return (
-        <p key={index} className="text-sm text-gray-800 mb-2">
+      processedLines.push(
+        <p key={i} className="text-sm text-gray-800 mb-2">
           {trimmedLine}
         </p>
       );
-    });
+    }
+
+    return processedLines;
   };
 
   return (
@@ -406,7 +438,7 @@ export function AIChatBox({ className }: AIChatBoxProps) {
       <Button
         onClick={() => setIsOpen(true)}
         className={cn(
-          'fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 z-50',
+          'fixed bottom-12 right-6 w-14 h-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 z-50',
           'bg-green-500 hover:bg-green-600 text-white',
           className
         )}
@@ -501,18 +533,34 @@ export function AIChatBox({ className }: AIChatBoxProps) {
                         <div className="mb-2">{formatMessageContent(message.content)}</div>
 
                         {/* Show Service Cards if available */}
-                        {message.data &&
-                          message.data.services &&
-                          message.data.services.length > 0 && (
-                            <div className="space-y-2 mb-2">
-                              <h5 className="text-sm font-semibold text-gray-700">
-                                Dịch vụ phù hợp:
-                              </h5>
-                              {message.data.services.map(service => (
-                                <ServiceCard key={service.id} service={service} />
-                              ))}
-                            </div>
-                          )}
+                        {message.data && (
+                          <>
+                            {/* Multiple services */}
+                            {message.data.services && message.data.services.length > 0 && (
+                              <div className="space-y-2 mb-2">
+                                <h5 className="text-sm font-semibold text-gray-700">
+                                  Dịch vụ phù hợp:
+                                </h5>
+                                {message.data.services.map(service => (
+                                  <ServiceCard key={service.id} service={service} />
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Single service */}
+                            {message.data.service && (
+                              <div className="space-y-2 mb-2">
+                                <h5 className="text-sm font-semibold text-gray-700">
+                                  Dịch vụ phù hợp:
+                                </h5>
+                                <ServiceCard
+                                  key={message.data.service.id}
+                                  service={message.data.service}
+                                />
+                              </div>
+                            )}
+                          </>
+                        )}
 
                         {/* Show Provider Cards if available */}
                         {message.data &&

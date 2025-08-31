@@ -6,6 +6,7 @@ import {
   useGetUserProposal,
   useUpdateUserProposal,
   useCancelServiceRequest,
+  useGetUserBookingDetail,
 } from '@/hooks/useUser';
 import { useReportBooking } from '@/hooks/useManageBooking';
 import { CustomerBooking } from '@/lib/api/services/fetchUser';
@@ -75,7 +76,7 @@ import { useRouter } from 'next/navigation';
 import { formatDate } from '@/utils/numbers/formatDate';
 import { formatCurrency } from '@/utils/numbers/formatCurrency';
 import { useQueryClient } from '@tanstack/react-query';
-import { useCreateProposalTransaction } from '@/hooks/usePayment';
+import { useCreateProposalTransaction, usePayExistingServiceRequest } from '@/hooks/usePayment';
 import {
   Dialog,
   DialogContent,
@@ -100,7 +101,12 @@ import {
 } from '@/components/ui/select';
 
 //Booking status
-const getStatusConfig = (status: string) => {
+const getStatusConfig = (
+  status: string,
+  serviceRequestStatus?: string,
+  hasProposal?: boolean,
+  hasPendingPayment?: boolean
+) => {
   const map: Record<
     string,
     {
@@ -109,7 +115,18 @@ const getStatusConfig = (status: string) => {
       variant: 'default' | 'secondary' | 'destructive' | 'outline';
     }
   > = {
-    PENDING: { label: 'Chờ nhà cung cấp xác nhận', icon: ClockIcon, variant: 'secondary' },
+    PENDING: {
+      label: hasPendingPayment
+        ? 'Chờ bạn thanh toán tiền đặt cọc'
+        : hasProposal
+          ? 'Chờ bạn xem đề xuất'
+          : serviceRequestStatus?.toUpperCase() === 'ESTIMATED' ||
+              serviceRequestStatus?.toUpperCase() === 'ESTIMATE'
+            ? 'Chờ bạn xem đề xuất'
+            : 'Chờ nhà cung cấp xác nhận',
+      icon: ClockIcon,
+      variant: 'secondary',
+    },
     CONFIRMED: { label: 'Đã xác nhận', icon: CheckCircle, variant: 'default' },
     STAFF_COMPLETED: { label: 'Nhân viên thực hiện xong', icon: CheckCircle, variant: 'default' },
     COMPLETED: { label: 'Hoàn thành', icon: CheckCircle, variant: 'default' },
@@ -129,7 +146,7 @@ const getTransactionStatusConfig = (status: string) => {
     PAID: { label: 'Đã thanh toán', variant: 'default' },
     SUCCESS: { label: 'Đã thanh toán', variant: 'default' },
     FAILED: { label: 'Thanh toán thất bại', variant: 'destructive' },
-    // REFUNDED: { label: 'Đã hoàn tiền', variant: 'outline' },
+    REFUNDED: { label: 'Đã hoàn tiền', variant: 'outline' },
   };
   return map[status.toUpperCase()] || { label: status, variant: 'outline' as const };
 };
@@ -202,6 +219,7 @@ const ProposalSection = ({
   paymentTransactionStatus,
   paymentTransactionAmountOut,
   hasTransaction,
+  paymentTransactions,
 }: {
   bookingId: number;
   bookingStatus: string;
@@ -211,6 +229,21 @@ const ProposalSection = ({
   paymentTransactionStatus?: string;
   paymentTransactionAmountOut?: number;
   hasTransaction: boolean;
+  paymentTransactions?: Array<{
+    id: number;
+    gateway: string;
+    status: string;
+    transactionDate: string;
+    amountIn: number;
+    amountOut: number;
+    accumulated: number;
+    referenceNumber: string;
+    transactionContent: string;
+    body: string;
+    accountNumber: string | null;
+    subAccount: string | null;
+    createdAt: string;
+  }>;
 }) => {
   const { data, isLoading, error } = useGetUserProposal(bookingId);
   const { mutate: updateProposal, isPending: isUpdating } = useUpdateUserProposal();
@@ -221,7 +254,7 @@ const ProposalSection = ({
 
   // Payment error dialog state
   const [isPaymentErrorOpen, setIsPaymentErrorOpen] = useState(false);
-  const [paymentErrorMsg, setPaymentErrorMsg] = useState<string>('Đã xảy ra lỗi khi thanh toán.');
+  const [paymentErrorMsg, setPaymentErrorMsg] = useState<unknown>('Đã xảy ra lỗi khi thanh toán.');
 
   if (isLoading) {
     return (
@@ -259,13 +292,27 @@ const ProposalSection = ({
     return total + price * normalizeQuantity(item.quantity);
   }, 0);
 
-  const computedPaidStatus = (paymentTransactionStatus || transactionStatus || '').toUpperCase();
-  const isPaid = computedPaidStatus === 'PAID' || computedPaidStatus === 'SUCCESS';
+  // Get the latest payment transaction from the passed payment transactions
+  const latestPaymentTransaction =
+    Array.isArray(paymentTransactions) && paymentTransactions.length > 0
+      ? [...paymentTransactions].sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        )[0]
+      : null;
+
+  // Check if the latest payment transaction is successful
+  const latestPaymentStatus =
+    latestPaymentTransaction?.status?.toUpperCase() ||
+    paymentTransactionStatus?.toUpperCase() ||
+    transactionStatus?.toUpperCase() ||
+    '';
+  const isPaid = latestPaymentStatus === 'PAID' || latestPaymentStatus === 'SUCCESS';
+
+  // Use the latest payment transaction amount if available and successful
+  const actualDepositAmount = latestPaymentTransaction?.amountOut || paymentTransactionAmountOut;
   const hasDepositAmount =
-    isPaid &&
-    typeof paymentTransactionAmountOut === 'number' &&
-    !Number.isNaN(paymentTransactionAmountOut);
-  const depositAmount = hasDepositAmount ? Math.max(paymentTransactionAmountOut as number, 0) : 0;
+    isPaid && typeof actualDepositAmount === 'number' && !Number.isNaN(actualDepositAmount);
+  const depositAmount = hasDepositAmount ? Math.max(actualDepositAmount as number, 0) : 0;
   const remainingAfterDeposit = hasDepositAmount
     ? Math.max(totalAmount - depositAmount, 0)
     : totalAmount;
@@ -279,15 +326,15 @@ const ProposalSection = ({
 
   return (
     <div className="space-y-3">
-      <div className="rounded-lg border bg-muted/10 p-4">
-        <div className="flex items-start justify-between">
+      <div className="rounded-lg border bg-muted/10 p-3 sm:p-4">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
           <div className="space-y-0.5">
             <h4 className="text-sm font-semibold">Đề xuất #{proposal.id}</h4>
             <p className="text-xs text-muted-foreground">{formatDate(proposal.createdAt)}</p>
           </div>
           <Badge
             variant={proposal.status === 'ACCEPTED' ? 'default' : 'outline'}
-            className="text-xs"
+            className="text-xs w-fit"
           >
             {proposal.status === 'ACCEPTED'
               ? 'Đã được thêm'
@@ -304,15 +351,15 @@ const ProposalSection = ({
           <div className="mt-3 space-y-3">
             {allPendingItems.map((item, index) => (
               <div key={item.id} className="rounded-md border bg-background p-3">
-                <div className="flex items-center justify-between gap-3 text-sm">
-                  <div className="flex-1 pr-2 truncate">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 text-sm">
+                  <div className="flex-1 min-w-0">
                     <span className="font-medium">{item.Service?.name ?? 'Dịch vụ'}</span>
                     <span className="text-muted-foreground">
                       {' '}
                       × {normalizeQuantity(item.quantity)}
                     </span>
                   </div>
-                  <div className="whitespace-nowrap font-medium">
+                  <div className="whitespace-nowrap font-medium text-right sm:text-left">
                     {formatCurrency(
                       (item.Service?.virtualPrice && item.Service.virtualPrice > 0
                         ? item.Service.virtualPrice
@@ -334,21 +381,21 @@ const ProposalSection = ({
                           return (
                             <div
                               key={actualServiceItem?.id || `service-item-${index}-${itemIndex}`}
-                              className="flex flex-col sm:flex-row items-end sm:items-end gap-3 border rounded-lg p-3 bg-muted/20"
+                              className="flex flex-col gap-3 border rounded-lg p-3 bg-muted/20"
                             >
                               <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2">
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                                   <span className="font-semibold text-sm truncate">
                                     {actualServiceItem?.name || 'Không có tên'}
                                   </span>
                                   {actualServiceItem?.brand && (
-                                    <span className="ml-1 py-0.5 rounded bg-muted text-muted-foreground text-xs">
+                                    <span className="py-0.5 px-2 rounded bg-muted text-muted-foreground text-xs w-fit">
                                       {actualServiceItem.brand}
                                     </span>
                                   )}
                                 </div>
                                 {actualServiceItem?.model && (
-                                  <div className="text-xs text-muted-foreground mt-0.5">
+                                  <div className="text-xs text-muted-foreground mt-1">
                                     Model:{' '}
                                     <span className="text-xs font-medium text-foreground">
                                       {actualServiceItem.model}
@@ -356,12 +403,12 @@ const ProposalSection = ({
                                   </div>
                                 )}
                                 {actualServiceItem?.description && (
-                                  <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                                  <div className="text-xs text-muted-foreground mt-1 line-clamp-2">
                                     {actualServiceItem.description}
                                   </div>
                                 )}
                               </div>
-                              <div className="flex flex-col gap-1 text-xs min-w-[120px]">
+                              <div className="grid grid-cols-2 gap-2 text-xs">
                                 <div>
                                   <span className="text-muted-foreground">Đơn giá: </span>
                                   <span className="font-medium">
@@ -384,9 +431,7 @@ const ProposalSection = ({
 
                 <div className="mt-1 text-xs text-muted-foreground flex items-center gap-1">
                   <ClockIcon className="h-3 w-3" />
-                  <span>
-                    {`Đề xuất ${index + 1}`} · {formatDate(item.createdAt)}
-                  </span>
+                  <span>{formatDate(item.createdAt)}</span>
                 </div>
               </div>
             ))}
@@ -397,21 +442,27 @@ const ProposalSection = ({
           </div>
         )}
 
-        <div className="mt-3 space-y-1 text-sm">
-          <div className="flex items-center justify-between">
+        <div className="mt-3 space-y-2 text-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
             <span className="text-muted-foreground">Tổng giá trị đề xuất</span>
-            <span className="font-semibold">{formatCurrency(totalAmount)}</span>
+            <span className="font-semibold text-right sm:text-left">
+              {formatCurrency(totalAmount)}
+            </span>
           </div>
           {hasDepositAmount && (
             <>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
                 <span className="text-muted-foreground">Số tiền đặt cọc</span>
-                <span className="font-medium">- {formatCurrency(depositAmount)}</span>
+                <span className="font-medium text-right sm:text-left">
+                  - {formatCurrency(depositAmount)}
+                </span>
               </div>
               <Separator />
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
                 <span className="text-muted-foreground">Tổng Cộng:</span>
-                <span className="font-semibold">{formatCurrency(remainingAfterDeposit)}</span>
+                <span className="font-semibold text-right sm:text-left">
+                  {formatCurrency(remainingAfterDeposit)}
+                </span>
               </div>
             </>
           )}
@@ -419,15 +470,12 @@ const ProposalSection = ({
       </div>
 
       {canShowActions && (
-        <div
-          className="flex flex-col sm:flex-row items-stretch justify-end gap-2 pt-1"
-          aria-live="polite"
-        >
-          <div className="flex-1 flex flex-col sm:flex-row gap-2">
+        <div className="flex flex-col gap-2 pt-1" aria-live="polite">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {/* Pay with Wallet */}
             <Button
               size="sm"
-              className="flex-1 sm:flex-initial bg-emerald-600 hover:bg-emerald-700 text-white transition-colors duration-150"
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white transition-colors duration-150"
               disabled={isCreatingPayment}
               aria-label="Ví"
               onClick={() =>
@@ -439,13 +487,22 @@ const ProposalSection = ({
                       router.refresh();
                     },
                     onError: (err: unknown) => {
-                      const message =
-                        typeof err === 'object' && err !== null && 'message' in err
-                          ? String((err as { message?: string }).message || '')
-                          : '';
-                      setPaymentErrorMsg(
-                        message || 'Không thể thanh toán bằng ví. Vui lòng thử lại sau.'
-                      );
+                      // Handle the error structure from the API response
+                      if (typeof err === 'object' && err !== null && 'response' in err) {
+                        const axiosError = err as { response: { data: { message: unknown } } };
+                        const messageData = axiosError.response.data.message;
+
+                        if (Array.isArray(messageData) && messageData.length > 0) {
+                          // Handle array of error objects
+                          setPaymentErrorMsg(messageData);
+                        } else {
+                          setPaymentErrorMsg(messageData);
+                        }
+                      } else {
+                        setPaymentErrorMsg(
+                          'Số dư ví không đủ để thanh toán đề xuất. Vui lòng kiểm tra lại số dư sau.'
+                        );
+                      }
                       setIsPaymentErrorOpen(true);
                     },
                   }
@@ -468,7 +525,7 @@ const ProposalSection = ({
             {/* Pay with Bank Transfer */}
             <Button
               size="sm"
-              className="flex-1 sm:flex-initial bg-green-600 hover:bg-green-700 text-white transition-colors duration-150"
+              className="w-full bg-green-600 hover:bg-green-700 text-white transition-colors duration-150"
               disabled={isCreatingPayment}
               aria-label="Thanh toán bằng chuyển khoản ngân hàng"
               onClick={() =>
@@ -484,14 +541,22 @@ const ProposalSection = ({
                       router.refresh();
                     },
                     onError: (err: unknown) => {
-                      const message =
-                        typeof err === 'object' && err !== null && 'message' in err
-                          ? String((err as { message?: string }).message || '')
-                          : '';
-                      setPaymentErrorMsg(
-                        message ||
+                      // Handle the error structure from the API response
+                      if (typeof err === 'object' && err !== null && 'response' in err) {
+                        const axiosError = err as { response: { data: { message: unknown } } };
+                        const messageData = axiosError.response.data.message;
+
+                        if (Array.isArray(messageData) && messageData.length > 0) {
+                          // Handle array of error objects
+                          setPaymentErrorMsg(messageData);
+                        } else {
+                          setPaymentErrorMsg(messageData);
+                        }
+                      } else {
+                        setPaymentErrorMsg(
                           'Không thể khởi tạo thanh toán chuyển khoản ngân hàng. Vui lòng thử lại sau.'
-                      );
+                        );
+                      }
                       setIsPaymentErrorOpen(true);
                     },
                   }
@@ -501,7 +566,7 @@ const ProposalSection = ({
               {isCreatingPayment ? (
                 <span className="flex items-center gap-2">
                   <Loader2 className="animate-spin h-4 w-4 mr-1 text-white" aria-label="Loading" />
-                  Đang chuyển đến thanh toán...
+                  Đang xử lý
                 </span>
               ) : (
                 <span className="flex items-center gap-2">
@@ -515,7 +580,7 @@ const ProposalSection = ({
           <Button
             size="sm"
             variant="destructive"
-            className="flex-1 sm:flex-initial transition-colors duration-150"
+            className="w-full transition-colors duration-150"
             disabled={isUpdating}
             aria-label="Từ chối đề xuất"
             onClick={() =>
@@ -560,42 +625,68 @@ const ProposalSection = ({
 
       {/* Payment Error Dialog */}
       <Dialog open={isPaymentErrorOpen} onOpenChange={setIsPaymentErrorOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md mx-auto sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Lỗi thanh toán</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground break-words">
             {(() => {
               if (typeof paymentErrorMsg === 'string') {
                 return paymentErrorMsg;
               }
-              if (
-                paymentErrorMsg &&
-                typeof paymentErrorMsg === 'object' &&
-                'message' in paymentErrorMsg
-              ) {
-                const msg = (paymentErrorMsg as { message?: string }).message;
-                if (Array.isArray(msg)) {
-                  return msg.map((m: unknown, i: number) =>
-                    typeof m === 'object' && m && 'message' in m ? (
-                      <span key={i}>{(m as { message: string }).message}</span>
-                    ) : (
-                      <span key={i}>{String(m)}</span>
-                    )
+              if (Array.isArray(paymentErrorMsg)) {
+                return paymentErrorMsg.map((m: unknown, i: number) => {
+                  if (typeof m === 'object' && m && 'message' in m) {
+                    const errorDetail = m as {
+                      message: string;
+                      currentBalance?: number;
+                      requiredAmount?: number;
+                    };
+                    return (
+                      <div key={i} className="space-y-1">
+                        <span className="block">{errorDetail.message}</span>
+                        {errorDetail.currentBalance !== undefined &&
+                          errorDetail.requiredAmount !== undefined && (
+                            <div className="text-xs space-y-1 mt-2 p-2 bg-muted/50 rounded">
+                              <div>
+                                Số dư hiện tại: {errorDetail.currentBalance.toLocaleString('vi-VN')}{' '}
+                                đ
+                              </div>
+                              <div>
+                                Số tiền cần thanh toán:{' '}
+                                {errorDetail.requiredAmount.toLocaleString('vi-VN')} đ
+                              </div>
+                              <div className="text-destructive font-medium">
+                                Thiếu:{' '}
+                                {(
+                                  errorDetail.requiredAmount - errorDetail.currentBalance
+                                ).toLocaleString('vi-VN')}{' '}
+                                đ
+                              </div>
+                            </div>
+                          )}
+                      </div>
+                    );
+                  }
+                  return (
+                    <span key={i} className="block">
+                      {String(m)}
+                    </span>
                   );
-                }
-                if (typeof msg === 'string') {
-                  return msg;
-                }
-                if (typeof msg === 'object') {
-                  return JSON.stringify(msg);
-                }
+                });
               }
-              return JSON.stringify(paymentErrorMsg);
+              if (typeof paymentErrorMsg === 'object' && paymentErrorMsg !== null) {
+                return JSON.stringify(paymentErrorMsg);
+              }
+              return String(paymentErrorMsg);
             })()}
           </p>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsPaymentErrorOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsPaymentErrorOpen(false)}
+              className="w-full sm:w-auto"
+            >
               Đóng
             </Button>
           </DialogFooter>
@@ -609,7 +700,35 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
   const [isExpanded, setIsExpanded] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [isReviewOpen, setIsReviewOpen] = useState(false);
-  const statusConfig = getStatusConfig(booking.status);
+
+  // Check if there's a proposal for this booking (only fetch when expanded for performance)
+  const {
+    data: proposalData,
+    isLoading: isLoadingProposal,
+    error: proposalError,
+  } = useGetUserProposal(booking.id, isExpanded);
+  const hasProposal = Boolean(proposalData?.data);
+
+  // Only fetch detailed booking data when expanded (performance optimization)
+  const {
+    data: bookingDetailData,
+    isLoading: isLoadingDetail,
+    error: detailError,
+  } = useGetUserBookingDetail(booking.id, isExpanded);
+  const hasExistingReports = Boolean(bookingDetailData?.data?.BookingReport?.length);
+
+  // Check if there's a pending payment transaction
+  const hasPendingPayment =
+    Array.isArray(booking.ServiceRequest?.PaymentTransaction) &&
+    booking.ServiceRequest.PaymentTransaction.length > 0 &&
+    booking.ServiceRequest.PaymentTransaction.some(payment => payment.status === 'PENDING');
+
+  const statusConfig = getStatusConfig(
+    booking.status,
+    booking.ServiceRequest?.status,
+    hasProposal,
+    hasPendingPayment
+  );
   const transactionStatusConfig = getTransactionStatusConfig(
     booking.Transaction?.status || 'PENDING'
   );
@@ -645,6 +764,7 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
   };
 
   const onSubmitReport = (values: ReportFormValues) => {
+    // Use report booking for all statuses
     reportBooking(
       {
         description: values.description,
@@ -684,14 +804,16 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
   };
 
   const { mutate: getOrCreateConv } = useGetOrCreateConversation();
+  const { mutate: payExistingServiceRequest, isPending: isPayingExisting } =
+    usePayExistingServiceRequest();
   const router = useRouter();
 
   return (
     <Card className="overflow-hidden hover:shadow-md transition-shadow break-inside-avoid mb-4">
       <CardHeader className="pb-3">
-        <div className="flex justify-between items-start">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
           <div className="space-y-1">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Badge variant={statusConfig.variant} className="gap-1">
                 <statusConfig.icon className="h-3 w-3" />
                 {statusConfig.label}
@@ -706,7 +828,7 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
               {formatDate(booking.createdAt)}
             </CardDescription>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {booking.ServiceRequest?.status?.toUpperCase() === 'PENDING' &&
               booking.status.toUpperCase() !== 'CANCELLED' && (
                 <Button
@@ -757,15 +879,52 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
                 )}
               </Button>
             )}
-            {/* Always allow reporting */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsReportOpen(true)}
-              aria-label="Báo cáo sự cố cho đơn đặt này"
-            >
-              <Flag className="h-4 w-4 mr-1" /> Báo cáo
-            </Button>
+            {/* Show report button based on status, date logic, and existing reports */}
+            {(() => {
+              const isCompleted = booking.status?.toUpperCase() === 'COMPLETED';
+              const isPending = booking.status?.toUpperCase() === 'PENDING';
+
+              // Don't show report button if there are existing reports
+              if (hasExistingReports) {
+                return null;
+              }
+
+              if (isCompleted) {
+                // Always show for completed bookings (if no existing reports)
+                return (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsReportOpen(true)}
+                    aria-label="Báo cáo sự cố cho đơn đặt này"
+                  >
+                    <Flag className="h-4 w-4 mr-1" /> Báo cáo
+                  </Button>
+                );
+              }
+
+              if (isPending) {
+                // For pending bookings, check if preferredDate is coming (future)
+                const preferredDate = new Date(booking.ServiceRequest.preferredDate);
+                const now = new Date();
+                const isPreferredDateComing = preferredDate < now;
+
+                if (isPreferredDateComing) {
+                  return (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsReportOpen(true)}
+                      aria-label="Báo cáo sự cố cho đơn đặt này"
+                    >
+                      <Flag className="h-4 w-4 mr-1" /> Báo cáo
+                    </Button>
+                  );
+                }
+              }
+
+              return null;
+            })()}
             {booking.status?.toUpperCase() === 'COMPLETED' && (
               <Button
                 variant="default"
@@ -791,68 +950,77 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
 
       <CardContent className="space-y-4">
         {/* Provider */}
-        <div className="flex gap-3 items-start p-3 bg-muted/30 rounded-lg">
-          {booking.ServiceProvider.logo ? (
-            <Image
-              src={booking.ServiceProvider.logo}
-              alt={booking.ServiceProvider.User_ServiceProvider_userIdToUser.name}
-              width={48}
-              height={48}
-              className="rounded-full"
-              unoptimized
-            />
-          ) : (
-            <div className="w-12 h-12 flex items-center justify-center rounded-full bg-primary/10">
-              <Building className="h-6 w-6 text-primary" />
+        <div className="flex flex-col sm:flex-row gap-3 items-start p-3 bg-muted/30 rounded-lg">
+          <div className="flex gap-3 items-start w-full sm:w-auto">
+            {booking.ServiceProvider.logo ? (
+              <Image
+                src={booking.ServiceProvider.logo}
+                alt={booking.ServiceProvider.User_ServiceProvider_userIdToUser.name}
+                width={48}
+                height={48}
+                className="rounded-full flex-shrink-0"
+                unoptimized
+              />
+            ) : (
+              <div className="w-12 h-12 flex items-center justify-center rounded-full bg-primary/10 flex-shrink-0">
+                <Building className="h-6 w-6 text-primary" />
+              </div>
+            )}
+            <div className="max-w-64 flex-1">
+              <h4 className="text-sm font-semibold truncate">
+                {booking.ServiceProvider.User_ServiceProvider_userIdToUser.name}
+              </h4>
+              <p className="text-xs text-muted-foreground line-clamp-2">
+                {booking.ServiceProvider.description}
+              </p>
+              <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
+                <MapPin className="h-3 w-3 flex-shrink-0" />
+                <span className="truncate ">{booking.ServiceRequest.location}</span>
+              </div>
             </div>
-          )}
-          <div className="min-w-0 flex-1">
-            <h4 className="text-sm font-semibold truncate">
-              {booking.ServiceProvider.User_ServiceProvider_userIdToUser.name}
-            </h4>
-            <p className="text-xs text-muted-foreground truncate">
-              {booking.ServiceProvider.description}
-            </p>
-            <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground truncate">
-              <MapPin className="h-3 w-3" />
-              {booking.ServiceRequest.location}
-            </div>
-            <div className="mt-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  const providerId = getProviderIdFromBooking(booking);
-                  if (!providerId) return;
-                  getOrCreateConv(
-                    { receiverId: Number(providerId) },
-                    {
-                      onSuccess: conversation => {
-                        router.push(`/settings/chat?conversationId=${conversation.id}`);
-                      },
-                    }
-                  );
-                }}
-              >
-                Liên hệ
-              </Button>
-            </div>
+          </div>
+          <div className="w-full sm:w-auto sm:ml-auto">
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full sm:w-auto"
+              onClick={() => {
+                const providerId = getProviderIdFromBooking(booking);
+                if (!providerId) return;
+                getOrCreateConv(
+                  { receiverId: Number(providerId) },
+                  {
+                    onSuccess: conversation => {
+                      router.push(`/settings/chat?conversationId=${conversation.id}`);
+                    },
+                  }
+                );
+              }}
+            >
+              Liên hệ
+            </Button>
           </div>
         </div>
 
         {/* Details */}
         <div className="grid gap-2 text-sm">
-          <div className="flex justify-between">
+          <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
             <span className="text-muted-foreground">Ghi chú:</span>
-            {booking.ServiceRequest.note || 'Không có'}
+            <span className="text-right sm:text-left break-words">
+              {booking.ServiceRequest.note || 'Không có'}
+            </span>
           </div>
-          <div className="flex justify-between">
+          <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
             <span className="text-muted-foreground">Ngày ưu tiên:</span>
-            {formatDate(booking.ServiceRequest.preferredDate)}
+            <span className="text-right sm:text-left">
+              {formatDate(booking.ServiceRequest.preferredDate)}
+            </span>
           </div>
-          <div className="flex justify-between">
+          <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
             <span className="text-muted-foreground">SĐT:</span>
-            {booking.ServiceRequest.phoneNumber}
+            <span className="text-right sm:text-left font-mono">
+              {booking.ServiceRequest.phoneNumber}
+            </span>
           </div>
         </div>
 
@@ -861,31 +1029,35 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
           <>
             <Separator />
             <div className="grid gap-2 text-sm">
-              <div className="flex justify-between">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
                 <span>Thanh toán đặt dịch vụ</span>
-                <Badge variant={transactionStatusConfig.variant}>
+                <Badge variant={transactionStatusConfig.variant} className="w-fit">
                   {transactionStatusConfig.label}
                 </Badge>
               </div>
-              <div className="flex justify-between">
+              <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                 <span className="text-muted-foreground">Số tiền:</span>
-                {booking.Transaction?.amount !== undefined ? (
-                  formatCurrency(booking.Transaction.amount)
-                ) : (
-                  <span className="text-muted-foreground">N/A</span>
-                )}
+                <span className="text-right sm:text-left font-medium">
+                  {booking.Transaction?.amount !== undefined ? (
+                    formatCurrency(booking.Transaction.amount)
+                  ) : (
+                    <span className="text-muted-foreground">N/A</span>
+                  )}
+                </span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                 <span className="text-muted-foreground">Phương thức:</span>
-                {booking.Transaction?.method ? (
-                  getPaymentMethodVi(booking.Transaction.method)
-                ) : (
-                  <span className="text-muted-foreground">N/A</span>
-                )}
+                <span className="text-right sm:text-left">
+                  {booking.Transaction?.method ? (
+                    getPaymentMethodVi(booking.Transaction.method)
+                  ) : (
+                    <span className="text-muted-foreground">N/A</span>
+                  )}
+                </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Mã đơn hàng:</span>
-                <span className="font-mono">
+              <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                <span className="text-muted-foreground">Mã tham chiếu:</span>
+                <span className="font-mono text-right sm:text-left break-all">
                   {booking.Transaction?.orderCode ? (
                     booking.Transaction.orderCode
                   ) : (
@@ -894,9 +1066,11 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
                 </span>
               </div>
               {booking.Transaction?.paidAt && (
-                <div className="flex justify-between">
+                <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                   <span className="text-muted-foreground">Ngày thanh toán:</span>
-                  {formatDate(booking.Transaction.paidAt)}
+                  <span className="text-right sm:text-left">
+                    {formatDate(booking.Transaction.paidAt)}
+                  </span>
                 </div>
               )}
             </div>
@@ -911,11 +1085,11 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
           >
             <Separator />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-              <div>
+              <div className="space-y-1">
                 <span className="text-muted-foreground">Danh mục:</span>
                 <p className="font-medium">{booking.ServiceRequest.Category.name}</p>
               </div>
-              <div>
+              <div className="space-y-1">
                 <span className="text-muted-foreground">Nhân viên:</span>
                 <p className="font-medium">
                   {booking.Staff_Booking_staffIdToStaff?.User?.name ? (
@@ -925,82 +1099,223 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
                   )}
                 </p>
               </div>
-              <div>
+              <div className="space-y-1 sm:col-span-2">
                 <span className="text-muted-foreground">Cập nhật:</span>
                 <p className="font-medium">{formatDate(booking.updatedAt)}</p>
               </div>
             </div>
 
+            {/* Detailed Information from API */}
+
             {/* Payment Transaction */}
-            {booking.ServiceRequest.PaymentTransaction && (
+            {booking.ServiceRequest.PaymentTransaction &&
+            Array.isArray(booking.ServiceRequest.PaymentTransaction) &&
+            booking.ServiceRequest.PaymentTransaction.length > 0 ? (
               <>
                 <Separator />
                 <div className="space-y-2">
                   <h3 className="text-sm font-semibold">Thanh toán tiền đặt cọc</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                    <div>
-                      <span className="text-muted-foreground">Trạng thái:</span>
-                      <p className="font-medium">
-                        <Badge
-                          variant={
-                            booking.ServiceRequest.PaymentTransaction.status === 'PENDING'
-                              ? 'secondary'
-                              : booking.ServiceRequest.PaymentTransaction.status === 'SUCCESS'
-                                ? 'default'
-                                : 'destructive'
-                          }
-                        >
-                          {booking.ServiceRequest.PaymentTransaction.status === 'SUCCESS'
-                            ? 'Thành công'
-                            : booking.ServiceRequest.PaymentTransaction.status === 'PENDING'
-                              ? 'Đang chờ'
-                              : booking.ServiceRequest.PaymentTransaction.status === 'FAILED'
-                                ? 'Thất bại'
-                                : booking.ServiceRequest.PaymentTransaction.status}
-                        </Badge>
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Số tiền:</span>
-                      <p className="font-medium">
-                        {formatCurrency(booking.ServiceRequest.PaymentTransaction.amountOut)}
-                      </p>
+                  {(() => {
+                    const sortedTransactions = [...booking.ServiceRequest.PaymentTransaction].sort(
+                      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+                    );
+                    const latestPayment = sortedTransactions[0];
+
+                    return (
+                      <div key={latestPayment.id} className="p-3 bg-gray-50 rounded-lg">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                          <div className="space-y-1">
+                            <span className="text-muted-foreground">Trạng thái:</span>
+                            <div>
+                              <Badge
+                                variant={
+                                  latestPayment.status === 'PENDING'
+                                    ? 'secondary'
+                                    : latestPayment.status === 'SUCCESS'
+                                      ? 'default'
+                                      : 'destructive'
+                                }
+                                className="w-fit"
+                              >
+                                {latestPayment.status === 'SUCCESS'
+                                  ? 'Thành công'
+                                  : latestPayment.status === 'PENDING'
+                                    ? 'Đang chờ'
+                                    : latestPayment.status === 'FAILED'
+                                      ? 'Thất bại'
+                                      : latestPayment.status === 'REFUNDED'
+                                        ? 'Đã hoàn tiền'
+                                        : latestPayment.status}
+                              </Badge>
+                            </div>
+                          </div>
+                          <div className="space-y-1">
+                            <span className="text-muted-foreground">Số tiền:</span>
+                            <p className="font-medium">{formatCurrency(latestPayment.amountOut)}</p>
+                          </div>
+
+                          <div className="space-y-1">
+                            <span className="text-muted-foreground">Mã tham chiếu:</span>
+                            <p className="font-mono font-medium break-all">
+                              {latestPayment.referenceNumber}
+                            </p>
+                          </div>
+                          <div className="space-y-1">
+                            <span className="text-muted-foreground">Ngày giao dịch:</span>
+                            <p className="font-medium">
+                              {formatDate(latestPayment.transactionDate)}
+                            </p>
+                          </div>
+                          {latestPayment.transactionContent && (
+                            <div className="space-y-1 sm:col-span-2">
+                              <span className="text-muted-foreground">Nội dung:</span>
+                              <p className="font-medium break-words">
+                                {latestPayment.transactionContent}
+                              </p>
+                            </div>
+                          )}
+                          {latestPayment.accountNumber && (
+                            <div className="space-y-1">
+                              <span className="text-muted-foreground">Số tài khoản:</span>
+                              <p className="font-mono font-medium break-all">
+                                {latestPayment.accountNumber}
+                              </p>
+                            </div>
+                          )}
+                          {latestPayment.accumulated > 0 && (
+                            <div className="space-y-1">
+                              <span className="text-muted-foreground">Tích lũy:</span>
+                              <p className="font-medium">
+                                {formatCurrency(latestPayment.accumulated)}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Payment buttons for PENDING or FAILED status - but not for cancelled bookings */}
+                        {(latestPayment.status === 'PENDING' ||
+                          latestPayment.status === 'FAILED') &&
+                          booking.status.toUpperCase() !== 'CANCELLED' && (
+                            <div className="mt-3 pt-3 border-t">
+                              <h3 className="text-sm font-semibold my-2">
+                                Thanh toán lại tiền đặt cọc
+                              </h3>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <Button
+                                  size="sm"
+                                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white transition-colors duration-150"
+                                  disabled={isPayingExisting}
+                                  onClick={() =>
+                                    payExistingServiceRequest({
+                                      serviceRequestId: booking.serviceRequestId,
+                                      paymentMethod: 'WALLET',
+                                    })
+                                  }
+                                >
+                                  {isPayingExisting ? (
+                                    <span className="flex items-center gap-2">
+                                      <Loader2 className="animate-spin h-4 w-4" />
+                                      Đang xử lý...
+                                    </span>
+                                  ) : (
+                                    <span className="flex items-center gap-2">
+                                      <Wallet className="h-4 w-4" />
+                                      Ví
+                                    </span>
+                                  )}
+                                </Button>
+
+                                <Button
+                                  size="sm"
+                                  className="w-full bg-green-600 hover:bg-green-700 text-white transition-colors duration-150"
+                                  disabled={isPayingExisting}
+                                  onClick={() =>
+                                    payExistingServiceRequest({
+                                      serviceRequestId: booking.serviceRequestId,
+                                      paymentMethod: 'BANK_TRANSFER',
+                                    })
+                                  }
+                                >
+                                  {isPayingExisting ? (
+                                    <span className="flex items-center gap-2">
+                                      <Loader2 className="animate-spin h-4 w-4" />
+                                      Đang xử lý
+                                    </span>
+                                  ) : (
+                                    <span className="flex items-center gap-2">
+                                      <CreditCard className="h-4 w-4" />
+                                      Chuyển khoản
+                                    </span>
+                                  )}
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                      </div>
+                    );
+                  })()}
+                </div>
+              </>
+            ) : (
+              <>
+                <Separator />
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold">Thanh toán tiền đặt cọc</h3>
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <div className="text-sm text-muted-foreground mb-3">
+                      Chưa có giao dịch thanh toán đặt cọc
                     </div>
 
-                    <div>
-                      <span className="text-muted-foreground">Mã tham chiếu:</span>
-                      <p className="font-mono font-medium">
-                        {booking.ServiceRequest.PaymentTransaction.referenceNumber}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Ngày giao dịch:</span>
-                      <p className="font-medium">
-                        {formatDate(booking.ServiceRequest.PaymentTransaction.transactionDate)}
-                      </p>
-                    </div>
-                    {booking.ServiceRequest.PaymentTransaction.transactionContent && (
-                      <div className="sm:col-span-2">
-                        <span className="text-muted-foreground">Nội dung:</span>
-                        <p className="font-medium">
-                          {booking.ServiceRequest.PaymentTransaction.transactionContent}
-                        </p>
-                      </div>
-                    )}
-                    {booking.ServiceRequest.PaymentTransaction.accountNumber && (
-                      <div>
-                        <span className="text-muted-foreground">Số tài khoản:</span>
-                        <p className="font-mono font-medium">
-                          {booking.ServiceRequest.PaymentTransaction.accountNumber}
-                        </p>
-                      </div>
-                    )}
-                    {booking.ServiceRequest.PaymentTransaction.accumulated > 0 && (
-                      <div>
-                        <span className="text-muted-foreground">Tích lũy:</span>
-                        <p className="font-medium">
-                          {formatCurrency(booking.ServiceRequest.PaymentTransaction.accumulated)}
-                        </p>
+                    {/* Payment buttons when no PaymentTransaction exists - but not for cancelled bookings */}
+                    {booking.status.toUpperCase() !== 'CANCELLED' && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <Button
+                          size="sm"
+                          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white transition-colors duration-150"
+                          disabled={isPayingExisting}
+                          onClick={() =>
+                            payExistingServiceRequest({
+                              serviceRequestId: booking.serviceRequestId,
+                              paymentMethod: 'WALLET',
+                            })
+                          }
+                        >
+                          {isPayingExisting ? (
+                            <span className="flex items-center gap-2">
+                              <Loader2 className="animate-spin h-4 w-4" />
+                              Đang xử lý...
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-2">
+                              <Wallet className="h-4 w-4" />
+                              Ví
+                            </span>
+                          )}
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          className="w-full bg-green-600 hover:bg-green-700 text-white transition-colors duration-150"
+                          disabled={isPayingExisting}
+                          onClick={() =>
+                            payExistingServiceRequest({
+                              serviceRequestId: booking.serviceRequestId,
+                              paymentMethod: 'BANK_TRANSFER',
+                            })
+                          }
+                        >
+                          {isPayingExisting ? (
+                            <span className="flex items-center gap-2">
+                              <Loader2 className="animate-spin h-4 w-4" />
+                              Đang xử lý
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-2">
+                              <CreditCard className="h-4 w-4" />
+                              Chuyển khoản
+                            </span>
+                          )}
+                        </Button>
                       </div>
                     )}
                   </div>
@@ -1008,21 +1323,220 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
               </>
             )}
 
+            {isLoadingDetail ? (
+              <div className="space-y-4">
+                <h3 className="text-sm font-semibold">Thông tin chi tiết</h3>
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-16 w-full" />
+              </div>
+            ) : detailError ? (
+              <div className="text-sm text-muted-foreground">Không thể tải thông tin chi tiết.</div>
+            ) : bookingDetailData?.data ? (
+              <>
+                {/* Work Log */}
+                {bookingDetailData.data.WorkLog && bookingDetailData.data.WorkLog.length > 0 && (
+                  <>
+                    <Separator />
+                    <div className="space-y-4">
+                      <h3 className="text-sm font-semibold">Thông tin chi tiết</h3>
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-medium text-gray-700">Lịch sử làm việc</h4>
+                        {bookingDetailData.data.WorkLog.map(workLog => (
+                          <div key={workLog.id} className="p-3 bg-gray-50 rounded-lg">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                              <div className="flex flex-col">
+                                <span className="text-muted-foreground">Check-in:</span>
+                                <p className="font-medium">{formatDate(workLog.checkIn)}</p>
+                                {workLog.checkInImages.length > 0 ? (
+                                  <Image
+                                    src={workLog.checkInImages[0]}
+                                    alt="Check-in"
+                                    width={100}
+                                    height={100}
+                                    className="rounded-lg"
+                                  />
+                                ) : (
+                                  <span className="text-muted-foreground">Không có hình ảnh</span>
+                                )}
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-muted-foreground">Check-out:</span>
+                                <p className="font-medium">
+                                  {workLog.checkOut
+                                    ? formatDate(workLog.checkOut)
+                                    : 'Chưa check-out'}
+                                  {workLog.checkOutImages.length > 0 ? (
+                                    <Image
+                                      src={workLog.checkOutImages[0]}
+                                      alt="Check-out"
+                                      width={100}
+                                      height={100}
+                                      className="rounded-lg"
+                                    />
+                                  ) : (
+                                    <span className="text-muted-foreground">Không có hình ảnh</span>
+                                  )}
+                                </p>
+                              </div>
+                              {workLog.note && (
+                                <div className="sm:col-span-2">
+                                  <span className="text-muted-foreground">Ghi chú:</span>
+                                  <p className="font-medium">{workLog.note}</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* Proposal Details */}
+                {/* {bookingDetailData.data.Proposal && (
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-medium text-gray-700">Đề xuất dịch vụ</h4>
+                      <div className="p-3 bg-gray-50 rounded-lg">
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-start">
+                            <span className="text-muted-foreground text-sm">Trạng thái:</span>
+                            <Badge variant={bookingDetailData.data.Proposal.status === 'ACCEPTED' ? 'default' : 'outline'}>
+                              {bookingDetailData.data.Proposal.status === 'ACCEPTED' ? 'Đã chấp nhận' : 
+                               bookingDetailData.data.Proposal.status === 'PENDING' ? 'Chờ xử lý' : 
+                               bookingDetailData.data.Proposal.status}
+                            </Badge>
+                          </div>
+                          {bookingDetailData.data.Proposal.notes && (
+                            <div>
+                              <span className="text-muted-foreground text-sm">Ghi chú:</span>
+                              <p className="font-medium text-xs">{bookingDetailData.data.Proposal.notes}</p>
+                            </div>
+                          )}
+                          {bookingDetailData.data.Proposal.ProposalItem && bookingDetailData.data.Proposal.ProposalItem.length > 0 && (
+                            <div>
+                              <span className="text-muted-foreground text-xs">Dịch vụ đề xuất:</span>
+                              <div className="mt-1 space-y-1">
+                                {bookingDetailData.data.Proposal.ProposalItem.map((item) => (
+                                  <div key={item.id} className="flex justify-between text-xs">
+                                    <span>{item.Service.name} x {item.quantity}</span>
+                                    <span className="font-medium">{formatCurrency(item.price)}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )} */}
+
+                {/* Booking Reports */}
+                {bookingDetailData.data.BookingReport &&
+                  bookingDetailData.data.BookingReport.length > 0 && (
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-medium text-gray-700">Báo cáo sự cố</h4>
+                      {bookingDetailData.data.BookingReport.map(report => (
+                        <div
+                          key={report.id}
+                          className="p-3 bg-red-50 rounded-lg border border-red-200"
+                        >
+                          <div className="space-y-2 text-xs">
+                            <div className="flex justify-between items-start">
+                              <span className="text-muted-foreground">Trạng thái:</span>
+                              <Badge
+                                variant={report.status === 'PENDING' ? 'secondary' : 'default'}
+                              >
+                                {report.status === 'PENDING'
+                                  ? 'Chờ xử lý'
+                                  : report.status === 'REVIEWED'
+                                    ? 'Đã xem xét'
+                                    : report.status === 'RESOLVED'
+                                      ? 'Đã giải quyết'
+                                      : report.status}
+                              </Badge>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Lý do:</span>
+                              <p className="font-medium">
+                                {report.reason === 'POOR_SERVICE_QUALITY'
+                                  ? 'Chất lượng dịch vụ kém'
+                                  : report.reason === 'STAFF_BEHAVIOR'
+                                    ? 'Thái độ nhân viên không tốt'
+                                    : report.reason === 'TECHNICAL_ISSUES'
+                                      ? 'Vấn đề kỹ thuật'
+                                      : report.reason}
+                              </p>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Mô tả:</span>
+                              <p className="font-medium">{report.description}</p>
+                            </div>
+                            {report.note && (
+                              <div>
+                                <span className="text-muted-foreground">Ghi chú:</span>
+                                <p className="font-medium">{report.note}</p>
+                              </div>
+                            )}
+                            <div>
+                              <span className="text-muted-foreground">Ngày báo cáo:</span>
+                              <p className="font-medium">{formatDate(report.createdAt)}</p>
+                            </div>
+                            {report.reviewResponse && (
+                              <div>
+                                <span className="text-muted-foreground">Phản hồi:</span>
+                                <p className="font-medium">{report.reviewResponse}</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                {/* </div> */}
+              </>
+            ) : null}
+
             <Separator />
             <div className="space-y-2">
               <h3 className="text-sm font-semibold">Đề xuất dịch vụ</h3>
-              <ProposalSection
-                bookingId={booking.id}
-                bookingStatus={booking.status}
-                serviceRequestStatus={booking.ServiceRequest?.status}
-                transactionStatus={booking.Transaction?.status}
-                transactionAmount={booking.Transaction?.amount}
-                paymentTransactionStatus={booking.ServiceRequest?.PaymentTransaction?.status}
-                paymentTransactionAmountOut={booking.ServiceRequest?.PaymentTransaction?.amountOut}
-                hasTransaction={Boolean(
-                  booking.Transaction && booking.Transaction.status?.toUpperCase() !== 'PENDING'
-                )}
-              />
+              {isLoadingProposal ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-40" />
+                  <Skeleton className="h-16 w-full" />
+                </div>
+              ) : proposalError ? (
+                <div className="text-sm text-muted-foreground">Không thể tải đề xuất dịch vụ.</div>
+              ) : (
+                <ProposalSection
+                  bookingId={booking.id}
+                  bookingStatus={booking.status}
+                  serviceRequestStatus={booking.ServiceRequest?.status}
+                  transactionStatus={booking.Transaction?.status}
+                  transactionAmount={booking.Transaction?.amount}
+                  paymentTransactionStatus={
+                    Array.isArray(booking.ServiceRequest?.PaymentTransaction) &&
+                    booking.ServiceRequest.PaymentTransaction.length > 0
+                      ? booking.ServiceRequest.PaymentTransaction[0].status
+                      : undefined
+                  }
+                  paymentTransactionAmountOut={
+                    Array.isArray(booking.ServiceRequest?.PaymentTransaction) &&
+                    booking.ServiceRequest.PaymentTransaction.length > 0
+                      ? booking.ServiceRequest.PaymentTransaction[0].amountOut
+                      : undefined
+                  }
+                  hasTransaction={Boolean(
+                    booking.Transaction && booking.Transaction.status?.toUpperCase() !== 'PENDING'
+                  )}
+                  paymentTransactions={
+                    Array.isArray(booking.ServiceRequest?.PaymentTransaction)
+                      ? booking.ServiceRequest.PaymentTransaction
+                      : booking.ServiceRequest?.PaymentTransaction
+                        ? [booking.ServiceRequest.PaymentTransaction]
+                        : undefined
+                  }
+                />
+              )}
             </div>
           </div>
         )}
@@ -1030,7 +1544,7 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
 
       {/* Report Dialog */}
       <Dialog open={isReportOpen} onOpenChange={setIsReportOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md mx-auto sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Báo cáo sự cố</DialogTitle>
           </DialogHeader>
@@ -1084,15 +1598,20 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
                 value={imageUrls}
               />
             </div>
-            <DialogFooter>
-              <Button type="button" variant="ghost" onClick={() => setIsReportOpen(false)}>
+            <DialogFooter className="flex flex-col sm:flex-row gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setIsReportOpen(false)}
+                className="w-full sm:w-auto"
+              >
                 Hủy
               </Button>
-              <Button type="submit" disabled={isReporting} className="min-w-24">
+              <Button type="submit" disabled={isReporting} className="w-full sm:w-auto min-w-24">
                 {isReporting ? (
                   <span className="flex items-center gap-2">
                     <Loader2 className="animate-spin h-4 w-4" />
-                    Đang gửi
+                    Đang xử lý
                   </span>
                 ) : (
                   'Gửi báo cáo'
@@ -1105,7 +1624,7 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
 
       {/* Review Dialog */}
       <Dialog open={isReviewOpen} onOpenChange={setIsReviewOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md mx-auto sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Đánh giá dịch vụ</DialogTitle>
           </DialogHeader>
@@ -1148,11 +1667,19 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
                 onChange={e => setComment(e.target.value)}
               />
             </div>
-            <DialogFooter>
-              <Button variant="ghost" onClick={() => setIsReviewOpen(false)}>
+            <DialogFooter className="flex flex-col sm:flex-row gap-2">
+              <Button
+                variant="ghost"
+                onClick={() => setIsReviewOpen(false)}
+                className="w-full sm:w-auto"
+              >
                 Hủy
               </Button>
-              <Button onClick={submitReview} disabled={isReviewing || !rating} className="min-w-24">
+              <Button
+                onClick={submitReview}
+                disabled={isReviewing || !rating}
+                className="w-full sm:w-auto min-w-24"
+              >
                 {isReviewing ? (
                   <span className="flex items-center gap-2">
                     <Loader2 className="animate-spin h-4 w-4" />
@@ -1259,34 +1786,55 @@ export default function BookingsPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-6xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Đặt dịch vụ của tôi</h1>
-        <p className="text-muted-foreground">Theo dõi tất cả các đặt dịch vụ của bạn</p>
+    <div className="container mx-auto p-4 sm:p-6 max-w-6xl space-y-4 sm:space-y-6">
+      <div className="space-y-1">
+        <h1 className="text-xl sm:text-2xl font-bold">Đặt dịch vụ của tôi</h1>
+        <p className="text-sm sm:text-base text-muted-foreground">
+          Theo dõi tất cả các đặt dịch vụ của bạn
+        </p>
       </div>
 
       <Tabs defaultValue="today" className="w-full">
-        <TabsList className="grid w-full grid-cols-7">
-          {statuses.map(s => (
-            <TabsTrigger key={s.key} value={s.key}>
-              {s.label}{' '}
-              <span className="ml-1 text-muted-foreground text-xs">
-                ({bookings.filter(s.filter).length})
-              </span>
-            </TabsTrigger>
-          ))}
-        </TabsList>
+        <div className="overflow-x-auto">
+          <TabsList className="grid w-full grid-cols-7 min-w-[900px]">
+            {statuses.map(s => (
+              <TabsTrigger key={s.key} value={s.key} className="text-xs sm:text-sm">
+                <span className="hidden sm:inline">{s.label}</span>
+                <span className="sm:hidden text-xs">
+                  {s.key === 'today'
+                    ? 'Hôm nay'
+                    : s.key === 'all'
+                      ? 'Tất cả'
+                      : s.key === 'pending'
+                        ? 'Chờ xác nhận'
+                        : s.key === 'confirmed'
+                          ? 'Đã xác nhận'
+                          : s.key === 'staff-completed'
+                            ? 'Nhân viên đã xong'
+                            : s.key === 'completed'
+                              ? 'Hoàn thành'
+                              : s.key === 'cancelled'
+                                ? 'Đã hủy'
+                                : s.label}
+                </span>
+                <span className="ml-1 text-muted-foreground text-xs">
+                  ({bookings.filter(s.filter).length})
+                </span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
 
         {statuses.map(s => (
-          <TabsContent key={s.key} value={s.key}>
+          <TabsContent key={s.key} value={s.key} className="mt-4">
             {isLoading ? (
-              <div className="columns-1 md:columns-2 gap-4 [column-fill:_balance]">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {Array.from({ length: 6 }).map((_, i) => (
                   <BookingSkeleton key={i} />
                 ))}
               </div>
             ) : bookings.filter(s.filter).length > 0 ? (
-              <div className="columns-1 md:columns-2 gap-4 [column-fill:_balance]">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {bookings.filter(s.filter).map((b: BookingItem) => (
                   <BookingCard key={b.id} booking={b} />
                 ))}

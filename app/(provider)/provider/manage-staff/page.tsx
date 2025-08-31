@@ -70,15 +70,21 @@ export default function StaffManagementPage() {
   return (
     <>
       <SiteHeader title="Quản lý nhân viên" />
-      <div className="container mx-auto p-6 space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold">Quản lý nhân viên</h1>
-            <p className="text-muted-foreground">Quản lý nhân viên và phân quyền trong hệ thống</p>
+      <div className="container mx-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xl sm:text-2xl font-bold truncate">Quản lý nhân viên</h1>
+            <p className="text-sm sm:text-base text-muted-foreground mt-1">
+              Quản lý nhân viên và phân quyền trong hệ thống
+            </p>
           </div>
-          <Button onClick={() => setIsCreateModalOpen(true)}>
+          <Button
+            onClick={() => setIsCreateModalOpen(true)}
+            className="w-full sm:w-auto flex-shrink-0"
+          >
             <Plus className="h-4 w-4 mr-2" />
-            Thêm nhân viên mới
+            <span className="hidden sm:inline">Thêm nhân viên mới</span>
+            <span className="sm:hidden">Thêm nhân viên</span>
           </Button>
         </div>
 

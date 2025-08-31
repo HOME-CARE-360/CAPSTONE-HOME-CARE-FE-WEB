@@ -31,7 +31,7 @@ export function StaffTableFilters({ table, onFilterChange }: StaffTableFiltersPr
   };
 
   return (
-    <div className="flex items-center gap-4 mt-2">
+    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 mt-2">
       <Input
         placeholder="Tìm kiếm nhân viên..."
         value={(table.getColumn('name')?.getFilterValue() as string) ?? ''}
@@ -39,7 +39,7 @@ export function StaffTableFilters({ table, onFilterChange }: StaffTableFiltersPr
           table.getColumn('name')?.setFilterValue(event.target.value);
           handleFilterChange('name', event.target.value);
         }}
-        className="max-w-sm"
+        className="w-full sm:max-w-sm"
       />
     </div>
   );

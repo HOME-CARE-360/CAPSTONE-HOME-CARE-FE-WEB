@@ -51,46 +51,45 @@ const COMPLETED_COLUMNS = [
 ];
 
 const BookingCardSkeleton = () => (
-  <div className="bg-white rounded-lg border border-gray-100 p-4 space-y-3">
+  <div className="bg-white rounded-lg border border-gray-100 p-3 sm:p-4 space-y-3">
     {/* Header Section */}
     <div className="flex items-start justify-between mb-3">
-      <div className="flex items-center gap-3">
-        <Skeleton className="h-10 w-10 rounded-full border-2" />
-        <div className="flex-1">
-          <Skeleton className="h-4 w-24 mb-1" />
+      <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+        <Skeleton className="h-8 w-8 sm:h-10 sm:w-10 rounded-full border-2 flex-shrink-0" />
+        <div className="flex-1 min-w-0">
+          <Skeleton className="h-3 w-20 sm:h-4 sm:w-24 mb-1" />
           <Skeleton className="h-3 w-16" />
         </div>
       </div>
-      <Skeleton className="h-8 w-8 rounded" />
-    </div>
-
-    {/* Status Badge */}
-    <div className="flex items-center gap-2 mb-3">
-      <Skeleton className="h-6 w-20 rounded-full" />
+      <Skeleton className="h-7 w-7 sm:h-8 sm:w-8 rounded flex-shrink-0" />
     </div>
 
     {/* Service Information */}
     <div className="flex items-center gap-2 mb-3">
-      <Skeleton className="h-6 w-6 rounded" />
-      <Skeleton className="h-4 w-32" />
+      <Skeleton className="h-5 w-5 sm:h-6 sm:w-6 rounded flex-shrink-0" />
+      <Skeleton className="h-3 w-24 sm:h-4 sm:w-32" />
     </div>
 
     {/* Contact Information */}
     <div className="space-y-2">
       <div className="flex items-center gap-2">
-        <Skeleton className="h-4 w-4" />
-        <div className="flex flex-col space-y-1">
+        <Skeleton className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+        <div className="flex flex-col space-y-1 min-w-0 flex-1">
           <Skeleton className="h-3 w-20" />
           <Skeleton className="h-3 w-16" />
         </div>
       </div>
       <div className="flex items-center gap-2">
-        <Skeleton className="h-4 w-4" />
+        <Skeleton className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
         <Skeleton className="h-3 w-24" />
       </div>
       <div className="flex items-center gap-2">
-        <Skeleton className="h-4 w-4" />
-        <Skeleton className="h-3 w-36" />
+        <Skeleton className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+        <Skeleton className="h-3 w-32 sm:w-36" />
+      </div>
+      <div className="pt-2 flex flex-col sm:flex-row gap-2">
+        <Skeleton className="h-8 w-full sm:w-auto sm:flex-1" />
+        <Skeleton className="h-8 w-full sm:w-auto sm:flex-1" />
       </div>
     </div>
   </div>
@@ -109,22 +108,29 @@ export function BookingKanban({ onRefresh }: BookingKanbanProps) {
 
   const groupedBookings = {
     PENDING: bookingsArray.filter(
-      (booking: ServiceRequestWithBooking) => booking.status === StatusServiceRequest.PENDING
+      (booking: ServiceRequestWithBooking) =>
+        booking.status === StatusServiceRequest.PENDING && booking.booking?.status !== 'CANCELLED'
     ),
     IN_PROGRESS: bookingsArray.filter(
-      (booking: ServiceRequestWithBooking) => booking.status === StatusServiceRequest.IN_PROGRESS
+      (booking: ServiceRequestWithBooking) =>
+        booking.status === StatusServiceRequest.IN_PROGRESS &&
+        booking.booking?.status !== 'CANCELLED'
     ),
     ESTIMATED: bookingsArray.filter(
       (booking: ServiceRequestWithBooking) =>
-        booking.status === StatusServiceRequest.ESTIMATED && !booking.booking?.completedAt
+        booking.status === StatusServiceRequest.ESTIMATED &&
+        !booking.booking?.completedAt &&
+        booking.booking?.status !== 'CANCELLED'
     ),
     COMPLETED: bookingsArray.filter(
       (booking: ServiceRequestWithBooking) =>
-        booking.booking?.status === 'COMPLETED' ||
-        (booking.status === StatusServiceRequest.ESTIMATED && booking.booking?.completedAt)
+        (booking.booking?.status === 'COMPLETED' ||
+          (booking.status === StatusServiceRequest.ESTIMATED && booking.booking?.completedAt)) &&
+        booking.booking?.status !== 'CANCELLED'
     ),
     CANCELLED: bookingsArray.filter(
-      (booking: ServiceRequestWithBooking) => booking.status === StatusServiceRequest.CANCELLED
+      (booking: ServiceRequestWithBooking) =>
+        booking.status === StatusServiceRequest.CANCELLED || booking.booking?.status === 'CANCELLED'
     ),
   };
 
@@ -136,42 +142,46 @@ export function BookingKanban({ onRefresh }: BookingKanbanProps) {
 
   const renderKanbanColumns = (columns: typeof ACTIVE_COLUMNS | typeof COMPLETED_COLUMNS) => (
     <div
-      className={`grid gap-6 ${
+      className={`grid gap-4 sm:gap-6 ${
         columns === COMPLETED_COLUMNS
-          ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
-          : 'grid-cols-1 md:grid-cols-2'
+          ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
+          : 'grid-cols-1 sm:grid-cols-2'
       }`}
     >
       {columns.map(column => {
         const columnBookings = groupedBookings[column.id as keyof typeof groupedBookings];
         return (
           <Card key={column.id} className="border-0 shadow-sm bg-gray-50/50">
-            <CardHeader className="pb-4">
+            <CardHeader className="pb-3 sm:pb-4 px-3 sm:px-6">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-white border flex items-center justify-center">
-                    <column.icon className="h-4 w-4 text-gray-600" />
+                <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                  <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-white border flex items-center justify-center flex-shrink-0">
+                    <column.icon className="h-3 w-3 sm:h-4 sm:w-4 text-gray-600" />
                   </div>
-                  <div>
-                    <CardTitle className="text-sm font-medium text-gray-900">
+                  <div className="min-w-0 flex-1">
+                    <CardTitle className="text-xs sm:text-sm font-medium text-gray-900 truncate">
                       {column.title}
                     </CardTitle>
-                    <p className="text-xs text-gray-500 mt-1">{column.description}</p>
+                    <p className="text-xs text-gray-500 mt-0.5 sm:mt-1 line-clamp-1 sm:line-clamp-none">
+                      {column.description}
+                    </p>
                   </div>
                 </div>
-                <Badge variant="secondary" className="text-xs px-2 py-1">
+                <Badge variant="secondary" className="text-xs px-2 py-1 flex-shrink-0 ml-2">
                   {columnBookings.length}
                 </Badge>
               </div>
             </CardHeader>
-            <CardContent className="p-4 space-y-3 min-h-[500px]">
+            <CardContent className="p-3 sm:p-4 space-y-3 min-h-[400px] sm:min-h-[500px]">
               {columnBookings.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-center">
-                  <div className="w-12 h-12 rounded-lg bg-white border flex items-center justify-center mb-3">
-                    <column.icon className="h-6 w-6 text-gray-400" />
+                <div className="flex flex-col items-center justify-center py-12 sm:py-16 text-center">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-white border flex items-center justify-center mb-3">
+                    <column.icon className="h-5 w-5 sm:h-6 sm:w-6 text-gray-400" />
                   </div>
-                  <p className="text-sm font-medium text-gray-500">Chưa có đặt lịch</p>
-                  <p className="text-xs text-gray-400 mt-1">Danh sách đặt lịch theo trạng thái</p>
+                  <p className="text-xs sm:text-sm font-medium text-gray-500">Chưa có đặt lịch</p>
+                  <p className="text-xs text-gray-400 mt-1 hidden sm:block">
+                    Danh sách đặt lịch theo trạng thái
+                  </p>
                 </div>
               ) : (
                 columnBookings.map((booking: ServiceRequestWithBooking) => (
@@ -194,44 +204,56 @@ export function BookingKanban({ onRefresh }: BookingKanbanProps) {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         <Tabs value="active" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="active" className="flex items-center gap-2">
-              Đang xử lý
-              <Badge variant="secondary" className="text-xs">
-                {activeBookingsCount}
-              </Badge>
-            </TabsTrigger>
-            <TabsTrigger value="completed" className="flex items-center gap-2">
-              Đang ước lượng, Đã hoàn thành & Đã huỷ
-              <Badge variant="outline" className="text-xs">
-                {completedBookingsCount}
-              </Badge>
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="active" className="mt-6"></TabsContent>
+          <div className="overflow-x-auto">
+            <TabsList className="grid w-full grid-cols-2 min-w-[400px]">
+              <TabsTrigger
+                value="active"
+                className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
+              >
+                <span className="hidden sm:inline">Đang xử lý</span>
+                <span className="sm:hidden">Đang xử lý</span>
+                <Badge variant="secondary" className="text-xs">
+                  {activeBookingsCount}
+                </Badge>
+              </TabsTrigger>
+              <TabsTrigger
+                value="completed"
+                className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
+              >
+                <span className="hidden sm:inline">Đang ước lượng, Đã hoàn thành & Đã huỷ</span>
+                <span className="sm:hidden">Hoàn thành</span>
+                <Badge variant="outline" className="text-xs">
+                  {completedBookingsCount}
+                </Badge>
+              </TabsTrigger>
+            </TabsList>
+          </div>
+          <TabsContent value="active" className="mt-4 sm:mt-6"></TabsContent>
         </Tabs>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
           {ACTIVE_COLUMNS.map(column => (
             <Card key={column.id} className="border-0 shadow-sm bg-gray-50/50">
-              <CardHeader className="pb-4">
+              <CardHeader className="pb-3 sm:pb-4 px-3 sm:px-6">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-white border flex items-center justify-center">
-                      <column.icon className="h-4 w-4 text-gray-600" />
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                    <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-white border flex items-center justify-center flex-shrink-0">
+                      <column.icon className="h-3 w-3 sm:h-4 sm:w-4 text-gray-600" />
                     </div>
-                    <div>
-                      <CardTitle className="text-sm font-medium text-gray-900">
+                    <div className="min-w-0 flex-1">
+                      <CardTitle className="text-xs sm:text-sm font-medium text-gray-900 truncate">
                         {column.title}
                       </CardTitle>
-                      <p className="text-xs text-gray-500 mt-1">{column.description}</p>
+                      <p className="text-xs text-gray-500 mt-0.5 sm:mt-1 line-clamp-1 sm:line-clamp-none">
+                        {column.description}
+                      </p>
                     </div>
                   </div>
-                  <div className="h-5 w-8 bg-gray-200 rounded animate-pulse" />
+                  <div className="h-4 w-6 sm:h-5 sm:w-8 bg-gray-200 rounded animate-pulse flex-shrink-0 ml-2" />
                 </div>
               </CardHeader>
-              <CardContent className="p-4 space-y-3">
+              <CardContent className="p-3 sm:p-4 space-y-3">
                 {Array.from({ length: 2 }).map((_, index) => (
                   <BookingCardSkeleton key={index} />
                 ))}
@@ -254,28 +276,38 @@ export function BookingKanban({ onRefresh }: BookingKanbanProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="active" className="flex items-center gap-2">
-            Đang xử lý
-            <Badge variant="secondary" className="text-xs">
-              {activeBookingsCount}
-            </Badge>
-          </TabsTrigger>
-          <TabsTrigger value="completed" className="flex items-center gap-2">
-            Đang ước lượng, Đã hoàn thành & Đã huỷ
-            <Badge variant="outline" className="text-xs">
-              {completedBookingsCount}
-            </Badge>
-          </TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto">
+          <TabsList className="grid w-full grid-cols-2 min-w-[400px]">
+            <TabsTrigger
+              value="active"
+              className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
+            >
+              <span className="hidden sm:inline">Đang xử lý</span>
+              <span className="sm:hidden">Đang xử lý</span>
+              <Badge variant="secondary" className="text-xs">
+                {activeBookingsCount}
+              </Badge>
+            </TabsTrigger>
+            <TabsTrigger
+              value="completed"
+              className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
+            >
+              <span className="hidden sm:inline">Đang ước lượng, Đã hoàn thành & Đã huỷ</span>
+              <span className="sm:hidden">Hoàn thành</span>
+              <Badge variant="outline" className="text-xs">
+                {completedBookingsCount}
+              </Badge>
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
-        <TabsContent value="active" className="mt-6">
+        <TabsContent value="active" className="mt-4 sm:mt-6">
           {renderKanbanColumns(ACTIVE_COLUMNS)}
         </TabsContent>
 
-        <TabsContent value="completed" className="mt-6">
+        <TabsContent value="completed" className="mt-4 sm:mt-6">
           {renderKanbanColumns(COMPLETED_COLUMNS)}
         </TabsContent>
       </Tabs>

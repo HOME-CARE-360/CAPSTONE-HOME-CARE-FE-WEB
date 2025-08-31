@@ -1,4 +1,5 @@
 'use client';
+
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -293,8 +294,9 @@ export default function ProfilePage() {
 
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <div className="md:col-span-2 space-y-4">
+            {/* Form Fields Section - Show first on mobile */}
+            <div className="md:order-1">
+              <div className="space-y-4">
                 <div>
                   <Label htmlFor="name">Tên</Label>
                   <Controller
@@ -467,8 +469,8 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            {/* Avatar */}
-            <div className="flex flex-col items-center gap-4">
+            {/* Avatar Section - Show first on mobile */}
+            <div className="md:order-2 flex flex-col items-center gap-4">
               <div className="relative group">
                 <Avatar className="w-24 h-24 ring-4 ring-blue-100 hover:ring-blue-200 transition-all duration-200">
                   <AvatarImage src={currentAvatar} className="object-cover" />
@@ -749,12 +751,12 @@ export default function ProfilePage() {
       {/* Withdraw History */}
       <Card className="my-6">
         <CardHeader>
-          <CardTitle>Lịch sử rút tiền</CardTitle>
-          <p className="text-sm text-muted-foreground">
+          <CardTitle className="text-lg sm:text-xl">Lịch sử rút tiền</CardTitle>
+          <p className="text-xs sm:text-sm text-muted-foreground">
             Theo dõi tất cả các giao dịch rút tiền của bạn
           </p>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 sm:p-6">
           {isLoadingWithdraws ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin" />
@@ -793,22 +795,22 @@ export default function ProfilePage() {
                 return (
                   <div
                     key={withdraw.id}
-                    className="border rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                    className="border rounded-lg p-3 sm:p-4 hover:bg-gray-50 transition-colors"
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                           <div className="flex items-center gap-2">
-                            <span className="font-semibold text-lg">
+                            <span className="font-semibold text-base sm:text-lg">
                               {formatCurrency(withdraw.amount, 'VND')}
                             </span>
-                            <Badge variant={statusConfig.variant} className="gap-1">
+                            <Badge variant={statusConfig.variant} className="gap-1 text-xs">
                               <StatusIcon className="h-3 w-3" />
                               {statusConfig.label}
                             </Badge>
                           </div>
                         </div>
-                        <div className="text-sm text-muted-foreground mt-1">
+                        <div className="text-xs sm:text-sm text-muted-foreground mt-1 space-y-1">
                           <p>
                             Yêu cầu:{' '}
                             {format(new Date(withdraw.createdAt), 'dd/MM/yyyy HH:mm', {
@@ -826,13 +828,14 @@ export default function ProfilePage() {
                           {withdraw.note && <p className="mt-1">Ghi chú: {withdraw.note}</p>}
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-shrink-0">
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => handleViewDetail(withdraw.id)}
+                          className="w-full sm:w-auto text-xs sm:text-sm"
                         >
-                          <Eye className="h-4 w-4 mr-1" />
+                          <Eye className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                           Chi tiết
                         </Button>
                       </div>
@@ -842,12 +845,14 @@ export default function ProfilePage() {
               })}
             </div>
           ) : (
-            <div className="text-center py-8">
-              <div className="mx-auto w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                <Clock className="h-6 w-6 text-gray-400" />
+            <div className="text-center py-6 sm:py-8">
+              <div className="mx-auto w-10 h-10 sm:w-12 sm:h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3 sm:mb-4">
+                <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-gray-400" />
               </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Chưa có giao dịch rút tiền</h3>
-              <p className="text-gray-500">
+              <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">
+                Chưa có giao dịch rút tiền
+              </h3>
+              <p className="text-xs sm:text-sm text-gray-500">
                 Bạn chưa thực hiện giao dịch rút tiền nào. Nhấn &apos;Rút tiền&apos; để tạo yêu cầu
                 mới.
               </p>
@@ -858,10 +863,10 @@ export default function ProfilePage() {
 
       {/* Withdraw Detail Dialog */}
       <Dialog open={isDetailOpen} onOpenChange={handleCloseDetail}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl mx-4 sm:mx-auto">
           <DialogHeader>
-            <DialogTitle>Chi tiết giao dịch rút tiền</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-lg sm:text-xl">Chi tiết giao dịch rút tiền</DialogTitle>
+            <DialogDescription className="text-sm">
               Thông tin chi tiết về yêu cầu rút tiền #{selectedWithdrawId}
             </DialogDescription>
           </DialogHeader>
@@ -904,15 +909,19 @@ export default function ProfilePage() {
                   </Badge>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-3">
                     <div>
-                      <label className="text-sm font-medium text-gray-500">Mã giao dịch</label>
-                      <p className="font-medium">#{withdrawDetail.id}</p>
+                      <label className="text-xs sm:text-sm font-medium text-gray-500">
+                        Mã giao dịch
+                      </label>
+                      <p className="font-medium text-sm sm:text-base">#{withdrawDetail.id}</p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-500">Ngày yêu cầu</label>
-                      <p className="font-medium">
+                      <label className="text-xs sm:text-sm font-medium text-gray-500">
+                        Ngày yêu cầu
+                      </label>
+                      <p className="font-medium text-sm sm:text-base">
                         {format(new Date(withdrawDetail.createdAt), 'dd/MM/yyyy HH:mm', {
                           locale: vi,
                         })}
@@ -920,8 +929,10 @@ export default function ProfilePage() {
                     </div>
                     {withdrawDetail.processedAt && (
                       <div>
-                        <label className="text-sm font-medium text-gray-500">Ngày xử lý</label>
-                        <p className="font-medium">
+                        <label className="text-xs sm:text-sm font-medium text-gray-500">
+                          Ngày xử lý
+                        </label>
+                        <p className="font-medium text-sm sm:text-base">
                           {format(new Date(withdrawDetail.processedAt), 'dd/MM/yyyy HH:mm', {
                             locale: vi,
                           })}
@@ -932,8 +943,10 @@ export default function ProfilePage() {
 
                   <div className="space-y-3">
                     <div>
-                      <label className="text-sm font-medium text-gray-500">Trạng thái</label>
-                      <p className="font-medium">
+                      <label className="text-xs sm:text-sm font-medium text-gray-500">
+                        Trạng thái
+                      </label>
+                      <p className="font-medium text-sm sm:text-base">
                         {withdrawDetail.status === 'PENDING' && 'Đang chờ xử lý'}
                         {withdrawDetail.status === 'APPROVED' && 'Đã được duyệt'}
                         {withdrawDetail.status === 'COMPLETED' && 'Đã hoàn thành'}
@@ -943,8 +956,10 @@ export default function ProfilePage() {
                     </div>
                     {withdrawDetail.note && (
                       <div>
-                        <label className="text-sm font-medium text-gray-500">Ghi chú</label>
-                        <p className="font-medium">{withdrawDetail.note}</p>
+                        <label className="text-xs sm:text-sm font-medium text-gray-500">
+                          Ghi chú
+                        </label>
+                        <p className="font-medium text-sm sm:text-base">{withdrawDetail.note}</p>
                       </div>
                     )}
                   </div>
@@ -954,28 +969,28 @@ export default function ProfilePage() {
               {/* User Info */}
               {withdrawDetail.User && (
                 <div className="border-t pt-4">
-                  <h4 className="font-semibold mb-3">Thông tin người duyệt</h4>
-                  <div className="flex items-center gap-4">
-                    <Avatar className="w-12 h-12">
+                  <h4 className="font-semibold mb-3 text-sm sm:text-base">Thông tin người duyệt</h4>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+                    <Avatar className="w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0">
                       <AvatarImage
                         src={withdrawDetail.User.avatar || ''}
                         className="object-cover"
                       />
-                      <AvatarFallback className="text-sm font-bold">
+                      <AvatarFallback className="text-xs sm:text-sm font-bold">
                         {getNameFallback(withdrawDetail.User.name)}
                       </AvatarFallback>
                     </Avatar>
-                    <div className="flex-1">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                    <div className="flex-1 min-w-0">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs sm:text-sm">
                         <div>
                           <label className="text-gray-500">Họ tên</label>
-                          <p className="font-medium">{withdrawDetail.User.name}</p>
+                          <p className="font-medium truncate">{withdrawDetail.User.name}</p>
                         </div>
                         <div>
                           <label className="text-gray-500">Email</label>
-                          <p className="font-medium">{withdrawDetail.User.email}</p>
+                          <p className="font-medium truncate">{withdrawDetail.User.email}</p>
                         </div>
-                        <div>
+                        <div className="sm:col-span-2 lg:col-span-1">
                           <label className="text-gray-500">Số điện thoại</label>
                           <p className="font-medium">{withdrawDetail.User.phone}</p>
                         </div>

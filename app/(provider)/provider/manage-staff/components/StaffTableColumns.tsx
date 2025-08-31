@@ -20,17 +20,17 @@ export const useStaffTableColumns = ({
       header: 'Tên',
       accessorFn: row => row.user.name,
       cell: ({ row }) => (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 min-w-0">
           {row.original.user.avatar && (
             <Image
               width={500}
               height={500}
               src={row.original.user.avatar}
               alt={row.original.user.name}
-              className="h-8 w-8 rounded-full object-cover"
+              className="h-6 w-6 sm:h-8 sm:w-8 rounded-full object-cover flex-shrink-0"
             />
           )}
-          <span>{row.original.user.name}</span>
+          <span className="truncate text-sm sm:text-base">{row.original.user.name}</span>
         </div>
       ),
       enableHiding: true,
@@ -39,10 +39,16 @@ export const useStaffTableColumns = ({
     {
       accessorKey: 'user.email',
       header: 'Email',
+      cell: ({ row }) => (
+        <span className="text-sm sm:text-base truncate block max-w-[200px] sm:max-w-none">
+          {row.original.user.email}
+        </span>
+      ),
     },
     {
       accessorKey: 'user.phone',
       header: 'Số điện thoại',
+      cell: ({ row }) => <span className="text-sm sm:text-base">{row.original.user.phone}</span>,
     },
     {
       accessorKey: 'staffCategories',
@@ -51,12 +57,12 @@ export const useStaffTableColumns = ({
         <div className="flex flex-wrap gap-1">
           {row.original.staffCategories && row.original.staffCategories.length > 0 ? (
             row.original.staffCategories.map((category, index) => (
-              <Badge key={index} variant="secondary">
+              <Badge key={index} variant="secondary" className="text-xs">
                 {category.category.name}
               </Badge>
             ))
           ) : (
-            <Badge variant="outline" className="text-muted-foreground">
+            <Badge variant="outline" className="text-muted-foreground text-xs">
               Chưa phân vai trò
             </Badge>
           )}
@@ -67,7 +73,7 @@ export const useStaffTableColumns = ({
       accessorKey: 'isActive',
       header: 'Trạng thái',
       cell: ({ row }) => (
-        <Badge variant={row.original.isActive ? 'default' : 'destructive'}>
+        <Badge variant={row.original.isActive ? 'default' : 'destructive'} className="text-xs">
           {row.original.isActive ? 'Active' : 'Inactive'}
         </Badge>
       ),
@@ -97,18 +103,23 @@ export const useStaffTableColumns = ({
       id: 'actions',
       header: 'Thao tác',
       cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" onClick={() => onEdit && onEdit(row.original)}>
-            <Edit className="h-4 w-4" />
+        <div className="flex items-center gap-1 sm:gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onEdit && onEdit(row.original)}
+            className="h-8 w-8 p-0 sm:h-9 sm:w-9"
+          >
+            <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
           </Button>
           {onDelete && (
             <Button
               variant="ghost"
               size="sm"
-              className="text-destructive hover:text-destructive"
+              className="text-destructive hover:text-destructive h-8 w-8 p-0 sm:h-9 sm:w-9"
               onClick={() => onDelete(row.original)}
             >
-              <Trash2 className="h-4 w-4" />
+              <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
             </Button>
           )}
         </div>

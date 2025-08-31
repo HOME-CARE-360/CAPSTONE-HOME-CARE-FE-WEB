@@ -4,6 +4,7 @@ import {
   serviceBooking,
   StaffBookingResponse,
   StaffBookingDetailResponse,
+  StaffInspectionDetailResponse,
   GetDetailBookingResponse,
   CreateReportRequest,
   CreateReportResponse,
@@ -125,6 +126,16 @@ export const useStaffBookingDetail = (bookingId: number, options?: { enabled?: b
     queryKey: ['staff-booking-detail', bookingId],
     queryFn: () => serviceBooking.getStaffBookingDetail(bookingId),
     enabled: options?.enabled !== undefined ? options.enabled : !!bookingId,
+  });
+
+  return { data, isLoading, error };
+};
+
+export const useStaffInspectionDetail = (inspectionId: number, options?: { enabled?: boolean }) => {
+  const { data, isLoading, error } = useQuery<StaffInspectionDetailResponse>({
+    queryKey: ['staff-inspection-detail', inspectionId],
+    queryFn: () => serviceBooking.getStaffInspectionDetail(inspectionId),
+    enabled: options?.enabled !== undefined ? options.enabled : !!inspectionId,
   });
 
   return { data, isLoading, error };

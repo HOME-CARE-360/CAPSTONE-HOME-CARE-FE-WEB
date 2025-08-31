@@ -372,6 +372,53 @@ export interface StaffBookingDetailResponse {
         name: string;
       };
     };
+    inspectionReport?: {
+      id: number;
+      staffId: number;
+      estimatedTime: number;
+      note: string;
+      images: string[];
+      createdAt: string;
+      assets: unknown[];
+    };
+  };
+  statusCode: number;
+  timestamp: string;
+}
+
+export interface StaffInspectionDetailResponse {
+  success: boolean;
+  code: string;
+  message: string;
+  data: {
+    id: number;
+    bookingId: number;
+    staffId: number;
+    estimatedTime: number;
+    note: string;
+    images: string[];
+    createdAt: string;
+    staff: {
+      id: number;
+      name: string;
+      avatar: string | null;
+    };
+    booking: {
+      id: number;
+      status: StatusBooking;
+      createdAt: string;
+      customer: {
+        name: string;
+        phone: string;
+        address: string;
+      };
+      serviceRequest: {
+        preferredDate: string;
+        location: string;
+        phoneNumber: string;
+        categoryName: string;
+      };
+    };
   };
   statusCode: number;
   timestamp: string;
@@ -533,6 +580,18 @@ export const serviceBooking = {
       return response.data as StaffBookingDetailResponse;
     } catch (error) {
       console.error('Get Staff Booking Detail Error:', error);
+      throw error;
+    }
+  },
+
+  getStaffInspectionDetail: async (
+    inspectionId: number
+  ): Promise<StaffInspectionDetailResponse> => {
+    try {
+      const response = await apiService.get(`/staffs/staff-get-inspection-detail/${inspectionId}`);
+      return response.data as StaffInspectionDetailResponse;
+    } catch (error) {
+      console.error('Get Staff Inspection Detail Error:', error);
       throw error;
     }
   },

@@ -101,7 +101,12 @@ import {
 } from '@/components/ui/select';
 
 //Booking status
-const getStatusConfig = (status: string, serviceRequestStatus?: string, hasProposal?: boolean) => {
+const getStatusConfig = (
+  status: string,
+  serviceRequestStatus?: string,
+  hasProposal?: boolean,
+  hasPendingPayment?: boolean
+) => {
   const map: Record<
     string,
     {
@@ -111,12 +116,14 @@ const getStatusConfig = (status: string, serviceRequestStatus?: string, hasPropo
     }
   > = {
     PENDING: {
-      label: hasProposal
-        ? 'Chờ bạn xem đề xuất'
-        : serviceRequestStatus?.toUpperCase() === 'ESTIMATED' ||
-            serviceRequestStatus?.toUpperCase() === 'ESTIMATE'
+      label: hasPendingPayment
+        ? 'Chờ bạn thanh toán tiền đặt cọc'
+        : hasProposal
           ? 'Chờ bạn xem đề xuất'
-          : 'Chờ nhà cung cấp xác nhận',
+          : serviceRequestStatus?.toUpperCase() === 'ESTIMATED' ||
+              serviceRequestStatus?.toUpperCase() === 'ESTIMATE'
+            ? 'Chờ bạn xem đề xuất'
+            : 'Chờ nhà cung cấp xác nhận',
       icon: ClockIcon,
       variant: 'secondary',
     },
@@ -212,6 +219,7 @@ const ProposalSection = ({
   paymentTransactionStatus,
   paymentTransactionAmountOut,
   hasTransaction,
+  paymentTransactions,
 }: {
   bookingId: number;
   bookingStatus: string;
@@ -221,6 +229,21 @@ const ProposalSection = ({
   paymentTransactionStatus?: string;
   paymentTransactionAmountOut?: number;
   hasTransaction: boolean;
+  paymentTransactions?: Array<{
+    id: number;
+    gateway: string;
+    status: string;
+    transactionDate: string;
+    amountIn: number;
+    amountOut: number;
+    accumulated: number;
+    referenceNumber: string;
+    transactionContent: string;
+    body: string;
+    accountNumber: string | null;
+    subAccount: string | null;
+    createdAt: string;
+  }>;
 }) => {
   const { data, isLoading, error } = useGetUserProposal(bookingId);
   const { mutate: updateProposal, isPending: isUpdating } = useUpdateUserProposal();
@@ -231,7 +254,7 @@ const ProposalSection = ({
 
   // Payment error dialog state
   const [isPaymentErrorOpen, setIsPaymentErrorOpen] = useState(false);
-  const [paymentErrorMsg, setPaymentErrorMsg] = useState<string>('Đã xảy ra lỗi khi thanh toán.');
+  const [paymentErrorMsg, setPaymentErrorMsg] = useState<unknown>('Đã xảy ra lỗi khi thanh toán.');
 
   if (isLoading) {
     return (
@@ -269,13 +292,27 @@ const ProposalSection = ({
     return total + price * normalizeQuantity(item.quantity);
   }, 0);
 
-  const computedPaidStatus = (paymentTransactionStatus || transactionStatus || '').toUpperCase();
-  const isPaid = computedPaidStatus === 'PAID' || computedPaidStatus === 'SUCCESS';
+  // Get the latest payment transaction from the passed payment transactions
+  const latestPaymentTransaction =
+    Array.isArray(paymentTransactions) && paymentTransactions.length > 0
+      ? [...paymentTransactions].sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        )[0]
+      : null;
+
+  // Check if the latest payment transaction is successful
+  const latestPaymentStatus =
+    latestPaymentTransaction?.status?.toUpperCase() ||
+    paymentTransactionStatus?.toUpperCase() ||
+    transactionStatus?.toUpperCase() ||
+    '';
+  const isPaid = latestPaymentStatus === 'PAID' || latestPaymentStatus === 'SUCCESS';
+
+  // Use the latest payment transaction amount if available and successful
+  const actualDepositAmount = latestPaymentTransaction?.amountOut || paymentTransactionAmountOut;
   const hasDepositAmount =
-    isPaid &&
-    typeof paymentTransactionAmountOut === 'number' &&
-    !Number.isNaN(paymentTransactionAmountOut);
-  const depositAmount = hasDepositAmount ? Math.max(paymentTransactionAmountOut as number, 0) : 0;
+    isPaid && typeof actualDepositAmount === 'number' && !Number.isNaN(actualDepositAmount);
+  const depositAmount = hasDepositAmount ? Math.max(actualDepositAmount as number, 0) : 0;
   const remainingAfterDeposit = hasDepositAmount
     ? Math.max(totalAmount - depositAmount, 0)
     : totalAmount;
@@ -450,13 +487,22 @@ const ProposalSection = ({
                       router.refresh();
                     },
                     onError: (err: unknown) => {
-                      const message =
-                        typeof err === 'object' && err !== null && 'message' in err
-                          ? String((err as { message?: string }).message || '')
-                          : '';
-                      setPaymentErrorMsg(
-                        message || 'Không thể thanh toán bằng ví. Vui lòng thử lại sau.'
-                      );
+                      // Handle the error structure from the API response
+                      if (typeof err === 'object' && err !== null && 'response' in err) {
+                        const axiosError = err as { response: { data: { message: unknown } } };
+                        const messageData = axiosError.response.data.message;
+
+                        if (Array.isArray(messageData) && messageData.length > 0) {
+                          // Handle array of error objects
+                          setPaymentErrorMsg(messageData);
+                        } else {
+                          setPaymentErrorMsg(messageData);
+                        }
+                      } else {
+                        setPaymentErrorMsg(
+                          'Số dư ví không đủ để thanh toán đề xuất. Vui lòng kiểm tra lại số dư sau.'
+                        );
+                      }
                       setIsPaymentErrorOpen(true);
                     },
                   }
@@ -495,14 +541,22 @@ const ProposalSection = ({
                       router.refresh();
                     },
                     onError: (err: unknown) => {
-                      const message =
-                        typeof err === 'object' && err !== null && 'message' in err
-                          ? String((err as { message?: string }).message || '')
-                          : '';
-                      setPaymentErrorMsg(
-                        message ||
+                      // Handle the error structure from the API response
+                      if (typeof err === 'object' && err !== null && 'response' in err) {
+                        const axiosError = err as { response: { data: { message: unknown } } };
+                        const messageData = axiosError.response.data.message;
+
+                        if (Array.isArray(messageData) && messageData.length > 0) {
+                          // Handle array of error objects
+                          setPaymentErrorMsg(messageData);
+                        } else {
+                          setPaymentErrorMsg(messageData);
+                        }
+                      } else {
+                        setPaymentErrorMsg(
                           'Không thể khởi tạo thanh toán chuyển khoản ngân hàng. Vui lòng thử lại sau.'
-                      );
+                        );
+                      }
                       setIsPaymentErrorOpen(true);
                     },
                   }
@@ -580,29 +634,51 @@ const ProposalSection = ({
               if (typeof paymentErrorMsg === 'string') {
                 return paymentErrorMsg;
               }
-              if (
-                paymentErrorMsg &&
-                typeof paymentErrorMsg === 'object' &&
-                'message' in paymentErrorMsg
-              ) {
-                const msg = (paymentErrorMsg as { message?: string }).message;
-                if (Array.isArray(msg)) {
-                  return msg.map((m: unknown, i: number) =>
-                    typeof m === 'object' && m && 'message' in m ? (
-                      <span key={i}>{(m as { message: string }).message}</span>
-                    ) : (
-                      <span key={i}>{String(m)}</span>
-                    )
+              if (Array.isArray(paymentErrorMsg)) {
+                return paymentErrorMsg.map((m: unknown, i: number) => {
+                  if (typeof m === 'object' && m && 'message' in m) {
+                    const errorDetail = m as {
+                      message: string;
+                      currentBalance?: number;
+                      requiredAmount?: number;
+                    };
+                    return (
+                      <div key={i} className="space-y-1">
+                        <span className="block">{errorDetail.message}</span>
+                        {errorDetail.currentBalance !== undefined &&
+                          errorDetail.requiredAmount !== undefined && (
+                            <div className="text-xs space-y-1 mt-2 p-2 bg-muted/50 rounded">
+                              <div>
+                                Số dư hiện tại: {errorDetail.currentBalance.toLocaleString('vi-VN')}{' '}
+                                đ
+                              </div>
+                              <div>
+                                Số tiền cần thanh toán:{' '}
+                                {errorDetail.requiredAmount.toLocaleString('vi-VN')} đ
+                              </div>
+                              <div className="text-destructive font-medium">
+                                Thiếu:{' '}
+                                {(
+                                  errorDetail.requiredAmount - errorDetail.currentBalance
+                                ).toLocaleString('vi-VN')}{' '}
+                                đ
+                              </div>
+                            </div>
+                          )}
+                      </div>
+                    );
+                  }
+                  return (
+                    <span key={i} className="block">
+                      {String(m)}
+                    </span>
                   );
-                }
-                if (typeof msg === 'string') {
-                  return msg;
-                }
-                if (typeof msg === 'object') {
-                  return JSON.stringify(msg);
-                }
+                });
               }
-              return JSON.stringify(paymentErrorMsg);
+              if (typeof paymentErrorMsg === 'object' && paymentErrorMsg !== null) {
+                return JSON.stringify(paymentErrorMsg);
+              }
+              return String(paymentErrorMsg);
             })()}
           </p>
           <DialogFooter>
@@ -641,7 +717,18 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
   } = useGetUserBookingDetail(booking.id, isExpanded);
   const hasExistingReports = Boolean(bookingDetailData?.data?.BookingReport?.length);
 
-  const statusConfig = getStatusConfig(booking.status, booking.ServiceRequest?.status, hasProposal);
+  // Check if there's a pending payment transaction
+  const hasPendingPayment =
+    Array.isArray(booking.ServiceRequest?.PaymentTransaction) &&
+    booking.ServiceRequest.PaymentTransaction.length > 0 &&
+    booking.ServiceRequest.PaymentTransaction.some(payment => payment.status === 'PENDING');
+
+  const statusConfig = getStatusConfig(
+    booking.status,
+    booking.ServiceRequest?.status,
+    hasProposal,
+    hasPendingPayment
+  );
   const transactionStatusConfig = getTransactionStatusConfig(
     booking.Transaction?.status || 'PENDING'
   );
@@ -1028,130 +1115,145 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
                 <Separator />
                 <div className="space-y-2">
                   <h3 className="text-sm font-semibold">Thanh toán tiền đặt cọc</h3>
-                  {booking.ServiceRequest.PaymentTransaction.map((payment, index) => (
-                    <div key={payment.id || index} className="p-3 bg-gray-50 rounded-lg">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                        <div className="space-y-1">
-                          <span className="text-muted-foreground">Trạng thái:</span>
-                          <div>
-                            <Badge
-                              variant={
-                                payment.status === 'PENDING'
-                                  ? 'secondary'
-                                  : payment.status === 'SUCCESS'
-                                    ? 'default'
-                                    : 'destructive'
-                              }
-                              className="w-fit"
-                            >
-                              {payment.status === 'SUCCESS'
-                                ? 'Thành công'
-                                : payment.status === 'PENDING'
-                                  ? 'Đang chờ'
-                                  : payment.status === 'FAILED'
-                                    ? 'Thất bại'
-                                    : payment.status === 'REFUNDED'
-                                      ? 'Đã hoàn tiền'
-                                      : payment.status}
-                            </Badge>
-                          </div>
-                        </div>
-                        <div className="space-y-1">
-                          <span className="text-muted-foreground">Số tiền:</span>
-                          <p className="font-medium">{formatCurrency(payment.amountOut)}</p>
-                        </div>
+                  {(() => {
+                    const sortedTransactions = [...booking.ServiceRequest.PaymentTransaction].sort(
+                      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+                    );
+                    const latestPayment = sortedTransactions[0];
 
-                        <div className="space-y-1">
-                          <span className="text-muted-foreground">Mã tham chiếu:</span>
-                          <p className="font-mono font-medium break-all">
-                            {payment.referenceNumber}
-                          </p>
-                        </div>
-                        <div className="space-y-1">
-                          <span className="text-muted-foreground">Ngày giao dịch:</span>
-                          <p className="font-medium">{formatDate(payment.transactionDate)}</p>
-                        </div>
-                        {payment.transactionContent && (
-                          <div className="space-y-1 sm:col-span-2">
-                            <span className="text-muted-foreground">Nội dung:</span>
-                            <p className="font-medium break-words">{payment.transactionContent}</p>
-                          </div>
-                        )}
-                        {payment.accountNumber && (
+                    return (
+                      <div key={latestPayment.id} className="p-3 bg-gray-50 rounded-lg">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                           <div className="space-y-1">
-                            <span className="text-muted-foreground">Số tài khoản:</span>
+                            <span className="text-muted-foreground">Trạng thái:</span>
+                            <div>
+                              <Badge
+                                variant={
+                                  latestPayment.status === 'PENDING'
+                                    ? 'secondary'
+                                    : latestPayment.status === 'SUCCESS'
+                                      ? 'default'
+                                      : 'destructive'
+                                }
+                                className="w-fit"
+                              >
+                                {latestPayment.status === 'SUCCESS'
+                                  ? 'Thành công'
+                                  : latestPayment.status === 'PENDING'
+                                    ? 'Đang chờ'
+                                    : latestPayment.status === 'FAILED'
+                                      ? 'Thất bại'
+                                      : latestPayment.status === 'REFUNDED'
+                                        ? 'Đã hoàn tiền'
+                                        : latestPayment.status}
+                              </Badge>
+                            </div>
+                          </div>
+                          <div className="space-y-1">
+                            <span className="text-muted-foreground">Số tiền:</span>
+                            <p className="font-medium">{formatCurrency(latestPayment.amountOut)}</p>
+                          </div>
+
+                          <div className="space-y-1">
+                            <span className="text-muted-foreground">Mã tham chiếu:</span>
                             <p className="font-mono font-medium break-all">
-                              {payment.accountNumber}
+                              {latestPayment.referenceNumber}
                             </p>
                           </div>
-                        )}
-                        {payment.accumulated > 0 && (
                           <div className="space-y-1">
-                            <span className="text-muted-foreground">Tích lũy:</span>
-                            <p className="font-medium">{formatCurrency(payment.accumulated)}</p>
+                            <span className="text-muted-foreground">Ngày giao dịch:</span>
+                            <p className="font-medium">
+                              {formatDate(latestPayment.transactionDate)}
+                            </p>
                           </div>
-                        )}
-                      </div>
-
-                      {/* Payment buttons for PENDING or FAILED status */}
-                      {(payment.status === 'PENDING' || payment.status === 'FAILED') && (
-                        <div className="mt-3 pt-3 border-t">
-                          <h3 className="text-sm font-semibold my-2">
-                            Thanh toán lại tiền đặt cọc
-                          </h3>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            <Button
-                              size="sm"
-                              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white transition-colors duration-150"
-                              disabled={isPayingExisting}
-                              onClick={() =>
-                                payExistingServiceRequest({
-                                  serviceRequestId: booking.serviceRequestId,
-                                  paymentMethod: 'WALLET',
-                                })
-                              }
-                            >
-                              {isPayingExisting ? (
-                                <span className="flex items-center gap-2">
-                                  <Loader2 className="animate-spin h-4 w-4" />
-                                  Đang xử lý...
-                                </span>
-                              ) : (
-                                <span className="flex items-center gap-2">
-                                  <Wallet className="h-4 w-4" />
-                                  Ví
-                                </span>
-                              )}
-                            </Button>
-
-                            <Button
-                              size="sm"
-                              className="w-full bg-green-600 hover:bg-green-700 text-white transition-colors duration-150"
-                              disabled={isPayingExisting}
-                              onClick={() =>
-                                payExistingServiceRequest({
-                                  serviceRequestId: booking.serviceRequestId,
-                                  paymentMethod: 'BANK_TRANSFER',
-                                })
-                              }
-                            >
-                              {isPayingExisting ? (
-                                <span className="flex items-center gap-2">
-                                  <Loader2 className="animate-spin h-4 w-4" />
-                                  Đang xử lý
-                                </span>
-                              ) : (
-                                <span className="flex items-center gap-2">
-                                  <CreditCard className="h-4 w-4" />
-                                  Chuyển khoản
-                                </span>
-                              )}
-                            </Button>
-                          </div>
+                          {latestPayment.transactionContent && (
+                            <div className="space-y-1 sm:col-span-2">
+                              <span className="text-muted-foreground">Nội dung:</span>
+                              <p className="font-medium break-words">
+                                {latestPayment.transactionContent}
+                              </p>
+                            </div>
+                          )}
+                          {latestPayment.accountNumber && (
+                            <div className="space-y-1">
+                              <span className="text-muted-foreground">Số tài khoản:</span>
+                              <p className="font-mono font-medium break-all">
+                                {latestPayment.accountNumber}
+                              </p>
+                            </div>
+                          )}
+                          {latestPayment.accumulated > 0 && (
+                            <div className="space-y-1">
+                              <span className="text-muted-foreground">Tích lũy:</span>
+                              <p className="font-medium">
+                                {formatCurrency(latestPayment.accumulated)}
+                              </p>
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  ))}
+
+                        {/* Payment buttons for PENDING or FAILED status - but not for cancelled bookings */}
+                        {(latestPayment.status === 'PENDING' ||
+                          latestPayment.status === 'FAILED') &&
+                          booking.status.toUpperCase() !== 'CANCELLED' && (
+                            <div className="mt-3 pt-3 border-t">
+                              <h3 className="text-sm font-semibold my-2">
+                                Thanh toán lại tiền đặt cọc
+                              </h3>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <Button
+                                  size="sm"
+                                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white transition-colors duration-150"
+                                  disabled={isPayingExisting}
+                                  onClick={() =>
+                                    payExistingServiceRequest({
+                                      serviceRequestId: booking.serviceRequestId,
+                                      paymentMethod: 'WALLET',
+                                    })
+                                  }
+                                >
+                                  {isPayingExisting ? (
+                                    <span className="flex items-center gap-2">
+                                      <Loader2 className="animate-spin h-4 w-4" />
+                                      Đang xử lý...
+                                    </span>
+                                  ) : (
+                                    <span className="flex items-center gap-2">
+                                      <Wallet className="h-4 w-4" />
+                                      Ví
+                                    </span>
+                                  )}
+                                </Button>
+
+                                <Button
+                                  size="sm"
+                                  className="w-full bg-green-600 hover:bg-green-700 text-white transition-colors duration-150"
+                                  disabled={isPayingExisting}
+                                  onClick={() =>
+                                    payExistingServiceRequest({
+                                      serviceRequestId: booking.serviceRequestId,
+                                      paymentMethod: 'BANK_TRANSFER',
+                                    })
+                                  }
+                                >
+                                  {isPayingExisting ? (
+                                    <span className="flex items-center gap-2">
+                                      <Loader2 className="animate-spin h-4 w-4" />
+                                      Đang xử lý
+                                    </span>
+                                  ) : (
+                                    <span className="flex items-center gap-2">
+                                      <CreditCard className="h-4 w-4" />
+                                      Chuyển khoản
+                                    </span>
+                                  )}
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                      </div>
+                    );
+                  })()}
                 </div>
               </>
             ) : (
@@ -1164,56 +1266,58 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
                       Chưa có giao dịch thanh toán đặt cọc
                     </div>
 
-                    {/* Payment buttons when no PaymentTransaction exists */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      <Button
-                        size="sm"
-                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white transition-colors duration-150"
-                        disabled={isPayingExisting}
-                        onClick={() =>
-                          payExistingServiceRequest({
-                            serviceRequestId: booking.serviceRequestId,
-                            paymentMethod: 'WALLET',
-                          })
-                        }
-                      >
-                        {isPayingExisting ? (
-                          <span className="flex items-center gap-2">
-                            <Loader2 className="animate-spin h-4 w-4" />
-                            Đang xử lý...
-                          </span>
-                        ) : (
-                          <span className="flex items-center gap-2">
-                            <Wallet className="h-4 w-4" />
-                            Ví
-                          </span>
-                        )}
-                      </Button>
+                    {/* Payment buttons when no PaymentTransaction exists - but not for cancelled bookings */}
+                    {booking.status.toUpperCase() !== 'CANCELLED' && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <Button
+                          size="sm"
+                          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white transition-colors duration-150"
+                          disabled={isPayingExisting}
+                          onClick={() =>
+                            payExistingServiceRequest({
+                              serviceRequestId: booking.serviceRequestId,
+                              paymentMethod: 'WALLET',
+                            })
+                          }
+                        >
+                          {isPayingExisting ? (
+                            <span className="flex items-center gap-2">
+                              <Loader2 className="animate-spin h-4 w-4" />
+                              Đang xử lý...
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-2">
+                              <Wallet className="h-4 w-4" />
+                              Ví
+                            </span>
+                          )}
+                        </Button>
 
-                      <Button
-                        size="sm"
-                        className="w-full bg-green-600 hover:bg-green-700 text-white transition-colors duration-150"
-                        disabled={isPayingExisting}
-                        onClick={() =>
-                          payExistingServiceRequest({
-                            serviceRequestId: booking.serviceRequestId,
-                            paymentMethod: 'BANK_TRANSFER',
-                          })
-                        }
-                      >
-                        {isPayingExisting ? (
-                          <span className="flex items-center gap-2">
-                            <Loader2 className="animate-spin h-4 w-4" />
-                            Đang xử lý
-                          </span>
-                        ) : (
-                          <span className="flex items-center gap-2">
-                            <CreditCard className="h-4 w-4" />
-                            Chuyển khoản
-                          </span>
-                        )}
-                      </Button>
-                    </div>
+                        <Button
+                          size="sm"
+                          className="w-full bg-green-600 hover:bg-green-700 text-white transition-colors duration-150"
+                          disabled={isPayingExisting}
+                          onClick={() =>
+                            payExistingServiceRequest({
+                              serviceRequestId: booking.serviceRequestId,
+                              paymentMethod: 'BANK_TRANSFER',
+                            })
+                          }
+                        >
+                          {isPayingExisting ? (
+                            <span className="flex items-center gap-2">
+                              <Loader2 className="animate-spin h-4 w-4" />
+                              Đang xử lý
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-2">
+                              <CreditCard className="h-4 w-4" />
+                              Chuyển khoản
+                            </span>
+                          )}
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </>
@@ -1424,6 +1528,13 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
                   hasTransaction={Boolean(
                     booking.Transaction && booking.Transaction.status?.toUpperCase() !== 'PENDING'
                   )}
+                  paymentTransactions={
+                    Array.isArray(booking.ServiceRequest?.PaymentTransaction)
+                      ? booking.ServiceRequest.PaymentTransaction
+                      : booking.ServiceRequest?.PaymentTransaction
+                        ? [booking.ServiceRequest.PaymentTransaction]
+                        : undefined
+                  }
                 />
               )}
             </div>

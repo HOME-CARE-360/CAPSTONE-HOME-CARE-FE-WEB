@@ -19,29 +19,7 @@ export const useCreateProposalTransaction = () => {
       toast.success('Thanh toán thành công');
       window.location.reload();
     },
-    onError: (error: unknown) => {
-      // Type guard to check if error has response property
-      const isAxiosError = (
-        err: unknown
-      ): err is { response: { data: { message: string | string[] } } } => {
-        return typeof err === 'object' && err !== null && 'response' in err;
-      };
-
-      if (isAxiosError(error) && error.response?.data?.message) {
-        const messages = Array.isArray(error.response.data.message)
-          ? error.response.data.message.join(', ')
-          : error.response.data.message;
-        toast.error(`Error: ${messages}`);
-      } else {
-        // Type guard to check if error has message property
-        const hasMessage = (err: unknown): err is { message: string } => {
-          return typeof err === 'object' && err !== null && 'message' in err;
-        };
-
-        const errorMessage = hasMessage(error) ? error.message : 'An unknown error occurred.';
-        toast.error(`Error: ${errorMessage}`);
-      }
-    },
+    // Remove onError handler to let the component handle errors via onError callback
   });
 };
 

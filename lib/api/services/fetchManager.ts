@@ -171,6 +171,25 @@ export interface ReportListResponse {
   totalPages: number;
 }
 
+export interface ProposalItem {
+  id: number;
+  proposalId: number;
+  serviceId: number;
+  quantity: number;
+  createdAt: string;
+  status: string;
+  price: number;
+}
+
+export interface Proposal {
+  id: number;
+  bookingId: number;
+  notes: string;
+  createdAt: string;
+  status: string;
+  ProposalItem: ProposalItem[];
+}
+
 export interface ReportDetail extends Report {
   Booking: {
     id: number;
@@ -183,7 +202,7 @@ export interface ReportDetail extends Report {
     staffId: number | null;
     serviceRequestId: number;
     completedAt: string | null;
-    Proposal: unknown;
+    Proposal: Proposal | null;
   } | null;
 }
 

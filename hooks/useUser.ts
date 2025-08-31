@@ -124,16 +124,40 @@ export const useUpdateBankAccount = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users', 'profile'] });
     },
-    onError: (error: Error | ValidationError) => {
-      let errorMessage = 'An unexpected error occurred';
-      if (typeof error === 'object' && error !== null && 'message' in error) {
-        const errorObj = error as { message: string | ValidationError[] };
-        if (Array.isArray(errorObj.message)) {
-          errorMessage = errorObj.message[0]?.message || errorMessage;
-        } else if (typeof errorObj.message === 'string') {
-          errorMessage = errorObj.message;
+    onError: (error: unknown) => {
+      let errorMessage = 'Có lỗi xảy ra khi cập nhật tài khoản ngân hàng';
+
+      if (typeof error === 'object' && error !== null) {
+        const err = error as {
+          statusCode?: number;
+          error?: string;
+          message?: { message?: string; path?: string[] } | string;
+          details?: {
+            bankCode?: string;
+            bankName?: string;
+            accountNumber?: string;
+            takenByUserId?: number;
+          };
+        };
+
+        // Handle specific error cases
+        if (err.statusCode === 409 && err.error === 'Bank account already linked by another user') {
+          errorMessage = `Tài khoản ngân hàng ${err.details?.accountNumber} tại ${err.details?.bankName} đã được liên kết bởi người dùng khác`;
+        } else if (typeof err.message === 'object' && err.message && 'message' in err.message) {
+          // Handle nested message object
+          const messageObj = err.message as { message?: string; path?: string[] };
+          if (messageObj.message === 'Error.BankAccountTaken') {
+            errorMessage = `Tài khoản ngân hàng ${err.details?.accountNumber} tại ${err.details?.bankName} đã được sử dụng`;
+          } else {
+            errorMessage = messageObj.message || err.error || errorMessage;
+          }
+        } else if (typeof err.message === 'string') {
+          errorMessage = err.message;
+        } else if (typeof err.error === 'string') {
+          errorMessage = err.error;
         }
       }
+
       toast.error(errorMessage);
     },
   });
@@ -206,11 +230,23 @@ export const useGetServiceProviderInformation = (providerId: number) => {
   });
 };
 
-export const useGetUserProposal = (id: number) => {
+export const useGetUserProposal = (id: number, enabled: boolean = true) => {
   return useQuery({
     queryKey: ['users', 'proposal', id],
     queryFn: () => userService.getUserProposal(id),
-    enabled: !!id && !isNaN(id),
+    enabled: !!id && !isNaN(id) && enabled,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+  });
+};
+
+export const useGetUserBookingDetail = (id: number, enabled: boolean = true) => {
+  return useQuery({
+    queryKey: ['users', 'booking-detail', id],
+    queryFn: () => userService.getUserBookingDetail(id),
+    enabled: !!id && !isNaN(id) && enabled,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes
   });
 };
 

@@ -96,10 +96,10 @@ export default function ManageWithdrawPage() {
   }, [detail]);
 
   const headerActions = (
-    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-      <div className="flex items-center justify-between w-full gap-3">
+    <div className="flex flex-col gap-3 sm:gap-4 md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center w-full gap-3">
         <Select value={status} onValueChange={v => setStatus(v as WithdrawStatus)}>
-          <SelectTrigger className="w-[200px] h-10">
+          <SelectTrigger className="w-full sm:w-[200px] h-10">
             <SelectValue placeholder="Trạng thái" />
           </SelectTrigger>
           <SelectContent>
@@ -141,7 +141,12 @@ export default function ManageWithdrawPage() {
             </SelectItem>
           </SelectContent>
         </Select>
-        <Button variant="outline" onClick={() => refetch()} disabled={isFetching} className="h-10">
+        <Button
+          variant="outline"
+          onClick={() => refetch()}
+          disabled={isFetching}
+          className="h-10 w-full sm:w-auto"
+        >
           <RefreshCcw className={cn('h-4 w-4 mr-2', isFetching && 'animate-spin')} />
           Làm mới
         </Button>
@@ -152,39 +157,72 @@ export default function ManageWithdrawPage() {
   return (
     <div className="p-0 md:p-0">
       <SiteHeader title="Quản lý rút tiền" />
-      <div className="p-4 pt-0 space-y-6">
+      <div className="p-3 sm:p-4 pt-0 space-y-4 sm:space-y-6">
         <div>
-          <CardHeader className="space-y-6 pb-6">{headerActions}</CardHeader>
-          <CardContent className="px-6 pb-6">
+          <CardHeader className="space-y-4 sm:space-y-6 pb-4 sm:pb-6 px-3 sm:px-6">
+            {headerActions}
+          </CardHeader>
+          <CardContent className="px-3 sm:px-6 pb-4 sm:pb-6">
             {isLoading ? (
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {Array.from({ length: 6 }).map((_, idx) => (
                   <Card key={idx} className="border">
-                    <CardContent className="p-4">
-                      <div className="flex items-start gap-4">
-                        <Skeleton className="w-16 h-16 rounded" />
-                        <div className="flex-1 space-y-2">
-                          <Skeleton className="h-4 w-32" />
-                          <Skeleton className="h-3 w-48" />
-                          <Skeleton className="h-3 w-36" />
+                    <CardContent className="p-3 sm:p-4">
+                      <div className="flex flex-col lg:flex-row gap-3 sm:gap-4">
+                        <div className="flex-shrink-0 space-y-3 w-full lg:w-1/3">
+                          <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+                            <Skeleton className="w-10 h-10 sm:w-12 sm:h-12 rounded-full" />
+                            <div className="flex-1 space-y-2">
+                              <Skeleton className="h-3 w-24 sm:h-4 sm:w-32" />
+                              <Skeleton className="h-3 w-32 sm:h-3 sm:w-48" />
+                            </div>
+                          </div>
+                          <div className="text-center">
+                            <Skeleton className="h-6 w-24 sm:h-8 sm:w-32 mx-auto mb-1" />
+                            <Skeleton className="h-3 w-20 sm:h-3 sm:w-24 mx-auto" />
+                          </div>
                         </div>
-                        <Skeleton className="w-20 h-8" />
+                        <div className="flex-1 space-y-3">
+                          <div className="flex items-start gap-2">
+                            <Skeleton className="h-5 w-16 sm:h-6 sm:w-20" />
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div className="flex items-center gap-2">
+                              <Skeleton className="h-4 w-4" />
+                              <div className="space-y-1">
+                                <Skeleton className="h-3 w-20 sm:h-4 sm:w-24" />
+                                <Skeleton className="h-3 w-16 sm:h-3 sm:w-20" />
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Skeleton className="h-4 w-4" />
+                              <Skeleton className="h-3 w-20 sm:h-4 sm:w-24" />
+                            </div>
+                          </div>
+                          <Skeleton className="h-16 w-full rounded-lg" />
+                        </div>
+                        <div className="flex-shrink-0 space-y-3">
+                          <Skeleton className="w-full h-8 sm:w-24 sm:h-8" />
+                          <Skeleton className="w-full h-6 sm:w-20 sm:h-6 mx-auto" />
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
                 ))}
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {rows.length === 0 ? (
                   <Card className="border">
-                    <CardContent className="p-8 text-center">
+                    <CardContent className="p-6 sm:p-8 text-center">
                       <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                          <span className="text-lg">💰</span>
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-muted flex items-center justify-center">
+                          <span className="text-lg sm:text-xl">💰</span>
                         </div>
-                        <p className="text-sm font-medium">Không có yêu cầu rút tiền</p>
-                        <p className="text-xs">Hãy thử thay đổi bộ lọc</p>
+                        <p className="text-sm sm:text-base font-medium">
+                          Không có yêu cầu rút tiền
+                        </p>
+                        <p className="text-xs sm:text-sm">Hãy thử thay đổi bộ lọc</p>
                       </div>
                     </CardContent>
                   </Card>
@@ -197,12 +235,12 @@ export default function ManageWithdrawPage() {
                         index % 2 === 0 && 'bg-muted/10'
                       )}
                     >
-                      <CardContent className="p-4">
-                        <div className="flex flex-col lg:flex-row gap-4">
+                      <CardContent className="p-3 sm:p-4">
+                        <div className="flex flex-col lg:flex-row gap-3 sm:gap-4">
                           {/* Left Section - User Info and Amount */}
-                          <div className="flex-shrink-0 space-y-3 w-1/3">
-                            <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
-                              <div className="w-12 h-12 rounded-full border bg-muted flex items-center justify-center overflow-hidden">
+                          <div className="flex-shrink-0 space-y-3 w-full lg:w-1/3">
+                            <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-muted/30 rounded-lg">
+                              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
                                 {withdraw.User?.avatar ||
                                 withdraw.User_WithdrawalRequest_userIdToUser?.avatar ? (
                                   <Image
@@ -217,7 +255,7 @@ export default function ManageWithdrawPage() {
                                     className="w-full h-full object-cover"
                                   />
                                 ) : (
-                                  <span className="text-sm text-muted-foreground">
+                                  <span className="text-xs sm:text-sm text-muted-foreground">
                                     {(
                                       withdraw.User?.name ||
                                       withdraw.User_WithdrawalRequest_userIdToUser?.name ||
@@ -228,8 +266,8 @@ export default function ManageWithdrawPage() {
                                   </span>
                                 )}
                               </div>
-                              <div className="min-w-0">
-                                <div className="text-sm font-medium truncate">
+                              <div className="min-w-0 flex-1">
+                                <div className="text-xs sm:text-sm font-medium truncate">
                                   {withdraw.User?.name ||
                                     withdraw.User_WithdrawalRequest_userIdToUser?.name ||
                                     'N/A'}
@@ -250,7 +288,7 @@ export default function ManageWithdrawPage() {
                             </div>
 
                             <div className="text-center">
-                              <div className="text-2xl font-bold text-primary">
+                              <div className="text-lg sm:text-2xl font-bold text-primary">
                                 {formatCurrency(withdraw.amount, Currency.VND)}
                               </div>
                               <div className="text-xs text-muted-foreground">Số tiền yêu cầu</div>
@@ -268,7 +306,7 @@ export default function ManageWithdrawPage() {
                                 </div>
 
                                 {withdraw.note && (
-                                  <p className="text-sm text-muted-foreground">
+                                  <p className="text-xs sm:text-sm text-muted-foreground">
                                     <span className="font-medium">Ghi chú:</span> {withdraw.note}
                                   </p>
                                 )}
@@ -276,10 +314,10 @@ export default function ManageWithdrawPage() {
                             </div>
 
                             {/* Timeline Information */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                              <div className="flex items-center gap-2 text-sm">
-                                <CalendarClock className="h-4 w-4 text-muted-foreground" />
-                                <div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              <div className="flex items-center gap-2 text-xs sm:text-sm">
+                                <CalendarClock className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+                                <div className="min-w-0">
                                   <div className="font-medium text-foreground">
                                     {new Date(withdraw.createdAt).toLocaleDateString('vi-VN')}
                                   </div>
@@ -289,11 +327,11 @@ export default function ManageWithdrawPage() {
                                 </div>
                               </div>
 
-                              <div className="flex items-center gap-2 text-sm">
+                              <div className="flex items-center gap-2 text-xs sm:text-sm">
                                 {withdraw.processedAt ? (
                                   <>
-                                    <CheckCircle className="h-4 w-4 text-green-600" />
-                                    <div>
+                                    <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-600 flex-shrink-0" />
+                                    <div className="min-w-0">
                                       <div className="font-medium text-foreground">
                                         {new Date(withdraw.processedAt).toLocaleDateString('vi-VN')}
                                       </div>
@@ -304,8 +342,8 @@ export default function ManageWithdrawPage() {
                                   </>
                                 ) : (
                                   <>
-                                    <Clock className="h-4 w-4 text-amber-600" />
-                                    <span className="text-sm text-muted-foreground">
+                                    <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-amber-600 flex-shrink-0" />
+                                    <span className="text-xs sm:text-sm text-muted-foreground">
                                       Chưa xử lý
                                     </span>
                                   </>
@@ -319,18 +357,20 @@ export default function ManageWithdrawPage() {
                                 withdraw.User || withdraw.User_WithdrawalRequest_userIdToUser;
                               const wallet = user?.Wallet;
                               return wallet ? (
-                                <div className="p-3 bg-muted/20 rounded-lg">
-                                  <div className="grid grid-cols-2 gap-2 text-xs">
+                                <div className="p-2 sm:p-3 bg-muted/20 rounded-lg">
+                                  <div className="grid grid-cols-2 gap-1 sm:gap-2 text-xs">
                                     <div className="text-muted-foreground">Ngân hàng:</div>
-                                    <div className="font-medium">{wallet.bankName || '--'}</div>
+                                    <div className="font-medium truncate">
+                                      {wallet.bankName || '--'}
+                                    </div>
 
                                     <div className="text-muted-foreground">Số tài khoản:</div>
-                                    <div className="font-mono font-medium">
+                                    <div className="font-mono font-medium truncate">
                                       {wallet.bankAccount || '--'}
                                     </div>
 
                                     <div className="text-muted-foreground">Số dư hiện tại:</div>
-                                    <div className="font-bold text-green-600">
+                                    <div className="font-bold text-green-600 truncate">
                                       {formatCurrency(wallet.balance, Currency.VND)}
                                     </div>
                                   </div>
@@ -340,7 +380,7 @@ export default function ManageWithdrawPage() {
                           </div>
 
                           {/* Right Section - Actions */}
-                          <div className="flex-shrink-0 space-y-3">
+                          <div className="flex-shrink-0 space-y-3 w-full lg:w-auto">
                             <div className="flex justify-end">
                               <Button
                                 size="sm"
@@ -349,9 +389,10 @@ export default function ManageWithdrawPage() {
                                   setSelectedId(withdraw.id);
                                   setOpen(true);
                                 }}
-                                className="w-full"
+                                className="w-full sm:w-auto"
                               >
-                                <Eye className="h-4 w-4 mr-2" /> Chi tiết
+                                <Eye className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                                <span className="text-xs sm:text-sm">Chi tiết</span>
                               </Button>
                             </div>
 
@@ -369,11 +410,14 @@ export default function ManageWithdrawPage() {
                                 <div className="text-center">
                                   {canWithdraw ? (
                                     <Badge className="bg-green-100 text-green-700 border-green-200 text-xs">
-                                      <CheckCircle className="h-4 w-4 mr-2" /> Có thể rút tiền
+                                      <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                                      <span className="hidden sm:inline">Có thể rút tiền</span>
+                                      <span className="sm:hidden">Có thể rút</span>
                                     </Badge>
                                   ) : (
                                     <Badge className="bg-red-100 hover:bg-red-200 text-red-700 border-red-200 text-xs">
-                                      Số dư không đủ
+                                      <span className="hidden sm:inline">Số dư không đủ</span>
+                                      <span className="sm:hidden">Không đủ</span>
                                     </Badge>
                                   )}
                                 </div>
@@ -388,8 +432,8 @@ export default function ManageWithdrawPage() {
               </div>
             )}
 
-            <div className="mt-6 flex items-center justify-between">
-              <div className="text-sm text-muted-foreground">
+            <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="text-xs sm:text-sm text-muted-foreground">
                 Tổng{' '}
                 <span className="font-semibold text-foreground">
                   {data?.pagination?.total ?? 0}
@@ -406,8 +450,9 @@ export default function ManageWithdrawPage() {
                         if (page > 1) setPage(page - 1);
                       }}
                       disabled={page <= 1}
+                      className="h-8 w-8 p-0"
                     >
-                      <ChevronLeft className="h-4 w-4" />
+                      <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4" />
                     </Button>
                   </PaginationItem>
                   {Array.from({ length: Math.min(totalPages, 5) }).map((_, index) => {
@@ -423,6 +468,7 @@ export default function ManageWithdrawPage() {
                             e.preventDefault();
                             setPage(p);
                           }}
+                          className="h-8 w-8 text-xs sm:text-sm"
                         >
                           {p}
                         </PaginationLink>
@@ -437,8 +483,9 @@ export default function ManageWithdrawPage() {
                         if (page < totalPages) setPage(page + 1);
                       }}
                       disabled={page >= totalPages}
+                      className="h-8 w-8 p-0"
                     >
-                      <ChevronRight className="h-4 w-4" />
+                      <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" />
                     </Button>
                   </PaginationItem>
                 </PaginationContent>
@@ -449,30 +496,32 @@ export default function ManageWithdrawPage() {
       </div>
 
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="right" className="w-full h-screen md:max-w-2xl overflow-y-auto">
+        <SheetContent side="right" className="w-full h-screen sm:max-w-2xl overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>Chi tiết rút tiền #{selectedId}</SheetTitle>
-            <SheetDescription>Thông tin chi tiết yêu cầu rút tiền</SheetDescription>
+            <SheetTitle className="text-lg sm:text-xl">Chi tiết rút tiền #{selectedId}</SheetTitle>
+            <SheetDescription className="text-sm">
+              Thông tin chi tiết yêu cầu rút tiền
+            </SheetDescription>
           </SheetHeader>
 
           {isDetailLoading ? (
-            <div className="space-y-3 mt-6">
+            <div className="space-y-3 mt-4 sm:mt-6">
               {Array.from({ length: 8 }).map((_, idx) => (
-                <Skeleton key={idx} className="h-6 w-full" />
+                <Skeleton key={idx} className="h-4 sm:h-6 w-full" />
               ))}
             </div>
           ) : detail ? (
-            <div className="mt-6 space-y-6">
+            <div className="mt-4 sm:mt-6 space-y-4 sm:space-y-6">
               {/* Basic Information */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Thông tin cơ bản</h3>
-                <div className="grid grid-cols-1 gap-4 p-4 bg-muted/20 rounded-lg">
-                  <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="space-y-3 sm:space-y-4">
+                <h3 className="text-base sm:text-lg font-semibold">Thông tin cơ bản</h3>
+                <div className="grid grid-cols-1 gap-3 sm:gap-4 p-3 sm:p-4 bg-muted/20 rounded-lg">
+                  <div className="grid grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm">
                     <div className="text-muted-foreground">Mã yêu cầu</div>
                     <div className="font-mono font-medium">#{detail.id}</div>
 
                     <div className="text-muted-foreground">Số tiền yêu cầu</div>
-                    <div className="font-bold text-lg text-primary">
+                    <div className="font-bold text-base sm:text-lg text-primary">
                       {formatCurrency(detail.amount, Currency.VND)}
                     </div>
 
@@ -496,10 +545,10 @@ export default function ManageWithdrawPage() {
               {(() => {
                 const user = detail.User || detail.User_WithdrawalRequest_userIdToUser;
                 return (
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">Thông tin người dùng</h3>
-                    <div className="grid grid-cols-1 gap-4 p-4 bg-muted/20 rounded-lg">
-                      <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="space-y-3 sm:space-y-4">
+                    <h3 className="text-base sm:text-lg font-semibold">Thông tin người dùng</h3>
+                    <div className="grid grid-cols-1 gap-3 sm:gap-4 p-3 sm:p-4 bg-muted/20 rounded-lg">
+                      <div className="grid grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm">
                         <div className="text-muted-foreground">Tên</div>
                         <div className="font-medium">{user?.name ?? 'N/A'}</div>
 
@@ -513,10 +562,10 @@ export default function ManageWithdrawPage() {
                         <div className="font-medium">
                           {user?.avatar ? (
                             <div className="flex items-center gap-2">
-                              <div className="w-6 h-6 rounded-full bg-muted overflow-hidden">
+                              <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-muted overflow-hidden">
                                 <Image
-                                  width={24}
-                                  height={24}
+                                  width={32}
+                                  height={32}
                                   src={user.avatar}
                                   alt="Avatar"
                                   className="w-full h-full object-cover"
@@ -539,10 +588,10 @@ export default function ManageWithdrawPage() {
                 const user = detail.User || detail.User_WithdrawalRequest_userIdToUser;
                 const wallet = user?.Wallet;
                 return wallet ? (
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">Thông tin ngân hàng & ví</h3>
-                    <div className="grid grid-cols-1 gap-4 p-4 bg-muted/20 rounded-lg">
-                      <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="space-y-3 sm:space-y-4">
+                    <h3 className="text-base sm:text-lg font-semibold">Thông tin ngân hàng & ví</h3>
+                    <div className="grid grid-cols-1 gap-3 sm:gap-4 p-3 sm:p-4 bg-muted/20 rounded-lg">
+                      <div className="grid grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm">
                         <div className="text-muted-foreground">Ngân hàng</div>
                         <div className="font-medium">{wallet.bankName ?? '--'}</div>
 
@@ -553,17 +602,17 @@ export default function ManageWithdrawPage() {
                         <div className="font-medium">{wallet.accountHolder ?? '--'}</div>
 
                         <div className="text-muted-foreground">Số dư ví hiện tại</div>
-                        <div className="font-bold text-lg text-green-600">
+                        <div className="font-bold text-base sm:text-lg text-green-600">
                           {formatCurrency(wallet.balance, Currency.VND)}
                         </div>
                       </div>
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">Thông tin ngân hàng & ví</h3>
-                    <div className="p-4 bg-muted/20 rounded-lg">
-                      <p className="text-sm text-muted-foreground">
+                  <div className="space-y-3 sm:space-y-4">
+                    <h3 className="text-base sm:text-lg font-semibold">Thông tin ngân hàng & ví</h3>
+                    <div className="p-3 sm:p-4 bg-muted/20 rounded-lg">
+                      <p className="text-xs sm:text-sm text-muted-foreground">
                         Chưa có thông tin ngân hàng và ví
                       </p>
                     </div>
@@ -572,10 +621,10 @@ export default function ManageWithdrawPage() {
               })()}
 
               {/* Timeline Information */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Thời gian xử lý</h3>
-                <div className="grid grid-cols-1 gap-4 p-4 bg-muted/20 rounded-lg">
-                  <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="space-y-3 sm:space-y-4">
+                <h3 className="text-base sm:text-lg font-semibold">Thời gian xử lý</h3>
+                <div className="grid grid-cols-1 gap-3 sm:gap-4 p-3 sm:p-4 bg-muted/20 rounded-lg">
+                  <div className="grid grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm">
                     <div className="text-muted-foreground">Ngày tạo yêu cầu</div>
                     <div className="font-medium">
                       {new Date(detail.createdAt).toLocaleString('vi-VN')}
@@ -618,10 +667,10 @@ export default function ManageWithdrawPage() {
                 const isProcessed = detail.status !== 'PENDING';
 
                 return (
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">Phân tích rút tiền</h3>
-                    <div className="grid grid-cols-1 gap-4 p-4 bg-muted/20 rounded-lg">
-                      <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="space-y-3 sm:space-y-4">
+                    <h3 className="text-base sm:text-lg font-semibold">Phân tích rút tiền</h3>
+                    <div className="grid grid-cols-1 gap-3 sm:gap-4 p-3 sm:p-4 bg-muted/20 rounded-lg">
+                      <div className="grid grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm">
                         <div className="text-muted-foreground">Số tiền yêu cầu</div>
                         <div className="font-bold text-red-600">
                           -{formatCurrency(detail.amount, Currency.VND)}
@@ -676,10 +725,10 @@ export default function ManageWithdrawPage() {
               })()}
 
               {/* Notes Section */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Ghi chú hiện tại</h3>
-                <div className="p-4 bg-muted/20 rounded-lg">
-                  <div className="text-sm">
+              <div className="space-y-3 sm:space-y-4">
+                <h3 className="text-base sm:text-lg font-semibold">Ghi chú hiện tại</h3>
+                <div className="p-3 sm:p-4 bg-muted/20 rounded-lg">
+                  <div className="text-xs sm:text-sm">
                     {detail.note ? (
                       <p className="text-muted-foreground italic">&quot;{detail.note}&quot;</p>
                     ) : (
@@ -691,11 +740,11 @@ export default function ManageWithdrawPage() {
 
               {/* Update Section - Only show if status is PENDING or APPROVED */}
               {detail.status !== 'COMPLETED' && detail.status !== 'REJECTED' && (
-                <div className="space-y-4 border-t pt-6">
-                  <h3 className="text-lg font-semibold">Cập nhật trạng thái</h3>
+                <div className="space-y-3 sm:space-y-4 border-t pt-4 sm:pt-6">
+                  <h3 className="text-base sm:text-lg font-semibold">Cập nhật trạng thái</h3>
 
                   <div className="space-y-3">
-                    <Label className="text-sm font-medium">Trạng thái mới</Label>
+                    <Label className="text-xs sm:text-sm font-medium">Trạng thái mới</Label>
                     <Select
                       value={updateStatus}
                       onValueChange={v =>
@@ -704,7 +753,7 @@ export default function ManageWithdrawPage() {
                         )
                       }
                     >
-                      <SelectTrigger className="w-full h-10">
+                      <SelectTrigger className="w-full h-9 sm:h-10">
                         <SelectValue placeholder="Chọn trạng thái" />
                       </SelectTrigger>
                       <SelectContent>
@@ -743,7 +792,7 @@ export default function ManageWithdrawPage() {
                   </div>
 
                   <div className="space-y-3">
-                    <Label htmlFor="note" className="text-sm font-medium">
+                    <Label htmlFor="note" className="text-xs sm:text-sm font-medium">
                       Ghi chú mới
                     </Label>
                     <Textarea
@@ -752,13 +801,14 @@ export default function ManageWithdrawPage() {
                       onChange={e => setNote(e.target.value)}
                       placeholder="Nhập ghi chú về quyết định xử lý (tuỳ chọn)"
                       rows={3}
+                      className="text-xs sm:text-sm"
                     />
                   </div>
                 </div>
               )}
 
               {/* Footer with conditional button */}
-              <SheetFooter className="gap-2 pt-6">
+              <SheetFooter className="gap-2 pt-4 sm:pt-6">
                 {detail.status !== 'COMPLETED' && detail.status !== 'REJECTED' ? (
                   <Button
                     onClick={() => {
@@ -771,12 +821,13 @@ export default function ManageWithdrawPage() {
                       );
                     }}
                     disabled={isUpdating}
-                    className="flex-1"
+                    className="flex-1 text-xs sm:text-sm"
                   >
                     {isUpdating ? (
                       <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                        Đang cập nhật...
+                        <div className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                        <span className="hidden sm:inline">Đang cập nhật...</span>
+                        <span className="sm:hidden">Đang cập nhật</span>
                       </div>
                     ) : (
                       'Lưu thay đổi'
@@ -784,20 +835,27 @@ export default function ManageWithdrawPage() {
                   </Button>
                 ) : (
                   <div className="flex-1 p-3 bg-muted/20 rounded-lg">
-                    <p className="text-sm text-muted-foreground text-center">
+                    <p className="text-xs sm:text-sm text-muted-foreground text-center">
                       {detail.status === 'COMPLETED'
                         ? 'Yêu cầu đã được hoàn thành'
                         : 'Yêu cầu đã bị từ chối'}
                     </p>
                   </div>
                 )}
-                <Button variant="outline" onClick={() => setOpen(false)} disabled={isUpdating}>
+                <Button
+                  variant="outline"
+                  onClick={() => setOpen(false)}
+                  disabled={isUpdating}
+                  className="text-xs sm:text-sm"
+                >
                   Đóng
                 </Button>
               </SheetFooter>
             </div>
           ) : (
-            <div className="mt-6 text-sm text-muted-foreground">Không tìm thấy dữ liệu</div>
+            <div className="mt-4 sm:mt-6 text-xs sm:text-sm text-muted-foreground">
+              Không tìm thấy dữ liệu
+            </div>
           )}
         </SheetContent>
       </Sheet>

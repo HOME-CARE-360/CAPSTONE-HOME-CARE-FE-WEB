@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { getCookie, setCookie, deleteCookie } from 'cookies-next';
 import apiService, { setAuthErrorHandler } from '@/lib/api/core';
 import fetchAuth from '@/lib/api/services/fetchAuth';
+import { userService } from '@/lib/api/services/fetchUser';
 import { decodeJwt } from '@/utils/jwt';
 import router from 'next/router';
 
@@ -10,7 +11,7 @@ interface User {
   name: string;
   email: string;
   role: string;
-  avatar?: string;
+  avatar?: string | null;
 }
 
 interface AuthState {
@@ -20,6 +21,8 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   setToken: (token: string | null, refreshToken: string | null) => void;
+  fetchUserProfile: () => Promise<void>;
+  refreshUserProfile: () => Promise<void>;
   refreshAccessToken: () => Promise<boolean>;
   logout: () => void;
   forceClearAll: () => void;
@@ -85,11 +88,42 @@ export const useAuthStore = create<AuthState>()((set, get) => {
           setCookie('refresh-token', refreshToken, { maxAge: 60 * 60 * 24 * 7, path: '/' });
           setCookie('userId', user.id, { maxAge: 60 * 60 * 24 * 7, path: '/' });
           apiService.setAuthToken(token);
+
+          // Fetch complete user profile after setting token
+          get().fetchUserProfile();
         } else {
           get().logout();
         }
       } else {
         get().logout();
+      }
+    },
+
+    fetchUserProfile: async () => {
+      try {
+        const response = await userService.getUserProfile();
+        if (response.data?.user && get().user) {
+          const userData = response.data.user;
+          set(state => ({
+            user: state.user
+              ? {
+                  ...state.user,
+                  name: userData.name,
+                  email: userData.email,
+                  avatar: userData.avatar,
+                }
+              : null,
+          }));
+        }
+      } catch (error) {
+        console.error('Failed to fetch user profile:', error);
+        // Don't logout on profile fetch failure, just log the error
+      }
+    },
+
+    refreshUserProfile: async () => {
+      if (get().isAuthenticated) {
+        await get().fetchUserProfile();
       }
     },
 
@@ -112,6 +146,7 @@ export const useAuthStore = create<AuthState>()((set, get) => {
         const response = await fetchAuth.refreshToken(currentRefreshToken);
         if (response.data?.accessToken && response.data?.refreshToken) {
           get().setToken(response.data.accessToken, response.data.refreshToken);
+          // fetchUserProfile is already called in setToken
           return true;
         }
 
@@ -199,6 +234,7 @@ const initializeAuthFromCookies = () => {
     const user = getUserFromToken(storedToken);
     if (user) {
       useAuthStore.getState().setToken(storedToken, storedRefreshToken);
+      // fetchUserProfile is already called in setToken
     } else {
       // Invalid token, clear cookies and store
       console.log('Invalid stored token found, clearing auth data');

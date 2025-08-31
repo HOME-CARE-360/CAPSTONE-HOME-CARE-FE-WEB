@@ -11,7 +11,15 @@ import {
 } from '@/hooks/useConversation';
 import { Conversation, ConversationMessage } from '@/lib/api/services/fetchConversation';
 import { useAuthStore } from '@/lib/store/authStore';
-import { Check, CheckCheck, Loader2, AlertCircle, Send, MessageCircle } from 'lucide-react';
+import {
+  Check,
+  CheckCheck,
+  Loader2,
+  AlertCircle,
+  Send,
+  MessageCircle,
+  ArrowLeft,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Avatar as UIAvatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -61,10 +69,12 @@ const Avatar = ({
   src,
   name,
   size = 'md',
+  className = '',
 }: {
   src?: string | null;
   name?: string;
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+  className?: string;
 }) => {
   const sizeClasses = {
     xs: 'w-6 h-6',
@@ -83,7 +93,7 @@ const Avatar = ({
       .toUpperCase() || '?';
 
   return (
-    <UIAvatar className={`${sizeClasses[size]} flex-shrink-0`}>
+    <UIAvatar className={`${sizeClasses[size]} flex-shrink-0 ${className}`}>
       <AvatarImage src={src || undefined} alt={name} />
       <AvatarFallback className="text-sm font-medium">{initials}</AvatarFallback>
     </UIAvatar>
@@ -122,6 +132,7 @@ const ConnectionStatus = ({
 export function UserChat() {
   const { data: conversations, isLoading: isLoadingConversations } = useUserConversations();
   const [selectedConversationId, setSelectedConversationId] = useState<number | null>(null);
+  const [showConversationList, setShowConversationList] = useState(true); // Mobile state
   const { data: serverMessages, isLoading: isLoadingMessages } = useConversationMessages(
     typeof selectedConversationId === 'number' ? selectedConversationId : undefined
   );
@@ -204,10 +215,12 @@ export function UserChat() {
   }, [conversations, selectedConversationId]);
 
   const partner = useMemo(() => {
-    return (
-      selectedConversation?.ServiceProvider?.user || selectedConversation?.CustomerProfile?.user
-    );
+    // For user chat, we want to show the ServiceProvider as the partner
+    return selectedConversation?.ServiceProvider?.user;
   }, [selectedConversation]);
+
+  // Get current user info from auth store
+  const currentUser = useAuthStore(state => state.user);
 
   const handleTextChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setText(e.target.value);
@@ -237,6 +250,11 @@ export function UserChat() {
 
   const handleConversationSelect = useCallback((conversationId: number) => {
     setSelectedConversationId(conversationId);
+    setShowConversationList(false); // Hide conversation list on mobile when selecting
+  }, []);
+
+  const handleBackToConversations = useCallback(() => {
+    setShowConversationList(true);
   }, []);
 
   return (
@@ -246,71 +264,138 @@ export function UserChat() {
         isConnecting={connectionStatus.isConnecting}
       />
 
-      {/* Conversations Sidebar */}
-      <div className="w-80 bg-white border-r border-gray-200 flex flex-col overflow-hidden">
-        {/* Header */}
-        <div className="p-6 border-b border-gray-100">
-          <h1 className="text-xl font-semibold text-gray-900 mb-2">Tin nhắn</h1>
-          <p className="text-sm text-gray-500">{conversations?.length || 0} cuộc trò chuyện</p>
-        </div>
+      {/* Conversations Sidebar - Desktop */}
+      <div className="hidden lg:block w-80 bg-white border-r border-gray-200">
+        <div className="flex flex-col overflow-hidden h-full">
+          {/* Header */}
+          <div className="p-6 border-b border-gray-100">
+            <h1 className="text-xl font-semibold text-gray-900 mb-2">Tin nhắn</h1>
+            <p className="text-sm text-gray-500">{conversations?.length || 0} cuộc trò chuyện</p>
+          </div>
 
-        {/* Conversations List */}
-        <ScrollArea className="flex-1">
-          {isLoadingConversations ? (
-            <div className="p-4 space-y-4">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <Skeleton className="w-12 h-12 rounded-full" />
-                  <div className="flex-1 space-y-2">
-                    <Skeleton className="h-4 w-32" />
-                    <Skeleton className="h-3 w-48" />
+          {/* Conversations List */}
+          <ScrollArea className="flex-1">
+            {isLoadingConversations ? (
+              <div className="p-4 space-y-4">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <Skeleton className="w-12 h-12 rounded-full" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-3 w-48" />
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          ) : !conversations || conversations.length === 0 ? (
-            <div className="flex-1 flex items-center justify-center">
-              <div className="text-center">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
-                  <MessageCircle className="w-8 h-8 text-gray-400" />
-                </div>
-                <p className="text-sm text-gray-500">Chưa có cuộc trò chuyện</p>
+                ))}
               </div>
-            </div>
-          ) : (
-            <div className="p-2">
-              {conversations.map(conversation => (
-                <ConversationItem
-                  key={conversation.id}
-                  conversation={conversation}
-                  isSelected={selectedConversationId === conversation.id}
-                  onClick={() => handleConversationSelect(conversation.id)}
-                />
-              ))}
-            </div>
-          )}
-        </ScrollArea>
+            ) : !conversations || conversations.length === 0 ? (
+              <div className="flex-1 flex items-center justify-center">
+                <div className="text-center">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+                    <MessageCircle className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <p className="text-sm text-gray-500">Chưa có cuộc trò chuyện</p>
+                </div>
+              </div>
+            ) : (
+              <div className="p-2">
+                {conversations.map(conversation => (
+                  <ConversationItem
+                    key={conversation.id}
+                    conversation={conversation}
+                    isSelected={selectedConversationId === conversation.id}
+                    onClick={() => handleConversationSelect(conversation.id)}
+                  />
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+        </div>
       </div>
 
+      {/* Mobile Conversations List */}
+      {showConversationList && (
+        <div className="lg:hidden w-full bg-white flex flex-col overflow-hidden h-[calc(100vh-120px)]">
+          {/* Header */}
+          <div className="p-4 border-b border-gray-100 flex-shrink-0">
+            <h1 className="text-lg font-semibold text-gray-900 mb-1">Tin nhắn</h1>
+            <p className="text-sm text-gray-500">{conversations?.length || 0} cuộc trò chuyện</p>
+          </div>
+
+          {/* Conversations List */}
+          <ScrollArea className="flex-1">
+            {isLoadingConversations ? (
+              <div className="p-4 space-y-4">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <Skeleton className="w-12 h-12 rounded-full" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-3 w-48" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : !conversations || conversations.length === 0 ? (
+              <div className="flex-1 flex items-center justify-center">
+                <div className="text-center">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+                    <MessageCircle className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <p className="text-sm text-gray-500">Chưa có cuộc trò chuyện</p>
+                </div>
+              </div>
+            ) : (
+              <div className="p-2 space-y-1">
+                {conversations.map(conversation => (
+                  <ConversationItem
+                    key={conversation.id}
+                    conversation={conversation}
+                    isSelected={selectedConversationId === conversation.id}
+                    onClick={() => handleConversationSelect(conversation.id)}
+                  />
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+        </div>
+      )}
+
       {/* Chat Area */}
-      <div className="flex-1 flex flex-col bg-white h-[calc(105vh-100px)]">
+      <div
+        className={`${showConversationList ? 'hidden lg:flex' : 'flex'} flex-1 flex-col bg-white h-[calc(100vh-120px)] lg:h-[calc(100vh-120px)]`}
+      >
         {selectedConversation ? (
           <>
             {/* Chat Header */}
-            <div className="px-6 py-4 border-b border-gray-100 bg-white flex-shrink-0">
-              <div className="flex items-center gap-4">
-                <Avatar src={partner?.avatar} name={partner?.name} size="lg" />
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900">
+            <div className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 border-b border-gray-100 bg-white flex-shrink-0">
+              <div className="flex items-center gap-2 sm:gap-3 lg:gap-4">
+                {/* Back button for mobile */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleBackToConversations}
+                  className="lg:hidden flex-shrink-0 w-8 h-8"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                </Button>
+
+                <Avatar
+                  src={partner?.avatar}
+                  name={partner?.name}
+                  size="md"
+                  className="flex-shrink-0"
+                />
+                <div className="min-w-0 flex-1 overflow-hidden">
+                  <h2 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-900 truncate">
                     {partner?.name || 'Đối tác'}
                   </h2>
-                  <p className="text-sm text-gray-500">Nhà cung cấp dịch vụ</p>
+                  <p className="text-xs sm:text-sm text-gray-500 truncate">Nhà cung cấp dịch vụ</p>
                 </div>
               </div>
             </div>
 
             {/* Messages Area */}
-            <ScrollArea className="flex-1 px-4 min-h-0">
+            <ScrollArea className="flex-1 px-2 sm:px-3 lg:px-4 min-h-0">
               {isLoadingMessages ? (
                 <div className="space-y-4 p-4">
                   {Array.from({ length: 8 }).map((_, i) => (
@@ -319,7 +404,7 @@ export function UserChat() {
                       className={`flex gap-3 ${i % 2 === 0 ? 'justify-end' : 'justify-start'}`}
                     >
                       {i % 2 !== 0 && <Skeleton className="w-8 h-8 rounded-full flex-shrink-0" />}
-                      <Skeleton className={`h-12 w-64 rounded-2xl`} />
+                      <Skeleton className={`h-12 w-48 lg:w-64 rounded-2xl`} />
                       {i % 2 === 0 && <Skeleton className="w-8 h-8 rounded-full flex-shrink-0" />}
                     </div>
                   ))}
@@ -336,6 +421,7 @@ export function UserChat() {
                         isOwn={isOwn}
                         partnerName={partner?.name}
                         partnerAvatar={partner?.avatar}
+                        currentUser={currentUser}
                         isLast={index === allMessages.length - 1}
                       />
                     );
@@ -360,16 +446,16 @@ export function UserChat() {
             </ScrollArea>
 
             {/* Message Input */}
-            <div className="px-6 py-4 border-t border-gray-100 bg-white flex-shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="flex-1">
+            <div className="absolute bottom-0 left-0 right-0 px-3 sm:px-4 lg:px-6 py-3 sm:py-4 border-t border-gray-100 bg-white flex-shrink-0">
+              <div className="flex items-end gap-2 sm:gap-3">
+                <div className="flex-1 min-w-0">
                   <Textarea
                     ref={textareaRef}
                     value={text}
                     onChange={handleTextChange}
                     onKeyDown={handleKeyDown}
                     placeholder="Nhập tin nhắn..."
-                    className="resize-none text-sm max-h-32 min-h-[48px] rounded-2xl border-gray-200 focus-visible:border-gray-300"
+                    className="resize-none text-sm max-h-32 min-h-[44px] sm:min-h-[48px] rounded-2xl border-gray-200 focus-visible:border-gray-300"
                     rows={1}
                     disabled={!selectedConversationId || !connectionStatus.isConnected}
                     maxLength={1000}
@@ -386,11 +472,12 @@ export function UserChat() {
                   }
                   variant="ghost"
                   size="icon"
+                  className="flex-shrink-0 w-10 h-10 sm:w-11 sm:h-11"
                 >
                   {sendMessageMutation.isPending ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
                   ) : (
-                    <Send className="w-5 h-5" />
+                    <Send className="w-4 h-4 sm:w-5 sm:h-5" />
                   )}
                 </Button>
               </div>
@@ -425,7 +512,8 @@ const ConversationItem = React.memo(
     isSelected: boolean;
     onClick: () => void;
   }) => {
-    const partner = conversation.ServiceProvider?.user || conversation.CustomerProfile?.user;
+    // For user chat, we want to show the ServiceProvider as the partner
+    const partner = conversation.ServiceProvider?.user;
     const hasUnread = (conversation.unreadByCustomer || 0) > 0;
 
     return (
@@ -433,26 +521,36 @@ const ConversationItem = React.memo(
         type="button"
         onClick={onClick}
         variant="ghost"
-        className={`w-full p-3 h-auto rounded-lg hover:bg-gray-50 transition-colors text-left justify-start ${
+        className={`w-full p-3 lg:p-3 h-auto min-h-[72px] lg:min-h-[64px] rounded-lg hover:bg-gray-50 transition-colors text-left justify-start ${
           isSelected ? 'bg-gray-100' : ''
         }`}
       >
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <Avatar src={partner?.avatar} name={partner?.name} size="md" />
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="relative flex-shrink-0">
+            <Avatar
+              src={partner?.avatar}
+              name={partner?.name}
+              size="sm"
+              className="sm:w-12 sm:h-12"
+            />
           </div>
           <div className="flex-1 min-w-0 overflow-hidden">
-            <div className="flex items-center justify-between mb-1">
+            <div className="flex items-start justify-between mb-1 gap-1 sm:gap-2">
               <h3
-                className={`font-medium truncate w-48 ${hasUnread ? 'text-gray-900' : 'text-gray-700'}`}
+                className={`text-sm sm:text-base font-medium truncate flex-1 min-w-0 ${hasUnread ? 'text-gray-900' : 'text-gray-700'}`}
               >
                 {partner?.name || 'Đối tác'}
               </h3>
+              {conversation.lastMessageAt && (
+                <span className="text-xs text-gray-400 flex-shrink-0 mt-0.5">
+                  {formatTime(conversation.lastMessageAt)}
+                </span>
+              )}
             </div>
 
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-1 sm:gap-2">
               <p
-                className={`text-sm truncate ${hasUnread ? 'text-gray-600 font-medium' : 'text-gray-500'} max-w-[180px]`}
+                className={`text-xs sm:text-sm truncate flex-1 min-w-0 ${hasUnread ? 'text-gray-600 font-medium' : 'text-gray-500'}`}
               >
                 {conversation.lastMessage || 'Bắt đầu cuộc trò chuyện...'}
               </p>
@@ -462,11 +560,6 @@ const ConversationItem = React.memo(
                   {conversation.unreadByCustomer}
                 </div>
               )} */}
-              {conversation.lastMessageAt && (
-                <span className="text-xs text-gray-400 flex-shrink-0">
-                  {formatTime(conversation.lastMessageAt)}
-                </span>
-              )}
             </div>
           </div>
         </div>
@@ -484,11 +577,13 @@ const EnhancedMessageItem = React.memo(
     isOwn,
     partnerName,
     partnerAvatar,
+    currentUser,
   }: {
     message: EnhancedMessage;
     isOwn: boolean;
     partnerName?: string;
     partnerAvatar?: string | null;
+    currentUser?: { name?: string; avatar?: string | null } | null;
     isLast?: boolean;
   }) => {
     const getStatusIcon = () => {
@@ -515,7 +610,7 @@ const EnhancedMessageItem = React.memo(
 
         {/* Message content */}
         <div
-          className={`flex flex-col max-w-xs lg:max-w-md ${isOwn ? 'items-end' : 'items-start'}`}
+          className={`flex flex-col max-w-[240px] sm:max-w-[280px] md:max-w-xs lg:max-w-md ${isOwn ? 'items-end' : 'items-start'}`}
         >
           <Card
             className={`
@@ -540,11 +635,7 @@ const EnhancedMessageItem = React.memo(
 
         {/* Own avatar */}
         {isOwn && (
-          <Avatar
-            src={useAuthStore.getState().user?.avatar}
-            name={useAuthStore.getState().user?.name}
-            size="sm"
-          />
+          <Avatar src={currentUser?.avatar || undefined} name={currentUser?.name} size="sm" />
         )}
       </div>
     );

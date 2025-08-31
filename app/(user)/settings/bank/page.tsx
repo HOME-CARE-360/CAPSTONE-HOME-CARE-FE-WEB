@@ -79,9 +79,6 @@ export default function BankAccountPage() {
         setSelectedBank(null);
         setSearchTerm('');
       },
-      onError: () => {
-        toast.error('Cập nhật thông tin tài khoản thất bại. Vui lòng thử lại!');
-      },
       onSettled: () => {
         setIsSubmitting(false);
       },

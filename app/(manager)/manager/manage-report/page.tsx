@@ -109,7 +109,7 @@ export default function ManageReportPage() {
     'PENDING'
   );
   const [note, setNote] = useState<string>('');
-  const [amount, setAmount] = useState<number | ''>('');
+  const [, setAmount] = useState<number | ''>('');
   const [selectedReportForDetail, setSelectedReportForDetail] = useState<number | null>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
 
@@ -131,7 +131,20 @@ export default function ManageReportPage() {
     };
 
     if (selectedStatus === 'RESOLVED') {
-      if (typeof amount === 'number') payload.amount = amount;
+      // Calculate amount based on proposal status
+      if (reportDetail?.Booking?.Proposal?.status === 'ACCEPTED') {
+        // If proposal is ACCEPTED, use sum of all proposal item prices
+        const totalAmount =
+          reportDetail.Booking.Proposal.ProposalItem?.reduce(
+            (total, item) => total + (item.price || 0),
+            0
+          ) || 0;
+        payload.amount = totalAmount;
+      } else {
+        // If proposal is REJECTED or other status, use 30,000 VND
+        payload.amount = 30000;
+      }
+
       // Use reporterId from report detail
       if (reportDetail?.reporterId) payload.reporterId = reportDetail.reporterId;
     }
@@ -413,7 +426,7 @@ export default function ManageReportPage() {
                             {report.reporterType && (
                               <div className="text-center">
                                 <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
-                                  {userTypeTextMap[report.reporterType]}
+                                  Người báo cáo: {userTypeTextMap[report.reporterType]}
                                 </span>
                               </div>
                             )}
@@ -566,17 +579,27 @@ export default function ManageReportPage() {
                     id="amount"
                     type="text"
                     inputMode="numeric"
-                    value={typeof amount === 'number' ? amount.toLocaleString('vi-VN') : amount}
-                    onChange={e => {
-                      const v = e.target.value.replace(/\./g, '');
-                      if (v === '') {
-                        setAmount('');
-                      } else if (/^\d+$/.test(v)) {
-                        setAmount(Number(v));
+                    value={(() => {
+                      if (reportDetail?.Booking?.Proposal?.status === 'ACCEPTED') {
+                        const totalAmount =
+                          reportDetail.Booking.Proposal.ProposalItem?.reduce(
+                            (total, item) => total + (item.price || 0),
+                            0
+                          ) || 0;
+                        return totalAmount.toLocaleString('vi-VN');
+                      } else {
+                        return '30.000';
                       }
-                    }}
-                    placeholder="Nhập số tiền"
+                    })()}
+                    readOnly
+                    className="bg-muted"
+                    placeholder="Số tiền được tính tự động"
                   />
+                  <p className="text-xs text-muted-foreground">
+                    {reportDetail?.Booking?.Proposal?.status === 'ACCEPTED'
+                      ? 'Số tiền = Tổng giá trị đề xuất (đã chấp nhận)'
+                      : 'Số tiền = 30.000 VNĐ (đề xuất bị từ chối)'}
+                  </p>
                 </div>
               </div>
             )}
@@ -833,30 +856,160 @@ export default function ManageReportPage() {
                       <div>
                         <p className="text-xs text-muted-foreground">Ngày tạo</p>
                         <p className="text-sm font-medium">
-                          {new Date(reportDetail.Booking.createdAt).toLocaleDateString('vi-VN')}
+                          {new Date(reportDetail.Booking.createdAt).toLocaleString('vi-VN', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit',
+                          })}
                         </p>
                       </div>
-                      <div>
+                      {/* <div>
                         <p className="text-xs text-muted-foreground">Ngày cập nhật</p>
                         <p className="text-sm font-medium">
                           {new Date(reportDetail.Booking.updatedAt).toLocaleDateString('vi-VN')}
                         </p>
-                      </div>
-                      {reportDetail.Booking.staffId && (
+                      </div> */}
+                      {/* {reportDetail.Booking.staffId && (
                         <div>
                           <p className="text-xs text-muted-foreground">Nhân viên phụ trách</p>
                           <p className="text-sm font-medium">#{reportDetail.Booking.staffId}</p>
                         </div>
-                      )}
+                      )} */}
                       {reportDetail.Booking.completedAt && (
                         <div>
                           <p className="text-xs text-muted-foreground">Ngày hoàn thành</p>
                           <p className="text-sm font-medium">
-                            {new Date(reportDetail.Booking.completedAt).toLocaleDateString('vi-VN')}
+                            {new Date(reportDetail.Booking.completedAt).toLocaleString('vi-VN', {
+                              year: 'numeric',
+                              month: '2-digit',
+                              day: '2-digit',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              second: '2-digit',
+                            })}
                           </p>
                         </div>
                       )}
                     </div>
+
+                    {/* Proposal Information */}
+                    {reportDetail.Booking.Proposal && (
+                      <div className="mt-4 pt-4 border-t border-purple-200">
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2">
+                            <FileText className="h-4 w-4 text-purple-600" />
+                            <span className="text-sm font-medium">Thông tin đề xuất</span>
+                          </div>
+                          <div className="bg-white/50 p-3 rounded-lg">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {/* <div  >
+                                <p className="text-xs text-muted-foreground">Mã đề xuất</p>
+                                <p className="text-sm font-medium">#{reportDetail.Booking.Proposal.id}</p>
+                              </div> */}
+                              <div>
+                                <p className="text-xs text-muted-foreground">Trạng thái</p>
+                                <p className="text-sm font-medium">
+                                  {reportDetail.Booking.Proposal.status}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-muted-foreground">Ghi chú</p>
+                                <p className="text-sm font-medium">
+                                  {reportDetail.Booking.Proposal.notes || '--'}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-muted-foreground">Ngày tạo</p>
+                                <p className="text-sm font-medium">
+                                  {new Date(
+                                    reportDetail.Booking.Proposal.createdAt
+                                  ).toLocaleDateString('vi-VN')}
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Proposal Items */}
+                            {reportDetail.Booking.Proposal.ProposalItem &&
+                              Array.isArray(reportDetail.Booking.Proposal.ProposalItem) &&
+                              reportDetail.Booking.Proposal.ProposalItem.length > 0 && (
+                                <div className="mt-3 pt-3 border-t border-purple-100">
+                                  <p className="text-xs text-muted-foreground mb-2">
+                                    Chi tiết dịch vụ
+                                  </p>
+                                  <div className="space-y-2">
+                                    {reportDetail.Booking.Proposal.ProposalItem.map(
+                                      (item, index: number) => (
+                                        <div
+                                          key={item.id || index}
+                                          className="bg-white/70 p-3 rounded border"
+                                        >
+                                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                            <div>
+                                              <p className="text-xs text-muted-foreground">
+                                                Mã dịch vụ
+                                              </p>
+                                              <p className="text-sm font-medium">
+                                                #{item.serviceId}
+                                              </p>
+                                            </div>
+                                            <div>
+                                              <p className="text-xs text-muted-foreground">
+                                                Số lượng
+                                              </p>
+                                              <p className="text-sm font-medium">{item.quantity}</p>
+                                            </div>
+                                            <div>
+                                              <p className="text-xs text-muted-foreground">Giá</p>
+                                              <p className="text-sm font-medium">
+                                                {item.price?.toLocaleString('vi-VN')} VNĐ
+                                              </p>
+                                            </div>
+                                            <div>
+                                              <p className="text-xs text-muted-foreground">
+                                                Trạng thái
+                                              </p>
+                                              <p className="text-sm font-medium">{item.status}</p>
+                                            </div>
+                                            <div>
+                                              <p className="text-xs text-muted-foreground">
+                                                Ngày tạo
+                                              </p>
+                                              <p className="text-sm font-medium">
+                                                {new Date(item.createdAt).toLocaleDateString(
+                                                  'vi-VN'
+                                                )}
+                                              </p>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      )
+                                    )}
+
+                                    {/* Total Calculation */}
+                                    <div className="mt-3 pt-3 border-t border-green-200 bg-white/90 p-3 rounded">
+                                      <div className="flex justify-between items-center">
+                                        <span className="text-sm font-medium text-green-700">
+                                          Tổng giá trị đề xuất:
+                                        </span>
+                                        <span className="text-lg font-bold text-green-700">
+                                          {reportDetail.Booking.Proposal.ProposalItem.reduce(
+                                            (total, item) => total + (item.price || 0),
+                                            0
+                                          ).toLocaleString('vi-VN')}{' '}
+                                          VNĐ
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -898,15 +1051,17 @@ export default function ManageReportPage() {
             <Button variant="outline" onClick={() => setDetailDialogOpen(false)}>
               Đóng
             </Button>
-            <Button
-              onClick={() => {
-                setDetailDialogOpen(false);
-                setUpdateDialogOpen(true);
-              }}
-              disabled={!reportDetail}
-            >
-              Cập nhật báo cáo
-            </Button>
+            {reportDetail?.status !== 'RESOLVED' && (
+              <Button
+                onClick={() => {
+                  setDetailDialogOpen(false);
+                  setUpdateDialogOpen(true);
+                }}
+                disabled={!reportDetail}
+              >
+                Cập nhật báo cáo
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

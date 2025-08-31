@@ -500,6 +500,198 @@ export interface GetUserProposalResponse {
   timestamp: string; // ISO 8601
 }
 
+export interface BookingReport {
+  id: number;
+  bookingId: number;
+  reporterId: number;
+  reporterType: 'CUSTOMER' | 'PROVIDER' | 'STAFF';
+  reportedCustomerId: number;
+  reportedProviderId: number;
+  reason: string;
+  description: string;
+  imageUrls: string[];
+  status: 'PENDING' | 'REVIEWED' | 'RESOLVED';
+  createdAt: string;
+  reviewedAt: string | null;
+  reviewedById: number | null;
+  note: string;
+  reviewResponse: string | null;
+  User_BookingReport_reporterIdToUser: {
+    id: number;
+    name: string;
+    email: string;
+    phone: string;
+    avatar: string | null;
+  };
+  CustomerProfile: {
+    id: number;
+    User: {
+      id: number;
+      name: string;
+      email: string;
+      phone: string;
+      avatar: string | null;
+    };
+  };
+  ServiceProvider: {
+    id: number;
+    User_ServiceProvider_userIdToUser: {
+      id: number;
+      name: string;
+      email: string;
+      phone: string;
+      avatar: string | null;
+    };
+  };
+}
+
+export interface GetUserBookingDetailResponse {
+  success: boolean;
+  code: string;
+  message: string;
+  data: {
+    id: number;
+    customerId: number;
+    providerId: number;
+    status: StatusBooking;
+    deletedAt: string | null;
+    createdAt: string;
+    updatedAt: string;
+    staffId: number;
+    serviceRequestId: number;
+    completedAt: string | null;
+    ServiceRequest: {
+      id: number;
+      customerId: number;
+      providerId: number;
+      note: string;
+      preferredDate: string;
+      status: StatusServiceRequest;
+      createdAt: string;
+      updatedAt: string;
+      location: string;
+      phoneNumber: string;
+      categoryId: number;
+      Category: {
+        id: number;
+        name: string;
+        logo: string | null;
+        parentCategoryId: number | null;
+        createdById: number | null;
+        updatedById: number | null;
+        deletedById: number | null;
+        deletedAt: string | null;
+        createdAt: string;
+        updatedAt: string;
+      };
+      PaymentTransaction: {
+        id: number;
+        gateway: string;
+        status: string;
+        transactionDate: string;
+        amountIn: number;
+        amountOut: number;
+        accumulated: number;
+        referenceNumber: string;
+        transactionContent: string;
+        body: string;
+        accountNumber: string | null;
+        subAccount: string | null;
+        createdAt: string;
+      }[];
+    };
+    ServiceProvider: {
+      id: number;
+      description: string;
+      address: string;
+      createdAt: string;
+      updatedAt: string;
+      userId: number;
+      companyType: string;
+      industry: string | null;
+      licenseNo: string | null;
+      logo: string | null;
+      taxId: string;
+      verificationStatus: string;
+      verifiedAt: string | null;
+      verifiedById: number | null;
+      User_ServiceProvider_userIdToUser: {
+        name: string;
+        email: string;
+        phone: string;
+        avatar: string | null;
+      };
+    };
+    Staff_Booking_staffIdToStaff: {
+      id: number;
+      userId: number;
+      providerId: number;
+      createdAt: string;
+      updatedAt: string;
+      isActive: boolean;
+      User: {
+        name: string;
+        email: string;
+        phone: string;
+        avatar: string | null;
+      };
+    };
+    WorkLog: {
+      id: number;
+      staffId: number;
+      bookingId: number;
+      checkIn: string;
+      checkOut: string | null;
+      note: string | null;
+      createdAt: string;
+      updatedAt: string;
+      checkInImages: string[];
+      checkOutImages: string[];
+    }[];
+    Transaction: {
+      id: number;
+      bookingId: number;
+      amount: number;
+      status: string;
+      method: string;
+      paidAt: string | null;
+      createdById: number;
+      updatedById: number | null;
+      deletedById: number | null;
+      deletedAt: string | null;
+      createdAt: string;
+      orderCode: string;
+    };
+    Proposal: {
+      id: number;
+      bookingId: number;
+      notes: string;
+      createdAt: string;
+      status: string;
+      ProposalItem: {
+        id: number;
+        proposalId: number;
+        serviceId: number;
+        quantity: number;
+        createdAt: string;
+        status: string;
+        price: number;
+        Service: {
+          id: number;
+          name: string;
+          basePrice: number;
+          virtualPrice: number;
+          durationMinutes: number;
+          images: string[];
+        };
+      }[];
+    };
+    BookingReport: BookingReport[];
+  };
+  statusCode: number;
+  timestamp: string;
+}
+
 export interface ServiceItem {
   serviceId: number;
   serviceItemId: number;
@@ -778,6 +970,11 @@ export const userService = {
     return response.data;
   },
 
+  getUserBookingDetail: async (id: number): Promise<GetUserBookingDetailResponse> => {
+    const response = await apiService.get<GetUserBookingDetailResponse>(`/users/my-bookings/${id}`);
+    return response.data;
+  },
+
   updateUserProposal: async (
     id: number,
     data: UpdateUserProposalRequest
@@ -1007,8 +1204,9 @@ export interface ChatProvider {
 export interface ChatResponse {
   content: string;
   data: {
-    services: ChatService[];
-    providers: ChatProvider[];
+    services?: ChatService[];
+    service?: ChatService;
+    providers?: ChatProvider[];
   };
 }
 

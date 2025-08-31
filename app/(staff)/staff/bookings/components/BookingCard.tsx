@@ -212,6 +212,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
   const isInProgress = booking.serviceRequest.status === StatusServiceRequest.IN_PROGRESS;
   const isEstimated = booking.serviceRequest.status === StatusServiceRequest.ESTIMATED;
   const isCancelled = booking.serviceRequest.status === StatusServiceRequest.CANCELLED;
+  const isBookingCancelled = booking.status === 'CANCELLED';
   // const isPending = booking.serviceRequest.status === StatusServiceRequest.PENDING;
 
   // Check if staff has already checked in for this booking
@@ -527,26 +528,32 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 to-blue-600" />
       )}
 
-      <div className="p-4">
+      <div className="p-3 sm:p-4">
         {/* Header Section */}
         <div className="flex items-start justify-between mb-3">
-          <div className="flex items-center gap-3">
-            <Avatar className="h-10 w-10 border-2 border-gray-50">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+            <Avatar className="h-8 w-8 sm:h-10 sm:w-10 border-2 border-gray-50 flex-shrink-0">
               <AvatarImage src={undefined} />
-              <AvatarFallback className="bg-blue-100 text-blue-700 font-medium">
+              <AvatarFallback className="bg-blue-100 text-blue-700 font-medium text-xs sm:text-sm">
                 {initials}
               </AvatarFallback>
             </Avatar>
-            <div className="flex-1">
-              <h3 className="font-medium text-gray-900">{booking.customer.name}</h3>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-medium text-gray-900 text-sm sm:text-base truncate">
+                {booking.customer.name}
+              </h3>
               <p className="text-xs text-gray-500">SR-{booking.serviceRequestId}</p>
             </div>
           </div>
 
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-gray-50">
-                <Eye className="h-4 w-4 text-gray-500" />
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 sm:h-8 sm:w-8 p-0 hover:bg-gray-50 flex-shrink-0"
+              >
+                <Eye className="h-3 w-3 sm:h-4 sm:w-4 text-gray-500" />
               </Button>
             </SheetTrigger>
             <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
@@ -1171,16 +1178,16 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
 
         {/* Status Badge with Priority Indicator */}
         <div className="flex flex-col gap-2 mb-3">
-          <div className="flex gap-2 justify-end flex-wrap">
+          <div className="flex gap-1 sm:gap-2 justify-end flex-wrap">
             {canCheckIn && (
               <Button
                 onClick={handleCheckIn}
                 disabled={isCheckingIn}
                 size="sm"
-                className="h-7 px-2 text-xs bg-blue-600 hover:bg-blue-700"
+                className="h-6 w-6 sm:h-7 sm:w-auto px-1 sm:px-2 text-xs bg-blue-600 hover:bg-blue-700"
               >
-                <UserCheck className="h-3 w-3 mr-1" />
-                Check-in
+                <UserCheck className="h-3 w-3 sm:mr-1" />
+                <span className="hidden sm:inline">Check-in</span>
               </Button>
             )}
 
@@ -1191,36 +1198,44 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                   setActiveTab('report');
                 }}
                 size="sm"
-                className="px-2 text-xs bg-green-600 hover:bg-green-700"
+                className="h-6 w-6 sm:h-7 sm:w-auto px-1 sm:px-2 text-xs bg-green-600 hover:bg-green-700"
               >
-                <FileText className="h-3 w-3 mr-1" />
-                Báo cáo
+                <FileText className="h-3 w-3 sm:mr-1" />
+                <span className="hidden sm:inline">Báo cáo</span>
               </Button>
             )}
 
-            {isEstimated && isProposalAccepted && !isStaffCompleted && (
+            {isEstimated && isProposalAccepted && !isStaffCompleted && !isBookingCancelled && (
               <Button
                 onClick={() => setCheckoutOpen(true)}
                 size="sm"
-                variant="ghost"
-                className="h-7 px-2 text-xs bg-green-500 hover:bg-green-600 hover:text-white"
+                variant="default"
+                className="h-6 w-6 sm:h-7 sm:w-auto px-1 sm:px-2 text-xs text-white bg-green-500 hover:bg-green-600"
               >
-                <CheckCircle className="h-3 w-3 mr-1" />
-                Check out
+                <CheckCircle className="h-3 w-3 sm:mr-1" />
+                <span className="hidden sm:inline">Check out</span>
               </Button>
             )}
 
             {/* Asset Management Buttons - Only show when can manage assets */}
             {canManageAssets && (
               <>
-                <Button onClick={() => setAssetsViewOpen(true)} size="sm">
-                  <Settings className="h-3 w-3 mr-1" />
-                  Xem thiết bị
+                <Button
+                  onClick={() => setAssetsViewOpen(true)}
+                  size="sm"
+                  className="h-6 w-6 sm:h-7 sm:w-auto px-1 sm:px-2 text-xs"
+                >
+                  <Settings className="h-3 w-3 sm:mr-1" />
+                  <span className="hidden sm:inline">Xem thiết bị</span>
                 </Button>
 
-                <Button onClick={() => setAssetCreateOpen(true)} size="sm">
-                  <Plus className="h-3 w-3 mr-1" />
-                  Tạo tài sản
+                <Button
+                  onClick={() => setAssetCreateOpen(true)}
+                  size="sm"
+                  className="h-6 w-6 sm:h-7 sm:w-auto px-1 sm:px-2 text-xs"
+                >
+                  <Plus className="h-3 w-3 sm:mr-1" />
+                  <span className="hidden sm:inline">Tạo tài sản</span>
                 </Button>
               </>
             )}
@@ -1229,12 +1244,12 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
 
         {/* Service Information */}
         <div className="flex items-center gap-2 mb-3">
-          <div className="w-6 h-6 bg-blue-100 rounded flex items-center justify-center">
+          <div className="w-5 h-5 sm:w-6 sm:h-6 bg-blue-100 rounded flex items-center justify-center flex-shrink-0">
             <span className="text-blue-600 text-xs font-bold">
               {booking.serviceRequest.categoryName.charAt(0)}
             </span>
           </div>
-          <span className="text-sm font-medium text-gray-700 truncate">
+          <span className="text-xs sm:text-sm font-medium text-gray-700 truncate">
             {booking.serviceRequest.categoryName}
           </span>
         </div>
@@ -1242,9 +1257,9 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
         {/* Contact Information */}
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-gray-400" />
-            <div className="flex flex-col">
-              <span className="text-sm text-gray-600">
+            <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-gray-400 flex-shrink-0" />
+            <div className="flex flex-col min-w-0 flex-1">
+              <span className="text-xs sm:text-sm text-gray-600">
                 {format(new Date(booking.serviceRequest.preferredDate), 'dd/MM/yyyy', {
                   locale: vi,
                 })}
@@ -1256,13 +1271,15 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Phone className="h-4 w-4 text-gray-400" />
-            <span className="text-sm text-gray-600 truncate">{booking.customer.phone}</span>
+            <Phone className="h-3 w-3 sm:h-4 sm:w-4 text-gray-400 flex-shrink-0" />
+            <span className="text-xs sm:text-sm text-gray-600 truncate">
+              {booking.customer.phone}
+            </span>
           </div>
           <div className="flex items-center gap-2">
-            <MapPin className="h-4 w-4 text-gray-400" />
+            <MapPin className="h-3 w-3 sm:h-4 sm:w-4 text-gray-400 flex-shrink-0" />
             <span
-              className="text-sm text-gray-600 truncate"
+              className="text-xs sm:text-sm text-gray-600 truncate"
               title={booking.serviceRequest.location}
             >
               {booking.serviceRequest.location}

@@ -50,40 +50,43 @@ export function StaffTablePagination({
   };
 
   return (
-    <div className="flex items-center justify-between px-2">
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-2">
       {showItemsInfo && (
-        <div className="flex items-center space-x-2">
-          <p className="text-sm font-medium">Hiển thị</p>
-          {showPageSizeSelector && (
-            <Select
-              value={pageSize.toString()}
-              onValueChange={value => handlePageSizeChange(parseInt(value))}
-              disabled={loading}
-            >
-              <SelectTrigger className="h-8 w-[70px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {pageSizeOptions.map(size => (
-                  <SelectItem key={size} value={size.toString()}>
-                    {size}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-          <p className="text-sm text-muted-foreground">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
+          <div className="flex items-center space-x-2">
+            <p className="text-sm font-medium">Hiển thị</p>
+            {showPageSizeSelector && (
+              <Select
+                value={pageSize.toString()}
+                onValueChange={value => handlePageSizeChange(parseInt(value))}
+                disabled={loading}
+              >
+                <SelectTrigger className="h-8 w-[70px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {pageSizeOptions.map(size => (
+                    <SelectItem key={size} value={size.toString()}>
+                      {size}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+          <p className="text-xs sm:text-sm text-muted-foreground">
             {startItem}-{endItem} trong tổng số {totalItems} nhân viên
           </p>
         </div>
       )}
 
-      <div className="flex items-center space-x-2">
+      <div className="flex items-center space-x-1 sm:space-x-2">
         <Button
           variant="outline"
           size="sm"
           onClick={() => handlePageChange(1)}
           disabled={loading || page === 1}
+          className="hidden sm:flex"
         >
           <ChevronsLeft className="h-4 w-4" />
         </Button>
@@ -116,7 +119,7 @@ export function StaffTablePagination({
                 size="sm"
                 onClick={() => handlePageChange(pageNum)}
                 disabled={loading}
-                className="w-8 h-8"
+                className="w-8 h-8 text-xs sm:text-sm"
               >
                 {pageNum}
               </Button>
@@ -137,6 +140,7 @@ export function StaffTablePagination({
           size="sm"
           onClick={() => handlePageChange(totalPages)}
           disabled={loading || page === totalPages}
+          className="hidden sm:flex"
         >
           <ChevronsRight className="h-4 w-4" />
         </Button>

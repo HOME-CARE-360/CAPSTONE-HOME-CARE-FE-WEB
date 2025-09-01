@@ -16,6 +16,7 @@ import userService, {
   GetProviderTransactionsResponse,
   ChatRequest,
   ChatResponse,
+  SystemConfigsResponse,
 } from '@/lib/api/services/fetchUser';
 import {
   UpdateUserProfileRequestType,
@@ -439,5 +440,14 @@ export const useChat = () => {
       }
       toast.error(errorMessage);
     },
+  });
+};
+
+export const useGetSystemConfigs = (params?: { page?: number; limit?: number }) => {
+  return useQuery<SystemConfigsResponse>({
+    queryKey: ['publics', 'system-configs', params],
+    queryFn: () => userService.getSystemConfigs(params),
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    gcTime: 30 * 60 * 1000, // 30 minutes
   });
 };

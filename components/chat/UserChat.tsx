@@ -396,59 +396,61 @@ export function UserChat() {
 
             {/* Messages Area */}
             <ScrollArea className="flex-1 px-2 sm:px-3 lg:px-4 min-h-0">
-              {isLoadingMessages ? (
-                <div className="space-y-4 p-4">
-                  {Array.from({ length: 8 }).map((_, i) => (
-                    <div
-                      key={i}
-                      className={`flex gap-3 ${i % 2 === 0 ? 'justify-end' : 'justify-start'}`}
-                    >
-                      {i % 2 !== 0 && <Skeleton className="w-8 h-8 rounded-full flex-shrink-0" />}
-                      <Skeleton className={`h-12 w-48 lg:w-64 rounded-2xl`} />
-                      {i % 2 === 0 && <Skeleton className="w-8 h-8 rounded-full flex-shrink-0" />}
-                    </div>
-                  ))}
-                </div>
-              ) : allMessages && allMessages.length > 0 ? (
-                <div className="space-y-3 py-4">
-                  {allMessages.map((message, index) => {
-                    const isOwn = currentUserId != null && message.senderId === currentUserId;
-
-                    return (
-                      <EnhancedMessageItem
-                        key={message.tempId || `${message.id}-${message.createdAt}`}
-                        message={message}
-                        isOwn={isOwn}
-                        partnerName={partner?.name}
-                        partnerAvatar={partner?.avatar}
-                        currentUser={currentUser}
-                        isLast={index === allMessages.length - 1}
-                      />
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="flex-1 flex items-center justify-center">
-                  <div className="text-center p-8">
-                    <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gray-100 flex items-center justify-center">
-                      <MessageCircle className="w-10 h-10 text-gray-400" />
-                    </div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">
-                      Bắt đầu cuộc trò chuyện
-                    </h3>
-                    <p className="text-gray-500 text-sm max-w-sm">
-                      Gửi tin nhắn đầu tiên để bắt đầu trò chuyện với {partner?.name}
-                    </p>
+              <div className="max-w-4xl mx-auto">
+                {isLoadingMessages ? (
+                  <div className="space-y-4 p-4">
+                    {Array.from({ length: 8 }).map((_, i) => (
+                      <div
+                        key={i}
+                        className={`flex gap-3 ${i % 2 === 0 ? 'justify-end' : 'justify-start'}`}
+                      >
+                        {i % 2 !== 0 && <Skeleton className="w-8 h-8 rounded-full flex-shrink-0" />}
+                        <Skeleton className={`h-12 w-48 lg:w-64 rounded-2xl`} />
+                        {i % 2 === 0 && <Skeleton className="w-8 h-8 rounded-full flex-shrink-0" />}
+                      </div>
+                    ))}
                   </div>
-                </div>
-              )}
-              <div ref={messagesEndRef} />
+                ) : allMessages && allMessages.length > 0 ? (
+                  <div className="space-y-3 py-4">
+                    {allMessages.map((message, index) => {
+                      const isOwn = currentUserId != null && message.senderId === currentUserId;
+
+                      return (
+                        <EnhancedMessageItem
+                          key={message.tempId || `${message.id}-${message.createdAt}`}
+                          message={message}
+                          isOwn={isOwn}
+                          partnerName={partner?.name}
+                          partnerAvatar={partner?.avatar}
+                          currentUser={currentUser}
+                          isLast={index === allMessages.length - 1}
+                        />
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="flex-1 flex items-center justify-center min-h-[400px]">
+                    <div className="text-center p-8">
+                      <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gray-100 flex items-center justify-center">
+                        <MessageCircle className="w-10 h-10 text-gray-400" />
+                      </div>
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">
+                        Bắt đầu cuộc trò chuyện
+                      </h3>
+                      <p className="text-gray-500 text-sm max-w-sm">
+                        Gửi tin nhắn đầu tiên để bắt đầu trò chuyện với {partner?.name}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                <div ref={messagesEndRef} />
+              </div>
             </ScrollArea>
 
             {/* Message Input */}
             <div className="absolute bottom-0 left-0 right-0 px-3 sm:px-4 lg:px-6 py-3 sm:py-4 border-t border-gray-100 bg-white flex-shrink-0">
-              <div className="flex items-end gap-2 sm:gap-3">
-                <div className="flex-1 min-w-0">
+              <div className="flex items-end gap-2 sm:gap-3 max-w-4xl mx-auto">
+                <div className="flex-1 min-w-0 max-w-2xl">
                   <Textarea
                     ref={textareaRef}
                     value={text}
@@ -610,7 +612,7 @@ const EnhancedMessageItem = React.memo(
 
         {/* Message content */}
         <div
-          className={`flex flex-col max-w-[240px] sm:max-w-[280px] md:max-w-xs lg:max-w-md ${isOwn ? 'items-end' : 'items-start'}`}
+          className={`flex flex-col max-w-[240px] sm:max-w-[280px] md:max-w-xs lg:max-w-lg xl:max-w-xl ${isOwn ? 'items-end' : 'items-start'}`}
         >
           <Card
             className={`

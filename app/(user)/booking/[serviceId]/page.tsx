@@ -29,7 +29,7 @@ import { vi } from 'date-fns/locale';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useService } from '@/hooks/useService';
-import { useGetServiceProviderInformation } from '@/hooks/useUser';
+import { useGetServiceProviderInformation, useGetSystemConfigs } from '@/hooks/useUser';
 import { CreateBookingRequest } from '@/lib/api/services/fetchBooking';
 import { useCreateBooking } from '@/hooks/useBooking';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -310,10 +310,22 @@ export default function NewBookingPage() {
     : 0;
   const { data: profileProvider, isLoading: isProviderLoading } =
     useGetServiceProviderInformation(serviceProviderId);
+  const { data: systemConfigs, isLoading: isSystemConfigsLoading } = useGetSystemConfigs({
+    page: 1,
+    limit: 20,
+  });
   const { mutateAsync: createBooking } = useCreateBooking();
 
   // Check if any critical data is still loading
-  const isDataLoading = isProfileLoading || isServiceLoading || isProviderLoading;
+  const isDataLoading =
+    isProfileLoading || isServiceLoading || isProviderLoading || isSystemConfigsLoading;
+
+  // Get booking deposit from system configs
+  // const bookingDeposit = useMemo(() => {
+  //   if (!systemConfigs?.data?.items) return 30000; // fallback value
+  //   const depositConfig = systemConfigs.data.items.find(config => config.key === 'BOOKING_DEPOSIT');
+  //   return depositConfig ? parseInt(depositConfig.value, 10) : 30000;
+  // }, [systemConfigs]);
 
   // Location state - simplified for districts only
   const [selectedDistrict, setSelectedDistrict] = useState<string>('');
@@ -919,7 +931,20 @@ export default function NewBookingPage() {
                     <div className="mt-4 p-4 rounded-lg bg-muted/30 border">
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-muted-foreground">Số tiền khảo sát</span>
-                        <span className="font-semibold">{formatCurrency(30000)}</span>
+                        <span className="font-semibold">
+                          {formatCurrency(
+                            systemConfigs?.data.items.find(
+                              config => config.key === 'BOOKING_DEPOSIT'
+                            )?.value
+                              ? parseInt(
+                                  systemConfigs?.data.items.find(
+                                    config => config.key === 'BOOKING_DEPOSIT'
+                                  )?.value || '30000',
+                                  10
+                                )
+                              : 30000
+                          )}
+                        </span>
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
                         Số tiền này dùng để xác nhận yêu cầu. Giá cuối cùng sẽ hiển thị sau khi khảo
@@ -1080,7 +1105,20 @@ export default function NewBookingPage() {
                         </div>
                         <div className="flex justify-between items-center text-sm">
                           <span className="text-muted-foreground">Tiền khảo sát</span>
-                          <span className="font-semibold">{formatCurrency(30000)}</span>
+                          <span className="font-semibold">
+                            {formatCurrency(
+                              systemConfigs?.data.items.find(
+                                config => config.key === 'BOOKING_DEPOSIT'
+                              )?.value
+                                ? parseInt(
+                                    systemConfigs?.data.items.find(
+                                      config => config.key === 'BOOKING_DEPOSIT'
+                                    )?.value || '30000',
+                                    10
+                                  )
+                                : 30000
+                            )}
+                          </span>
                         </div>
                         <p className="text-xs text-muted-foreground">
                           *Giá cuối cùng sẽ được xác nhận sau khi khảo sát
@@ -1160,7 +1198,18 @@ export default function NewBookingPage() {
               </div>
               <div className="text-right">
                 <p className="text-sm text-muted-foreground">Đặt cọc</p>
-                <p className="text-xl font-bold text-primary">{formatCurrency(30000)}</p>
+                <span className="font-semibold">
+                  {formatCurrency(
+                    systemConfigs?.data.items.find(config => config.key === 'BOOKING_DEPOSIT')
+                      ?.value
+                      ? parseInt(
+                          systemConfigs?.data.items.find(config => config.key === 'BOOKING_DEPOSIT')
+                            ?.value || '30000',
+                          10
+                        )
+                      : 30000
+                  )}
+                </span>
               </div>
             </div>
 
@@ -1267,7 +1316,21 @@ export default function NewBookingPage() {
                 <div className="text-sm text-muted-foreground">
                   <p className="font-medium mb-1">Lưu ý quan trọng:</p>
                   <ul className="space-y-1 text-xs">
-                    <li>• Tiền đặt cọc {formatCurrency(30000)} để xác nhận yêu cầu</li>
+                    <li>
+                      • Tiền đặt cọc{' '}
+                      {formatCurrency(
+                        systemConfigs?.data.items.find(config => config.key === 'BOOKING_DEPOSIT')
+                          ?.value
+                          ? parseInt(
+                              systemConfigs?.data.items.find(
+                                config => config.key === 'BOOKING_DEPOSIT'
+                              )?.value || '30000',
+                              10
+                            )
+                          : 30000
+                      )}{' '}
+                      để xác nhận yêu cầu
+                    </li>
                     <li>• Giá cuối cùng sẽ được thông báo sau khi khảo sát</li>
                     <li>• Nhân viên sẽ liên hệ trong vòng 24h</li>
                   </ul>

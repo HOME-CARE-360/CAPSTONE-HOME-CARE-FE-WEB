@@ -149,7 +149,6 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
   const availableStaff = staffData?.data || [];
   const availableServices = (servicesData?.data || []).filter(s => s.status !== 'PENDING');
 
-  // Check if inspection report exists and if staff is already assigned
   const hasInspectionReport = !!detailBooking?.booking?.inspectionReport;
   const hasStaffAssigned = !!detailBooking?.booking?.staff;
 
@@ -494,7 +493,8 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                     Chi tiết đặt lịch
                     {isPreferredDateOverdue &&
                       booking.booking?.status !== 'COMPLETED' &&
-                      booking.booking?.status !== 'CANCELLED' && (
+                      booking.booking?.status !== 'CANCELLED' &&
+                      booking.status !== 'ESTIMATED' && (
                         <Badge variant="destructive" className="ml-2">
                           Quá hạn
                         </Badge>
@@ -724,7 +724,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                         {/* Actions */}
                         <div className="space-y-4">
                           {/* Overdue Notice - only show for pending bookings */}
-                          {isPending && isPreferredDateOverdue && (
+                          {isPending && isPreferredDateOverdue && !booking.booking?.staffId && (
                             <Alert className="border-red-200 bg-red-50">
                               <AlertTriangle className="h-4 w-4 text-red-600" />
                               <AlertDescription>
@@ -1054,7 +1054,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                                       Đang chờ duyệt
                                     </Badge>
                                   )}
-                                  {detailBooking.booking.Proposal.status === 'APPROVED' && (
+                                  {detailBooking.booking.Proposal.status === 'ACCEPTED' && (
                                     <Badge variant="outline" className="text-xs border-gray-300">
                                       Đã duyệt
                                     </Badge>
@@ -1690,17 +1690,23 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                   'Liên hệ'
                 )}
               </Button>
-              {/* Always show report button for all statuses */}
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full sm:w-auto text-xs sm:text-sm"
-                onClick={() => setReportSheetOpen(true)}
-              >
-                Báo cáo
-              </Button>
+              {booking.booking?.status !== 'CANCELLED' &&
+                booking.booking?.status !== 'COMPLETED' &&
+                !!booking.booking?.staffId &&
+                (!detailBooking || detailBooking?.booking?.Proposal?.status !== 'ACCEPTED') && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full sm:w-auto text-xs sm:text-sm"
+                    onClick={() => setReportSheetOpen(true)}
+                  >
+                    Báo cáo
+                  </Button>
+                )}
               {/* Only show cancel button when status is not CANCELLED or COMPLETED */}
               {booking.booking?.status !== 'CANCELLED' &&
+                !isInProgress &&
+                !booking.booking?.staffId &&
                 booking.booking?.status !== 'COMPLETED' && (
                   <Button
                     variant="destructive"

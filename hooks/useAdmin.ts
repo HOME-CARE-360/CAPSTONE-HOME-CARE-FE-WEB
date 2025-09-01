@@ -1,5 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { AdminService } from '@/lib/api/services/fetchAdmin';
+import {
+  AdminService,
+  SystemConfigsResponse,
+  CreateSystemConfigRequest,
+  UpdateSystemConfigRequest,
+} from '@/lib/api/services/fetchAdmin';
 import { toast } from 'sonner';
 import {
   AssginRoleToUserRequestType,
@@ -25,6 +30,12 @@ interface UserSearchParams {
   search?: string;
   role?: string;
   status?: string;
+}
+
+interface SystemConfigSearchParams {
+  page?: number;
+  limit?: number;
+  search?: string;
 }
 
 export const useGetAllUsers = (params?: UserSearchParams) => {
@@ -344,5 +355,97 @@ export const useGetExportPDFMonthly = (params: { month: number; year: number }) 
     data,
     isLoading,
     error,
+  };
+};
+
+// System Configs hooks
+export const useGetSystemConfigs = (params?: SystemConfigSearchParams) => {
+  const { data, isLoading, error } = useQuery<SystemConfigsResponse>({
+    queryKey: ['admin', 'system-configs', params],
+    queryFn: () => AdminService.getSystemConfigs(params),
+  });
+
+  return {
+    data,
+    isLoading,
+    error,
+  };
+};
+
+export const useGetSystemConfigById = (id: string | number) => {
+  const { data, isLoading, error } = useQuery<SystemConfigsResponse>({
+    queryKey: ['admin', 'system-configs', id],
+    queryFn: () => AdminService.getSystemConfigById(id),
+    enabled: !!id,
+  });
+
+  return {
+    data,
+    isLoading,
+    error,
+  };
+};
+
+export const useCreateSystemConfig = () => {
+  const queryClient = useQueryClient();
+  const mutation = useMutation({
+    mutationFn: (data: CreateSystemConfigRequest) => AdminService.createSystemConfig(data),
+    onSuccess: () => {
+      toast.success('Tạo cấu hình hệ thống thành công');
+      queryClient.invalidateQueries({ queryKey: ['admin', 'system-configs'] });
+    },
+    onError: (error: Error) => {
+      toast.error('Có lỗi xảy ra khi tạo cấu hình hệ thống');
+      console.error('Create system config error:', error);
+    },
+  });
+
+  return {
+    mutation,
+    isLoading: mutation.isPending,
+    error: mutation.error,
+  };
+};
+
+export const useUpdateSystemConfig = () => {
+  const queryClient = useQueryClient();
+  const mutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: UpdateSystemConfigRequest }) =>
+      AdminService.updateSystemConfig(id, data),
+    onSuccess: () => {
+      toast.success('Cập nhật cấu hình hệ thống thành công');
+      queryClient.invalidateQueries({ queryKey: ['admin', 'system-configs'] });
+    },
+    onError: (error: Error) => {
+      toast.error('Có lỗi xảy ra khi cập nhật cấu hình hệ thống');
+      console.error('Update system config error:', error);
+    },
+  });
+
+  return {
+    mutation,
+    isLoading: mutation.isPending,
+    error: mutation.error,
+  };
+};
+
+export const useDeleteSystemConfig = () => {
+  const queryClient = useQueryClient();
+  const mutation = useMutation({
+    mutationFn: (id: number) => AdminService.deleteSystemConfig(id),
+    onSuccess: () => {
+      toast.success('Xóa cấu hình hệ thống thành công');
+      queryClient.invalidateQueries({ queryKey: ['admin', 'system-configs'] });
+    },
+    onError: (error: Error) => {
+      toast.error('Có lỗi xảy ra khi xóa cấu hình hệ thống');
+      console.error('Delete system config error:', error);
+    },
+  });
+
+  return {
+    mutation,
+    isLoading: mutation.isPending,
+    error: mutation.error,
   };
 };

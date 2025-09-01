@@ -442,31 +442,34 @@ const ProposalSection = ({
           </div>
         )}
 
-        <div className="mt-3 space-y-2 text-sm">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
-            <span className="text-muted-foreground">Tổng giá trị đề xuất</span>
-            <span className="font-semibold text-right sm:text-left">
-              {formatCurrency(totalAmount)}
-            </span>
+        {/* Only show total calculations if proposal is not rejected */}
+        {!isRejected && (
+          <div className="mt-3 space-y-2 text-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+              <span className="text-muted-foreground">Tổng giá trị đề xuất</span>
+              <span className="font-semibold text-right sm:text-left">
+                {formatCurrency(totalAmount)}
+              </span>
+            </div>
+            {hasDepositAmount && (
+              <>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                  <span className="text-muted-foreground">Số tiền đặt cọc</span>
+                  <span className="font-medium text-right sm:text-left">
+                    - {formatCurrency(depositAmount)}
+                  </span>
+                </div>
+                <Separator />
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                  <span className="text-muted-foreground">Tổng Cộng:</span>
+                  <span className="font-semibold text-right sm:text-left">
+                    {formatCurrency(remainingAfterDeposit)}
+                  </span>
+                </div>
+              </>
+            )}
           </div>
-          {hasDepositAmount && (
-            <>
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
-                <span className="text-muted-foreground">Số tiền đặt cọc</span>
-                <span className="font-medium text-right sm:text-left">
-                  - {formatCurrency(depositAmount)}
-                </span>
-              </div>
-              <Separator />
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
-                <span className="text-muted-foreground">Tổng Cộng:</span>
-                <span className="font-semibold text-right sm:text-left">
-                  {formatCurrency(remainingAfterDeposit)}
-                </span>
-              </div>
-            </>
-          )}
-        </div>
+        )}
       </div>
 
       {canShowActions && (
@@ -881,7 +884,7 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
             )}
             {/* Show report button based on status, date logic, and existing reports */}
             {(() => {
-              const isCompleted = booking.status?.toUpperCase() === 'COMPLETED';
+              const isStaffCompleted = booking.status?.toUpperCase() === 'STAFF_COMPLETED';
               const isPending = booking.status?.toUpperCase() === 'PENDING';
 
               // Don't show report button if there are existing reports
@@ -889,7 +892,7 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
                 return null;
               }
 
-              if (isCompleted) {
+              if (isStaffCompleted) {
                 // Always show for completed bookings (if no existing reports)
                 return (
                   <Button

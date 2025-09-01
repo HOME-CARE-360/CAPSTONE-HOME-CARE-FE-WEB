@@ -401,6 +401,35 @@ export interface ServiceSuggestionsResponse {
   data: ServiceSuggestion[];
 }
 
+export interface SystemConfig {
+  id: number;
+  key: string;
+  value: string;
+  type: 'number' | 'string' | 'boolean';
+  createdAt: string;
+  updatedAt: string;
+  expiresAt: string | null;
+}
+
+export interface SystemConfigsResponse {
+  success: boolean;
+  code: string;
+  message: string;
+  data: {
+    items: SystemConfig[];
+    meta: {
+      page: number;
+      pageSize: number;
+      total: number;
+      totalPages: number;
+      orderBy: string;
+      order: string;
+    };
+  };
+  statusCode: number;
+  timestamp: string;
+}
+
 export interface GetServiceProviderResponse {
   success: boolean;
   code: string;
@@ -1081,6 +1110,24 @@ export const userService = {
       return response.data;
     } catch (error) {
       console.error('Chat Error:', error);
+      throw error;
+    }
+  },
+
+  getSystemConfigs: async (params?: {
+    page?: number;
+    limit?: number;
+  }): Promise<SystemConfigsResponse> => {
+    try {
+      const queryParams = new URLSearchParams();
+      if (params?.page) queryParams.append('page', params.page.toString());
+      if (params?.limit) queryParams.append('limit', params.limit.toString());
+
+      const url = `/publics/system-configs${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+      const response = await apiService.get<SystemConfigsResponse>(url);
+      return response.data;
+    } catch (error) {
+      console.error('Get System Configs Error:', error);
       throw error;
     }
   },

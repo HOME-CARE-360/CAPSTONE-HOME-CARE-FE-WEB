@@ -303,7 +303,7 @@ export default function NewBookingPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { data: profifeData, isLoading: isProfileLoading } = useUserProfile();
   const params = useParams();
-  const serviceId = params.serviceId;
+  const serviceId = params?.serviceId;
   const { data: serviceData, isLoading: isServiceLoading } = useService(serviceId as string);
   const serviceProviderId = serviceData?.service?.providerId
     ? Number(serviceData.service.providerId)

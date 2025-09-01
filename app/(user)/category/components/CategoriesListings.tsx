@@ -13,11 +13,11 @@ export default function CategoriesListings() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [searchTerm, setSearchTerm] = useState(searchParams.get('name') || '');
+  const [searchTerm, setSearchTerm] = useState(searchParams?.get('name') || '');
 
   // Only apply filters when search params are present (after form submission)
   const filters = useMemo(() => {
-    const nameParam = searchParams.get('name');
+    const nameParam = searchParams?.get('name');
     const nextFilters: { name?: string } = {};
     if (nameParam?.trim()) nextFilters.name = nameParam.trim();
     return nextFilters;
@@ -26,7 +26,7 @@ export default function CategoriesListings() {
   const { data, isLoading, isError, error, isFetching } = useCategories(filters);
 
   useEffect(() => {
-    const current = searchParams.get('name') || '';
+    const current = searchParams?.get('name') || '';
     setSearchTerm(current);
   }, [searchParams]);
 

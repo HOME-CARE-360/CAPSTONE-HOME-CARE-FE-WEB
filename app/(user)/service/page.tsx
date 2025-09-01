@@ -23,8 +23,8 @@ function ServiceSearchContent() {
   const [currentPage, setCurrentPage] = useState(1);
 
   // Get search parameters from URL
-  const urlSearch = searchParams.get('search');
-  const urlCategory = searchParams.get('category');
+  const urlSearch = searchParams?.get('search');
+  const urlCategory = searchParams?.get('category');
 
   // Fetch categories for filtering
   const { data: categoriesData } = useCategories();

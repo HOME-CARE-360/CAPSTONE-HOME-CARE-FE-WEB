@@ -11,8 +11,8 @@ import { toast } from 'sonner';
 function PaymentFailedContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const orderCode = useMemo(() => searchParams.get('orderCode') || '', [searchParams]);
-  const status = useMemo(() => searchParams.get('status') || '', [searchParams]);
+  const orderCode = useMemo(() => searchParams?.get('orderCode') || '', [searchParams]);
+  const status = useMemo(() => searchParams?.get('status') || '', [searchParams]);
   const { mutateAsync, isPending, data } = useCheckPaymentFail();
   const [hasRequested, setHasRequested] = useState(false);
 

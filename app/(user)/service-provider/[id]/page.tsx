@@ -7,8 +7,9 @@ import ProviderInfoCard from './components/ProviderInfoCard';
 import ProviderServicesList from './components/ProviderServicesList';
 
 export default function ServiceProviderProfile() {
-  const { id } = useParams();
-  const numericId = Number(id);
+  const params = useParams();
+  const id = params?.id;
+  const numericId = Number(Array.isArray(id) ? id[0] : id);
   const { data, isLoading, error } = useGetServiceProviderInformation(numericId);
 
   if (isNaN(numericId)) {

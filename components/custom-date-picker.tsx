@@ -42,7 +42,7 @@ export function Calendar24({
   const MAX_TIME = '19:00';
 
   // Calculate minimum time based on current time if date is today
-  // Enforce minimum 1-hour advance booking
+  // Enforce minimum 1-hour 30-minute advance booking
   const getMinTime = (): string => {
     if (!date) return MIN_TIME;
 
@@ -54,14 +54,14 @@ export function Calendar24({
       const currentHour = currentDate.getHours();
       const currentMinute = currentDate.getMinutes();
 
-      // Calculate minimum booking time (current time + 1 hour)
+      // Calculate minimum booking time (current time + 1 hour 30 minutes)
       let minHour = currentHour + 1;
-      let minMinute = currentMinute;
+      let minMinute = currentMinute + 30;
 
       // Handle minute overflow
       if (minMinute >= 60) {
         minHour += 1;
-        minMinute = 0;
+        minMinute = minMinute - 60;
       }
 
       // Ensure minimum booking time is within business hours
@@ -93,14 +93,14 @@ export function Calendar24({
       const currentHour = currentDate.getHours();
       const currentMinute = currentDate.getMinutes();
 
-      // Calculate minimum booking time (current time + 1 hour)
+      // Calculate minimum booking time (current time + 1 hour 30 minutes)
       let minHour = currentHour + 1;
-      let minMinute = currentMinute;
+      let minMinute = currentMinute + 30;
 
       // Handle minute overflow
       if (minMinute >= 60) {
         minHour += 1;
-        minMinute = 0;
+        minMinute = minMinute - 60;
       }
 
       // Check if minimum booking time is within business hours
@@ -156,20 +156,28 @@ export function Calendar24({
       if (isToday) {
         const currentTimeInMinutes = currentDate.getHours() * 60 + currentDate.getMinutes();
 
-        // Calculate minimum booking time (current time + 1 hour)
-        const minBookingTimeInMinutes = currentTimeInMinutes + 60;
+        // Calculate minimum booking time (current time + 1 hour 30 minutes)
+        const minBookingTimeInMinutes = currentTimeInMinutes + 90;
 
         if (timeInMinutes < minBookingTimeInMinutes) {
           const nextAvailableHour = Math.max(currentDate.getHours() + 1, 7);
-          const nextAvailableMinute = currentDate.getMinutes();
+          const nextAvailableMinute = currentDate.getMinutes() + 30;
 
-          if (nextAvailableHour >= 19) {
+          // Handle minute overflow for display
+          let displayHour = nextAvailableHour;
+          let displayMinute = nextAvailableMinute;
+          if (displayMinute >= 60) {
+            displayHour += 1;
+            displayMinute = displayMinute - 60;
+          }
+
+          if (displayHour >= 19) {
             setInternalTimeError('Không thể đặt lịch hôm nay. Vui lòng chọn ngày mai');
           } else {
-            const formattedNextHour = nextAvailableHour.toString().padStart(2, '0');
-            const formattedNextMinute = nextAvailableMinute.toString().padStart(2, '0');
+            const formattedNextHour = displayHour.toString().padStart(2, '0');
+            const formattedNextMinute = displayMinute.toString().padStart(2, '0');
             setInternalTimeError(
-              `Vui lòng đặt lịch ít nhất 1 tiếng trước. Giờ sớm nhất: ${formattedNextHour}:${formattedNextMinute}`
+              `Vui lòng đặt lịch ít nhất 1 tiếng 30 phút trước. Giờ sớm nhất: ${formattedNextHour}:${formattedNextMinute}`
             );
           }
           return false;
@@ -316,7 +324,7 @@ export function Calendar24({
         <p className="text-amber-700 text-sm mt-1">
           {date && new Date(date).toDateString() === new Date().toDateString()
             ? isTodayBookingPossible()
-              ? `Hôm nay: ${getMinTime()} - ${MAX_TIME} (đặt trước ít nhất 1 tiếng)`
+              ? `Hôm nay: ${getMinTime()} - ${MAX_TIME} (đặt trước ít nhất 1 tiếng 30 phút)`
               : `Hôm nay: Đã quá giờ làm việc`
             : `Thứ 2 - Chủ nhật: ${MIN_TIME} - ${MAX_TIME}`}
         </p>
@@ -349,7 +357,7 @@ export function Calendar24({
           </p>
           {new Date(date).toDateString() === new Date().toDateString() && (
             <p className="text-xs text-green-600 mt-1">
-              ✓ Đặt lịch hôm nay - Đã đảm bảo thời gian phù hợp
+              ✓ Đặt lịch hôm nay - Đã đảm bảo thời gian phù hợp (trước ít nhất 1 tiếng 30 phút)
             </p>
           )}
         </div>

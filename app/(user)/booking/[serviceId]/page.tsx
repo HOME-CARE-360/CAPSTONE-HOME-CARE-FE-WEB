@@ -477,7 +477,7 @@ export default function NewBookingPage() {
         return false;
       }
 
-      // Check if selected date is today and time is in the past
+      // Check if selected date is today and time is in the past or too soon
       if (selectedDate) {
         const currentDate = new Date();
         const isToday = selectedDate.toDateString() === currentDate.toDateString();
@@ -485,12 +485,29 @@ export default function NewBookingPage() {
         if (isToday) {
           const currentTimeInMinutes = currentDate.getHours() * 60 + currentDate.getMinutes();
 
-          if (timeInMinutes <= currentTimeInMinutes) {
+          // Calculate minimum booking time (current time + 1 hour 30 minutes)
+          const minBookingTimeInMinutes = currentTimeInMinutes + 90;
+
+          if (timeInMinutes < minBookingTimeInMinutes) {
             const nextAvailableHour = Math.max(currentDate.getHours() + 1, 7);
-            if (nextAvailableHour > 19) {
+            const nextAvailableMinute = currentDate.getMinutes() + 30;
+
+            // Handle minute overflow for display
+            let displayHour = nextAvailableHour;
+            let displayMinute = nextAvailableMinute;
+            if (displayMinute >= 60) {
+              displayHour += 1;
+              displayMinute = displayMinute - 60;
+            }
+
+            if (displayHour >= 19) {
               setTimeError('Không thể đặt lịch hôm nay. Vui lòng chọn ngày mai');
             } else {
-              setTimeError(`Vui lòng chọn từ ${nextAvailableHour}:00 trở đi`);
+              const formattedNextHour = displayHour.toString().padStart(2, '0');
+              const formattedNextMinute = displayMinute.toString().padStart(2, '0');
+              setTimeError(
+                `Vui lòng đặt lịch ít nhất 1 tiếng 30 phút trước. Giờ sớm nhất: ${formattedNextHour}:${formattedNextMinute}`
+              );
             }
             return false;
           }

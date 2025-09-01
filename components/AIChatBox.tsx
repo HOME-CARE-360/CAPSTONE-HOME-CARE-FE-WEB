@@ -69,31 +69,27 @@ export function AIChatBox({ className }: AIChatBoxProps) {
       // Just show the actual response content from API, no hardcoded text
       const content = chatData.content || 'Đang xử lý yêu cầu của bạn...';
 
-      let index = 0;
-      const interval = setInterval(() => {
-        if (index < content.length) {
-          setTypingContent(content.slice(0, index + 1));
-          index++;
-        } else {
-          // Animation complete, add AI response to messages
-          const aiMessage: ChatMessageWithData = {
-            role: 'assistant',
-            content: content,
-            data: {
-              services: chatData.services,
-              providers: chatData.providers,
-              service: chatData.service,
-            },
-          };
-          setMessages(prev => [...prev, aiMessage]);
-          setIsTyping(false);
-          setTypingContent('');
-          setChatData(null); // Clear chat data after adding to message
-          clearInterval(interval);
-        }
-      }, 30); // Speed of typing
+      // Show text immediately for faster response
+      setTypingContent(content);
 
-      return () => clearInterval(interval);
+      // Add a small delay for visual effect, then complete
+      const timeoutId = setTimeout(() => {
+        const aiMessage: ChatMessageWithData = {
+          role: 'assistant',
+          content: content,
+          data: {
+            services: chatData.services,
+            providers: chatData.providers,
+            service: chatData.service,
+          },
+        };
+        setMessages(prev => [...prev, aiMessage]);
+        setIsTyping(false);
+        setTypingContent('');
+        setChatData(null); // Clear chat data after adding to message
+      }, 5); // Reduced delay for faster completion
+
+      return () => clearTimeout(timeoutId);
     }
   }, [isTyping, chatData]);
 
@@ -263,22 +259,13 @@ export function AIChatBox({ className }: AIChatBoxProps) {
     // Split content by lines and process each line
     const lines = content.split('\n');
     const processedLines: JSX.Element[] = [];
-    let inTable = false;
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
       const trimmedLine = line.trim();
 
-      // Check if this line is part of a markdown table
+      // Skip table lines completely for faster response
       if (trimmedLine.includes('|') && trimmedLine.split('|').length > 2) {
-        if (!inTable) {
-          inTable = true;
-        }
-        // Skip all table lines since we have service cards
-        continue;
-      } else if (inTable) {
-        // End of table, skip it
-        inTable = false;
         continue;
       }
 

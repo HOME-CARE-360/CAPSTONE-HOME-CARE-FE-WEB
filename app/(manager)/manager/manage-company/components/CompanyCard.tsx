@@ -65,10 +65,10 @@ export function CompanyCard({ company }: CompanyCardProps) {
         <div className="relative w-full h-full bg-gray-100 rounded-2xl flex items-center justify-center overflow-hidden">
           <Image
             src={company.logo ?? '/images/logo.png'}
-            width={120}
-            height={120}
+            fill
             alt={company.user.name}
             className="object-cover rounded-xl"
+            priority
           />
         </div>
         {/* Badges overlay */}
@@ -82,7 +82,7 @@ export function CompanyCard({ company }: CompanyCardProps) {
 
       {/* Content */}
       <div className="px-1 flex-1 flex flex-col">
-        <div className="mb-3 min-h-[3rem]">
+        <div className="min-h-[2rem]">
           <h3 className="text-base font-medium line-clamp-2 leading-tight">{company.user.name}</h3>
         </div>
         <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">

@@ -31,6 +31,14 @@ export default function ManageServicePage() {
     setFilters(prev => ({ ...prev, ...partial, page: 1 }));
   }, []);
 
+  const handlePageChange = useCallback((page: number) => {
+    setFilters(prev => ({ ...prev, page }));
+  }, []);
+
+  const handleLimitChange = useCallback((limit: number) => {
+    setFilters(prev => ({ ...prev, limit, page: 1 }));
+  }, []);
+
   return (
     <>
       <SiteHeader title="Quản lý dịch vụ" />
@@ -88,6 +96,55 @@ export default function ManageServicePage() {
 
         {/* Service Grid */}
         <ServiceList services={services} isLoading={isFetching} />
+
+        {/* Pagination Controls */}
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-muted-foreground">
+            Trang <span className="font-medium">{data?.page ?? filters.page}</span> /{' '}
+            <span className="font-medium">{data?.totalPages ?? 1}</span> • Tổng{' '}
+            <span className="font-medium">{data?.totalItems ?? 0}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(Math.max(1, (data?.page ?? filters.page ?? 1) - 1))}
+              disabled={(data?.page ?? filters.page ?? 1) <= 1 || isFetching}
+            >
+              Trước
+            </Button>
+            <Select
+              value={String(filters.limit ?? 12)}
+              onValueChange={v => {
+                const newLimit = Number(v);
+                if (!Number.isNaN(newLimit)) {
+                  handleLimitChange(newLimit);
+                }
+              }}
+            >
+              <SelectTrigger className="w-[120px] h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="10">10 / trang</SelectItem>
+                <SelectItem value="20">20 / trang</SelectItem>
+                <SelectItem value="30">30 / trang</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                handlePageChange(
+                  Math.min(data?.totalPages ?? 1, (data?.page ?? filters.page ?? 1) + 1)
+                )
+              }
+              disabled={(data?.page ?? filters.page ?? 1) >= (data?.totalPages ?? 1) || isFetching}
+            >
+              Sau
+            </Button>
+          </div>
+        </div>
       </div>
     </>
   );

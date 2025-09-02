@@ -98,12 +98,12 @@ export interface ServiceListResponse {
 }
 
 export interface ServiceSearchParams {
-  status: ServiceStatus;
-  categoryId: number;
-  providerIds: number[];
-  name: string;
-  page: number;
-  limit: number;
+  status?: ServiceStatus;
+  categoryId?: number;
+  providerIds?: number[];
+  name?: string;
+  page?: number;
+  limit?: number;
 }
 
 // Reports

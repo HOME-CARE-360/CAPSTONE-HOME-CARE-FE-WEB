@@ -23,7 +23,7 @@ import {
 export default function ManageCompanyPage() {
   const [filters, setFilters] = useState<CompanySearchParams>({
     page: 1,
-    limit: 12,
+    limit: 10,
     name: '',
     companyType: undefined,
     verificationStatus: undefined,
@@ -34,6 +34,14 @@ export default function ManageCompanyPage() {
 
   const handleFilterChange = useCallback((partial: Partial<CompanySearchParams>) => {
     setFilters(prev => ({ ...prev, ...partial, page: 1 }));
+  }, []);
+
+  const handlePageChange = useCallback((page: number) => {
+    setFilters(prev => ({ ...prev, page }));
+  }, []);
+
+  const handleLimitChange = useCallback((limit: number) => {
+    setFilters(prev => ({ ...prev, limit, page: 1 }));
   }, []);
 
   return (
@@ -121,6 +129,64 @@ export default function ManageCompanyPage() {
 
         {/* Company Grid */}
         <CompanyList companies={companies} isLoading={isFetching} />
+
+        {/* Pagination Controls */}
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-muted-foreground">
+            Trang <span className="font-medium">{data?.pagination?.page ?? filters.page}</span> /{' '}
+            <span className="font-medium">{data?.pagination?.totalPages ?? 1}</span> • Tổng{' '}
+            <span className="font-medium">{data?.pagination?.total ?? 0}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                handlePageChange(Math.max(1, (data?.pagination?.page ?? filters.page ?? 1) - 1))
+              }
+              disabled={(data?.pagination?.page ?? filters.page ?? 1) <= 1 || isFetching}
+            >
+              Trước
+            </Button>
+            <Select
+              value={String(filters.limit ?? 12)}
+              onValueChange={v => {
+                const newLimit = Number(v);
+                if (!Number.isNaN(newLimit)) {
+                  handleLimitChange(newLimit);
+                }
+              }}
+            >
+              <SelectTrigger className="w-[120px] h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="10">10 / trang</SelectItem>
+                <SelectItem value="20">20 / trang</SelectItem>
+                <SelectItem value="30">30 / trang</SelectItem>
+                <SelectItem value="40">40 / trang</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                handlePageChange(
+                  Math.min(
+                    data?.pagination?.totalPages ?? 1,
+                    (data?.pagination?.page ?? filters.page ?? 1) + 1
+                  )
+                )
+              }
+              disabled={
+                (data?.pagination?.page ?? filters.page ?? 1) >=
+                  (data?.pagination?.totalPages ?? 1) || isFetching
+              }
+            >
+              Sau
+            </Button>
+          </div>
+        </div>
       </div>
     </>
   );

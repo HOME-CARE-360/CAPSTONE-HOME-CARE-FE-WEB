@@ -244,7 +244,7 @@ export const serviceManagerService = {
       sortBy: 'createdAt',
       orderBy: 'desc',
       name: '',
-      limit: 10,
+      limit: 100,
       page: 1,
     }
   ): Promise<ServiceManagerResponse> => {

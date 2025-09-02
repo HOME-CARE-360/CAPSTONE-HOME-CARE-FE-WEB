@@ -70,10 +70,18 @@ const translateStatus = (status: string): string => {
 
 const translateReason = (reason: string): string => {
   switch (reason) {
+    // Provider report reasons
     case 'NO_SHOW':
       return 'Khách không có ở nhà';
     case 'INVALID_ADDRESS':
       return 'Địa chỉ không hợp lệ';
+    // Customer report reasons
+    case 'POOR_SERVICE_QUALITY':
+      return 'Chất lượng dịch vụ kém';
+    case 'STAFF_BEHAVIOR':
+      return 'Thái độ nhân viên không tốt';
+    case 'TECHNICAL_ISSUES':
+      return 'Vấn đề kỹ thuật';
     default:
       return reason;
   }
@@ -512,109 +520,332 @@ function ReportDetailSheet({ reportId }: { reportId: number }) {
               </p>
             </div>
           </div>
+          {reportDetail.Booking.staffId && (
+            <div className="flex items-center gap-3">
+              <User className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <p className="text-muted-foreground">ID Nhân viên</p>
+                <p className="font-medium">#{reportDetail.Booking.staffId}</p>
+              </div>
+            </div>
+          )}
+          {reportDetail.Booking.completedAt && (
+            <div className="flex items-center gap-3">
+              <Clock className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <p className="text-muted-foreground">Ngày hoàn thành</p>
+                <p className="font-medium">
+                  {format(new Date(reportDetail.Booking.completedAt), 'dd/MM/yyyy HH:mm', {
+                    locale: vi,
+                  })}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
+
+      <Separator />
+
+      {/* Service Request Information */}
+      {reportDetail.Booking.serviceRequest && (
+        <>
+          <div className="space-y-4">
+            <h3 className="text-sm font-medium">Thông tin yêu cầu dịch vụ</h3>
+            <div className="bg-muted/20 rounded-lg p-3">
+              <div className="grid gap-3 text-sm">
+                <div className="flex items-center gap-3">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-muted-foreground">Ngày ưu tiên</p>
+                    <p className="font-medium">
+                      {format(
+                        new Date(reportDetail.Booking.serviceRequest.preferredDate),
+                        'dd/MM/yyyy HH:mm',
+                        {
+                          locale: vi,
+                        }
+                      )}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-muted-foreground">Trạng thái yêu cầu</p>
+                    <p className="font-medium">{reportDetail.Booking.serviceRequest.status}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-muted-foreground">Địa chỉ</p>
+                    <p className="font-medium">{reportDetail.Booking.serviceRequest.location}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Phone className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-muted-foreground">Số điện thoại</p>
+                    <p className="font-medium">{reportDetail.Booking.serviceRequest.phoneNumber}</p>
+                  </div>
+                </div>
+                {reportDetail.Booking.serviceRequest.note && (
+                  <div className="flex items-center gap-3">
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-muted-foreground">Ghi chú</p>
+                      <p className="font-medium">{reportDetail.Booking.serviceRequest.note}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          <Separator />
+        </>
+      )}
+
+      {/* Proposal Information */}
+      {reportDetail.Booking.Proposal && (
+        <>
+          <div className="space-y-4">
+            <h3 className="text-sm font-medium">Thông tin đề xuất</h3>
+            <div className="bg-muted/20 rounded-lg p-3">
+              <div className="grid gap-3 text-sm">
+                <div className="flex items-center gap-3">
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-muted-foreground">ID Đề xuất</p>
+                    <p className="font-medium">#{reportDetail.Booking.Proposal.id}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-muted-foreground">Trạng thái</p>
+                    <Badge
+                      variant={
+                        reportDetail.Booking.Proposal.status === 'ACCEPTED'
+                          ? 'default'
+                          : reportDetail.Booking.Proposal.status === 'REJECTED'
+                            ? 'destructive'
+                            : 'secondary'
+                      }
+                    >
+                      {reportDetail.Booking.Proposal.status}
+                    </Badge>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-muted-foreground">Ngày tạo</p>
+                    <p className="font-medium">
+                      {format(
+                        new Date(reportDetail.Booking.Proposal.createdAt),
+                        'dd/MM/yyyy HH:mm',
+                        {
+                          locale: vi,
+                        }
+                      )}
+                    </p>
+                  </div>
+                </div>
+                {reportDetail.Booking.Proposal.notes && (
+                  <div className="flex items-center gap-3">
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-muted-foreground">Ghi chú</p>
+                      <p className="font-medium">{reportDetail.Booking.Proposal.notes}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Proposal Items */}
+              {reportDetail.Booking.Proposal.ProposalItem &&
+                reportDetail.Booking.Proposal.ProposalItem.length > 0 && (
+                  <div className="mt-4 space-y-2">
+                    <p className="text-muted-foreground text-xs font-medium">Các mục đề xuất:</p>
+                    <div className="space-y-2">
+                      {reportDetail.Booking.Proposal.ProposalItem.map(item => (
+                        <div
+                          key={item.id}
+                          className="flex justify-between items-center bg-background rounded p-2 text-xs"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">Dịch vụ #{item.serviceId}</span>
+                            <span className="text-muted-foreground">× {item.quantity}</span>
+                            <Badge
+                              variant={
+                                item.status === 'ACCEPTED'
+                                  ? 'default'
+                                  : item.status === 'REJECTED'
+                                    ? 'destructive'
+                                    : 'secondary'
+                              }
+                              className="text-xs"
+                            >
+                              {item.status}
+                            </Badge>
+                          </div>
+                          <span className="font-medium">
+                            {item.price.toLocaleString('vi-VN')} đ
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+            </div>
+          </div>
+        </>
+      )}
 
       <Separator />
 
       {/* Customer Information */}
-      <div className="space-y-4">
-        <h3 className="text-sm font-medium">Thông tin khách hàng</h3>
-        <div className="flex items-center gap-4 p-4 border rounded-lg">
-          <Avatar className="h-12 w-12">
-            <AvatarImage src={reportDetail.CustomerProfile.user.avatar} />
-            <AvatarFallback className="text-base font-bold">
-              {reportDetail.CustomerProfile.user.name
-                .split(' ')
-                .map(n => n.charAt(0))
-                .join('')
-                .substring(0, 2)
-                .toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1 space-y-2">
-            <div className="flex items-center gap-2">
-              <User className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium">{reportDetail.CustomerProfile.user.name}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Phone className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">
-                {reportDetail.CustomerProfile.user.phone}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Mail className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">
-                {reportDetail.CustomerProfile.user.email}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <MapPinIcon className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">
-                {reportDetail.CustomerProfile.address}
-              </span>
+      {reportDetail.CustomerProfile && (
+        <div className="space-y-4">
+          <h3 className="text-sm font-medium">Thông tin khách hàng</h3>
+          <div className="flex items-center gap-4 p-4 border rounded-lg">
+            <Avatar className="h-12 w-12">
+              <AvatarImage src={reportDetail.CustomerProfile?.user.avatar || undefined} />
+              <AvatarFallback className="text-base font-bold">
+                {reportDetail.CustomerProfile?.user.name
+                  .split(' ')
+                  .map(n => n.charAt(0))
+                  .join('')
+                  .substring(0, 2)
+                  .toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 space-y-2">
+              <div className="flex items-center gap-2">
+                <User className="h-4 w-4 text-muted-foreground" />
+                <span className="font-medium">{reportDetail.CustomerProfile?.user.name}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Phone className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">
+                  {reportDetail.CustomerProfile?.user.phone}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Mail className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">
+                  {reportDetail.CustomerProfile?.user.email}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <MapPinIcon className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">
+                  {reportDetail.CustomerProfile?.address}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <User className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">
+                  Giới tính: {reportDetail.CustomerProfile?.gender === 'MALE' ? 'Nam' : 'Nữ'}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">
+                  Ngày sinh:{' '}
+                  {format(new Date(reportDetail.CustomerProfile?.dateOfBirth), 'dd/MM/yyyy', {
+                    locale: vi,
+                  })}
+                </span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       <Separator />
 
       {/* Service Provider Information */}
-      <div className="space-y-4">
-        <h3 className="text-sm font-medium">Thông tin nhà cung cấp</h3>
-        <div className="flex items-center gap-4 p-4 border rounded-lg">
-          <Avatar className="h-12 w-12">
-            <AvatarImage src={reportDetail.ServiceProvider.user.avatar || undefined} />
-            <AvatarFallback className="text-base font-bold">
-              {reportDetail.ServiceProvider.user.name
-                .split(' ')
-                .map(n => n.charAt(0))
-                .join('')
-                .substring(0, 2)
-                .toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1 space-y-2">
-            <div className="flex items-center gap-2">
-              <Building2 className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium">{reportDetail.ServiceProvider.user.name}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-xs">
-                {translateCompanyType(reportDetail.ServiceProvider.companyType)}
-              </Badge>
-            </div>
-            <div className="flex items-center gap-2">
-              <Phone className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">
-                {reportDetail.ServiceProvider.user.phone}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Mail className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">
-                {reportDetail.ServiceProvider.user.email}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <MapPinIcon className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">
-                {reportDetail.ServiceProvider.address}
-              </span>
-            </div>
-            {reportDetail.ServiceProvider.taxId && (
+      {reportDetail.ServiceProvider && (
+        <div className="space-y-4">
+          <h3 className="text-sm font-medium">Thông tin nhà cung cấp</h3>
+          <div className="flex items-center gap-4 p-4 border rounded-lg">
+            <Avatar className="h-12 w-12">
+              <AvatarImage src={reportDetail.ServiceProvider?.user.avatar || undefined} />
+              <AvatarFallback className="text-base font-bold">
+                {reportDetail.ServiceProvider?.user.name
+                  .split(' ')
+                  .map(n => n.charAt(0))
+                  .join('')
+                  .substring(0, 2)
+                  .toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 space-y-2">
               <div className="flex items-center gap-2">
-                <FileText className="h-4 w-4 text-muted-foreground" />
+                <Building2 className="h-4 w-4 text-muted-foreground" />
+                <span className="font-medium">{reportDetail.ServiceProvider?.user.name}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-xs">
+                  {translateCompanyType(reportDetail.ServiceProvider?.companyType || '')}
+                </Badge>
+              </div>
+              <div className="flex items-center gap-2">
+                <Phone className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm text-muted-foreground">
-                  Mã số thuế: {reportDetail.ServiceProvider.taxId}
+                  {reportDetail.ServiceProvider?.user.phone}
                 </span>
               </div>
-            )}
+              <div className="flex items-center gap-2">
+                <Mail className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">
+                  {reportDetail.ServiceProvider?.user.email}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <MapPinIcon className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">
+                  {reportDetail.ServiceProvider?.address}
+                </span>
+              </div>
+              {reportDetail.ServiceProvider?.description && (
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">
+                    Mô tả: {reportDetail.ServiceProvider?.description}
+                  </span>
+                </div>
+              )}
+              {reportDetail.ServiceProvider?.taxId && (
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">
+                    Mã số thuế: {reportDetail.ServiceProvider?.taxId}
+                  </span>
+                </div>
+              )}
+              {reportDetail.ServiceProvider?.verificationStatus && (
+                <div className="flex items-center gap-2">
+                  <Badge
+                    variant={
+                      reportDetail.ServiceProvider?.verificationStatus === 'VERIFIED'
+                        ? 'default'
+                        : 'secondary'
+                    }
+                    className="text-xs"
+                  >
+                    {reportDetail.ServiceProvider?.verificationStatus === 'VERIFIED'
+                      ? 'Đã xác minh'
+                      : 'Chưa xác minh'}
+                  </Badge>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Images */}
       {reportDetail.imageUrls && reportDetail.imageUrls.length > 0 && (
@@ -763,6 +994,13 @@ function EditReportSheet({ reportId }: { reportId: number }) {
             <SelectContent>
               <SelectItem value={ReportReason.NO_SHOW}>Khách không có ở nhà</SelectItem>
               <SelectItem value={ReportReason.INVALID_ADDRESS}>Địa chỉ không hợp lệ</SelectItem>
+              <SelectItem value={ReportReason.POOR_SERVICE_QUALITY}>
+                Chất lượng dịch vụ kém
+              </SelectItem>
+              <SelectItem value={ReportReason.STAFF_BEHAVIOR}>
+                Thái độ nhân viên không tốt
+              </SelectItem>
+              <SelectItem value={ReportReason.TECHNICAL_ISSUES}>Vấn đề kỹ thuật</SelectItem>
             </SelectContent>
           </Select>
         </div>

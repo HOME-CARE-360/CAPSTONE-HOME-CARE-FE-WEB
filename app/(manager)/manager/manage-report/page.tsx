@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import type { ComponentType } from 'react';
 import { useGetListReport, useUpdateReport, useGetReportDetail } from '@/hooks/useManager';
+import { useGetSystemConfigs } from '@/hooks/useUser';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import {
   Select,
@@ -109,44 +110,104 @@ export default function ManageReportPage() {
     'PENDING'
   );
   const [note, setNote] = useState<string>('');
-  const [, setAmount] = useState<number | ''>('');
+  const [amount, setAmount] = useState<number | ''>('');
   const [selectedReportForDetail, setSelectedReportForDetail] = useState<number | null>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
 
   // Fetch report detail when pencil button is clicked
   const { data: reportDetail } = useGetReportDetail(selectedReportForDetail || undefined);
 
+  // Fetch system configs for deposit amount
+  const { data: systemConfigs } = useGetSystemConfigs();
+
+  // Get booking deposit amount from system configs
+  const getBookingDepositAmount = () => {
+    if (!systemConfigs?.data?.items) return 30000; // fallback to 30,000
+
+    const depositConfig = systemConfigs.data.items.find(item => item.key === 'BOOKING_DEPOSIT');
+
+    if (depositConfig && depositConfig.type === 'number') {
+      return parseInt(depositConfig.value, 10);
+    }
+
+    return 30000; // fallback to 30,000
+  };
+
+  // Get provider payout percentage from system configs
+  const getProviderPayoutPercentage = () => {
+    if (!systemConfigs?.data?.items) return 85; // fallback to 85%
+
+    const payoutConfig = systemConfigs.data.items.find(
+      item => item.key === 'PROVIDER_PAYOUT_PERCENTAGE'
+    );
+
+    if (payoutConfig && payoutConfig.type === 'number') {
+      return parseInt(payoutConfig.value, 10);
+    }
+
+    return 85; // fallback to 85%
+  };
+
+  const bookingDepositAmount = getBookingDepositAmount();
+  const providerPayoutPercentage = getProviderPayoutPercentage();
+
   const handleSubmitUpdate = () => {
     if (!selectedReportId) return;
     const payload: {
       id: number;
       status: 'PENDING' | 'RESOLVED' | 'REJECTED';
+      reviewedById?: number;
       note?: string;
+      paymentTransactionId?: number;
       amount?: number;
       reporterId?: number;
+      reporterType?: 'CUSTOMER' | 'PROVIDER';
     } = {
       id: selectedReportId,
       status: selectedStatus,
       note: note?.trim() ? note.trim() : undefined,
     };
 
+    // Always set reporterId and reporterType from report detail
+    if (reportDetail?.reporterId) payload.reporterId = reportDetail.reporterId;
+    if (reportDetail?.reporterType)
+      payload.reporterType = reportDetail.reporterType as 'CUSTOMER' | 'PROVIDER';
+
     if (selectedStatus === 'RESOLVED') {
-      // Calculate amount based on proposal status
-      if (reportDetail?.Booking?.Proposal?.status === 'ACCEPTED') {
-        // If proposal is ACCEPTED, use sum of all proposal item prices
-        const totalAmount =
-          reportDetail.Booking.Proposal.ProposalItem?.reduce(
-            (total, item) => total + (item.price || 0),
-            0
-          ) || 0;
-        payload.amount = totalAmount;
+      // Use manually entered amount if available, otherwise calculate based on proposal status
+      if (amount && typeof amount === 'number') {
+        payload.amount = amount;
       } else {
-        // If proposal is REJECTED or other status, use 30,000 VND
-        payload.amount = 30000;
+        // Calculate amount based on proposal status
+        if (reportDetail?.Booking?.Proposal?.status === 'ACCEPTED') {
+          // If proposal is ACCEPTED, use sum of all proposal item prices multiplied by payout percentage
+          const totalAmount =
+            reportDetail.Booking.Proposal.ProposalItem.filter(
+              item => item.status === 'ACCEPTED'
+            ).reduce((total, item) => total + (item.price || 0), 0) || 0;
+          const calculatedAmount = Math.round((totalAmount * providerPayoutPercentage) / 100);
+          payload.amount = calculatedAmount;
+        } else {
+          // If proposal is REJECTED or other status, use deposit amount from system configs
+          payload.amount = bookingDepositAmount;
+        }
       }
 
-      // Use reporterId from report detail
-      if (reportDetail?.reporterId) payload.reporterId = reportDetail.reporterId;
+      // Add paymentTransactionId if reporter is CUSTOMER and has payment transactions
+      if (
+        reportDetail?.reporterType === 'CUSTOMER' &&
+        reportDetail?.Booking?.ServiceRequest?.PaymentTransaction
+      ) {
+        const paymentTransactions = reportDetail.Booking.ServiceRequest.PaymentTransaction;
+        if (paymentTransactions.length > 0) {
+          // Sort by createdAt to get the latest payment transaction
+          const sortedTransactions = [...paymentTransactions].sort(
+            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+          const latestPayment = sortedTransactions[0];
+          payload.paymentTransactionId = latestPayment.id;
+        }
+      }
     }
 
     updateReport(payload, {
@@ -446,6 +507,7 @@ export default function ManageReportPage() {
                                       | 'REJECTED') || 'PENDING'
                                   );
                                   setNote(report.note || '');
+                                  setAmount(''); // Reset amount when opening dialog
                                   setDetailDialogOpen(true);
                                 }}
                                 title="Xem chi tiết báo cáo"
@@ -580,26 +642,81 @@ export default function ManageReportPage() {
                     type="text"
                     inputMode="numeric"
                     value={(() => {
+                      if (amount && typeof amount === 'number') {
+                        return amount.toLocaleString('vi-VN');
+                      }
                       if (reportDetail?.Booking?.Proposal?.status === 'ACCEPTED') {
                         const totalAmount =
-                          reportDetail.Booking.Proposal.ProposalItem?.reduce(
-                            (total, item) => total + (item.price || 0),
-                            0
-                          ) || 0;
-                        return totalAmount.toLocaleString('vi-VN');
+                          reportDetail.Booking.Proposal.ProposalItem.filter(
+                            item => item.status === 'ACCEPTED'
+                          ).reduce((total, item) => total + (item.price || 0), 0) || 0;
+                        const calculatedAmount = Math.round(
+                          (totalAmount * providerPayoutPercentage) / 100
+                        );
+                        return calculatedAmount.toLocaleString('vi-VN');
                       } else {
-                        return '30.000';
+                        return bookingDepositAmount.toLocaleString('vi-VN');
                       }
                     })()}
-                    readOnly
-                    className="bg-muted"
-                    placeholder="Số tiền được tính tự động"
+                    onChange={e => {
+                      const value = e.target.value.replace(/[^\d]/g, '');
+                      if (value === '') {
+                        setAmount('');
+                      } else {
+                        const enteredAmount = parseInt(value, 10);
+
+                        // Get the maximum allowed amount based on proposal status
+                        let maxAmount = 0;
+                        if (reportDetail?.Booking?.Proposal?.status === 'ACCEPTED') {
+                          const totalAmount =
+                            reportDetail.Booking.Proposal.ProposalItem.filter(
+                              item => item.status === 'ACCEPTED'
+                            ).reduce((total, item) => total + (item.price || 0), 0) || 0;
+                          // Apply percentage to get maximum payout amount
+                          maxAmount = Math.round((totalAmount * providerPayoutPercentage) / 100);
+                        } else {
+                          maxAmount = bookingDepositAmount;
+                        }
+
+                        // Ensure entered amount doesn't exceed maximum
+                        if (enteredAmount > maxAmount) {
+                          setAmount(maxAmount);
+                        } else {
+                          setAmount(enteredAmount);
+                        }
+                      }
+                    }}
+                    className="bg-background"
+                    placeholder="Nhập số tiền thủ công"
                   />
                   <p className="text-xs text-muted-foreground">
                     {reportDetail?.Booking?.Proposal?.status === 'ACCEPTED'
-                      ? 'Số tiền = Tổng giá trị đề xuất (đã chấp nhận)'
-                      : 'Số tiền = 30.000 VNĐ (đề xuất bị từ chối)'}
+                      ? `Số tiền = ${providerPayoutPercentage}% của Tổng giá trị đề xuất (đã chấp nhận) - Tối đa: ${(() => {
+                          const totalAmount =
+                            reportDetail.Booking.Proposal.ProposalItem.filter(
+                              item => item.status === 'ACCEPTED'
+                            ).reduce((total, item) => total + (item.price || 0), 0) || 0;
+                          const maxPayoutAmount = Math.round(
+                            (totalAmount * providerPayoutPercentage) / 100
+                          );
+                          return maxPayoutAmount.toLocaleString('vi-VN');
+                        })()} VNĐ`
+                      : `Số tiền = ${bookingDepositAmount.toLocaleString('vi-VN')} VNĐ (đề xuất bị từ chối)`}
                   </p>
+                  {reportDetail?.reporterType === 'CUSTOMER' &&
+                    reportDetail?.Booking?.ServiceRequest?.PaymentTransaction &&
+                    reportDetail.Booking.ServiceRequest.PaymentTransaction.length > 0 && (
+                      <p className="text-xs text-blue-600 bg-blue-50 p-2 rounded">
+                        🔗 Giao dịch thanh toán sẽ được liên kết tự động (ID:{' '}
+                        {
+                          [...reportDetail.Booking.ServiceRequest.PaymentTransaction].sort(
+                            (a, b) =>
+                              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+                          )[0]?.id
+                        }
+                        )
+                      </p>
+                    )}
                 </div>
               </div>
             )}
@@ -866,18 +983,12 @@ export default function ManageReportPage() {
                           })}
                         </p>
                       </div>
-                      {/* <div>
-                        <p className="text-xs text-muted-foreground">Ngày cập nhật</p>
-                        <p className="text-sm font-medium">
-                          {new Date(reportDetail.Booking.updatedAt).toLocaleDateString('vi-VN')}
-                        </p>
-                      </div> */}
-                      {/* {reportDetail.Booking.staffId && (
+                      {reportDetail.Booking.staffId && (
                         <div>
                           <p className="text-xs text-muted-foreground">Nhân viên phụ trách</p>
                           <p className="text-sm font-medium">#{reportDetail.Booking.staffId}</p>
                         </div>
-                      )} */}
+                      )}
                       {reportDetail.Booking.completedAt && (
                         <div>
                           <p className="text-xs text-muted-foreground">Ngày hoàn thành</p>
@@ -894,6 +1005,163 @@ export default function ManageReportPage() {
                         </div>
                       )}
                     </div>
+
+                    {/* Service Request Information */}
+                    {reportDetail.Booking.ServiceRequest && (
+                      <div className="mt-4 pt-4 border-t border-purple-200">
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2">
+                            <FileText className="h-4 w-4 text-purple-600" />
+                            <span className="text-sm font-medium">Thông tin yêu cầu dịch vụ</span>
+                          </div>
+                          <div className="bg-white/50 p-3 rounded-lg">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <p className="text-xs text-muted-foreground">Ngày ưu tiên</p>
+                                <p className="text-sm font-medium">
+                                  {new Date(
+                                    reportDetail.Booking.ServiceRequest.preferredDate
+                                  ).toLocaleString('vi-VN', {
+                                    year: 'numeric',
+                                    month: '2-digit',
+                                    day: '2-digit',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                  })}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-muted-foreground">Trạng thái yêu cầu</p>
+                                <p className="text-sm font-medium">
+                                  {reportDetail.Booking.ServiceRequest.status}
+                                </p>
+                              </div>
+                              <div className="md:col-span-2">
+                                <p className="text-xs text-muted-foreground">Địa chỉ</p>
+                                <p className="text-sm font-medium">
+                                  {reportDetail.Booking.ServiceRequest.location}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-muted-foreground">Số điện thoại</p>
+                                <p className="text-sm font-medium">
+                                  {reportDetail.Booking.ServiceRequest.phoneNumber}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-muted-foreground">Danh mục</p>
+                                <p className="text-sm font-medium">
+                                  #{reportDetail.Booking.ServiceRequest.categoryId}
+                                </p>
+                              </div>
+                              {reportDetail.Booking.ServiceRequest.note && (
+                                <div className="md:col-span-2">
+                                  <p className="text-xs text-muted-foreground">Ghi chú</p>
+                                  <p className="text-sm font-medium">
+                                    {reportDetail.Booking.ServiceRequest.note}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Payment Transactions */}
+                            {reportDetail.Booking.ServiceRequest.PaymentTransaction &&
+                              reportDetail.Booking.ServiceRequest.PaymentTransaction.length > 0 && (
+                                <div className="mt-4 pt-4 border-t border-purple-100">
+                                  <div className="space-y-3">
+                                    <div className="flex items-center gap-2">
+                                      <FileText className="h-4 w-4 text-green-600" />
+                                      <span className="text-sm font-medium">
+                                        Giao dịch thanh toán
+                                      </span>
+                                    </div>
+                                    <div className="space-y-2">
+                                      {reportDetail.Booking.ServiceRequest.PaymentTransaction.map(
+                                        transaction => (
+                                          <div
+                                            key={transaction.id}
+                                            className="bg-white/70 p-3 rounded border"
+                                          >
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                              <div>
+                                                <p className="text-xs text-muted-foreground">
+                                                  ID Giao dịch
+                                                </p>
+                                                <p className="text-sm font-medium">
+                                                  #{transaction.id}
+                                                </p>
+                                              </div>
+                                              <div>
+                                                <p className="text-xs text-muted-foreground">
+                                                  Cổng thanh toán
+                                                </p>
+                                                <p className="text-sm font-medium">
+                                                  {transaction.gateway}
+                                                </p>
+                                              </div>
+                                              <div>
+                                                <p className="text-xs text-muted-foreground">
+                                                  Trạng thái
+                                                </p>
+                                                <p className="text-sm font-medium">
+                                                  {transaction.status}
+                                                </p>
+                                              </div>
+                                              <div>
+                                                <p className="text-xs text-muted-foreground">
+                                                  Số tiền ra
+                                                </p>
+                                                <p className="text-sm font-medium">
+                                                  {transaction.amountOut.toLocaleString('vi-VN')}{' '}
+                                                  VNĐ
+                                                </p>
+                                              </div>
+                                              <div>
+                                                <p className="text-xs text-muted-foreground">
+                                                  Mã tham chiếu
+                                                </p>
+                                                <p className="text-xs font-medium">
+                                                  {transaction.referenceNumber}
+                                                </p>
+                                              </div>
+                                              <div>
+                                                <p className="text-xs text-muted-foreground">
+                                                  Ngày giao dịch
+                                                </p>
+                                                <p className="text-sm font-medium">
+                                                  {new Date(
+                                                    transaction.transactionDate
+                                                  ).toLocaleString('vi-VN', {
+                                                    year: 'numeric',
+                                                    month: '2-digit',
+                                                    day: '2-digit',
+                                                    hour: '2-digit',
+                                                    minute: '2-digit',
+                                                  })}
+                                                </p>
+                                              </div>
+                                              {transaction.transactionContent && (
+                                                <div className="md:col-span-3">
+                                                  <p className="text-xs text-muted-foreground">
+                                                    Nội dung
+                                                  </p>
+                                                  <p className="text-sm font-medium">
+                                                    {transaction.transactionContent}
+                                                  </p>
+                                                </div>
+                                              )}
+                                            </div>
+                                          </div>
+                                        )
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Proposal Information */}
                     {reportDetail.Booking.Proposal && (
@@ -990,17 +1258,48 @@ export default function ManageReportPage() {
 
                                     {/* Total Calculation */}
                                     <div className="mt-3 pt-3 border-t border-green-200 bg-white/90 p-3 rounded">
-                                      <div className="flex justify-between items-center">
-                                        <span className="text-sm font-medium text-green-700">
-                                          Tổng giá trị đề xuất:
-                                        </span>
-                                        <span className="text-lg font-bold text-green-700">
-                                          {reportDetail.Booking.Proposal.ProposalItem.reduce(
-                                            (total, item) => total + (item.price || 0),
-                                            0
-                                          ).toLocaleString('vi-VN')}{' '}
-                                          VNĐ
-                                        </span>
+                                      <div className="space-y-2">
+                                        <div className="flex justify-between items-center">
+                                          <span className="text-sm font-medium text-green-700">
+                                            Tổng giá trị đề xuất:
+                                          </span>
+                                          <span className="text-lg font-bold text-green-700">
+                                            {reportDetail.Booking.Proposal.ProposalItem.filter(
+                                              item => item.status === 'ACCEPTED'
+                                            )
+                                              .reduce((total, item) => total + (item.price || 0), 0)
+                                              .toLocaleString('vi-VN')}{' '}
+                                            VNĐ
+                                          </span>
+                                        </div>
+                                        <div className="flex justify-between items-center">
+                                          <span className="text-sm font-medium text-blue-700">
+                                            Số tiền đặt cọc (hệ thống):
+                                          </span>
+                                          <span className="text-sm font-bold text-blue-700">
+                                            {bookingDepositAmount.toLocaleString('vi-VN')} VNĐ
+                                          </span>
+                                        </div>
+                                        {reportDetail?.Booking?.Proposal?.status === 'ACCEPTED' && (
+                                          <div className="flex justify-between items-center">
+                                            <span className="text-sm font-medium text-green-700">
+                                              Số tiền thanh toán ({providerPayoutPercentage}%):
+                                            </span>
+                                            <span className="text-sm font-bold text-green-700">
+                                              {Math.round(
+                                                (reportDetail.Booking.Proposal.ProposalItem.filter(
+                                                  item => item.status === 'ACCEPTED'
+                                                ).reduce(
+                                                  (total, item) => total + (item.price || 0),
+                                                  0
+                                                ) *
+                                                  providerPayoutPercentage) /
+                                                  100
+                                              ).toLocaleString('vi-VN')}{' '}
+                                              VNĐ
+                                            </span>
+                                          </div>
+                                        )}
                                       </div>
                                     </div>
                                   </div>

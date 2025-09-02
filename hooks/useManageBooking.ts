@@ -14,6 +14,7 @@ import {
   GetReportListResponse,
   ReportDetailResponse,
   UpdateReportBookingRequest,
+  DEFAULT_BOOKINGS_LIMIT,
 } from '@/lib/api/services/fetchManageBooking';
 import { useState, useMemo } from 'react';
 import { toast } from 'sonner';
@@ -82,7 +83,7 @@ export const useBookingFilters = () => {
   const params: GetBookingsParams = useMemo(
     () => ({
       page: currentPage,
-      limit: 10,
+      limit: DEFAULT_BOOKINGS_LIMIT,
       status: statusFilter,
       search: searchTerm,
     }),

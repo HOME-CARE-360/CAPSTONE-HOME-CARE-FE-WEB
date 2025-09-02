@@ -190,6 +190,41 @@ export interface Proposal {
   ProposalItem: ProposalItem[];
 }
 
+export interface PaymentTransaction {
+  id: number;
+  gateway: string;
+  transactionDate: string;
+  accountNumber: string | null;
+  subAccount: string | null;
+  amountIn: number;
+  amountOut: number;
+  accumulated: number;
+  referenceNumber: string;
+  transactionContent: string;
+  body: string;
+  createdAt: string;
+  serviceRequestId: number;
+  status: string;
+  userId: number;
+  withdrawalRequestId: number | null;
+  bookingReportId: number | null;
+}
+
+export interface ServiceRequest {
+  id: number;
+  customerId: number;
+  providerId: number;
+  note: string;
+  preferredDate: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  location: string;
+  phoneNumber: string;
+  categoryId: number;
+  PaymentTransaction: PaymentTransaction[];
+}
+
 export interface ReportDetail extends Report {
   Booking: {
     id: number;
@@ -202,6 +237,7 @@ export interface ReportDetail extends Report {
     staffId: number | null;
     serviceRequestId: number;
     completedAt: string | null;
+    ServiceRequest: ServiceRequest;
     Proposal: Proposal | null;
   } | null;
 }
@@ -272,9 +308,12 @@ export interface UpdateWithdrawResponse {
 export interface UpdateReportRequest {
   id: number;
   status: 'PENDING' | 'REJECTED' | 'RESOLVED';
+  reviewedById?: number;
   note?: string | null;
-  reporterId?: number;
+  paymentTransactionId?: number;
   amount?: number;
+  reporterId?: number;
+  reporterType?: 'CUSTOMER' | 'PROVIDER';
 }
 
 export interface UpdateReportResponse {

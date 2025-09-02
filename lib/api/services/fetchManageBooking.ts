@@ -207,8 +207,13 @@ export interface UpdateProposedBookingResponse {
 export type ReporterType = 'CUSTOMER' | 'PROVIDER';
 
 export enum ReportReason {
+  // Provider report reasons
   NO_SHOW = 'NO_SHOW',
   INVALID_ADDRESS = 'INVALID_ADDRESS',
+  // Customer report reasons
+  POOR_SERVICE_QUALITY = 'POOR_SERVICE_QUALITY',
+  STAFF_BEHAVIOR = 'STAFF_BEHAVIOR',
+  TECHNICAL_ISSUES = 'TECHNICAL_ISSUES',
 }
 
 export interface ReportBookingRequest {
@@ -263,6 +268,39 @@ export interface GetReportListResponse {
 }
 
 // Report detail interfaces
+export interface ReportDetailServiceRequest {
+  id: number;
+  customerId: number;
+  providerId: number;
+  note: string;
+  preferredDate: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  location: string;
+  phoneNumber: string;
+  categoryId: number;
+}
+
+export interface ReportDetailProposalItem {
+  id: number;
+  proposalId: number;
+  serviceId: number;
+  quantity: number;
+  createdAt: string;
+  status: string;
+  price: number;
+}
+
+export interface ReportDetailProposal {
+  id: number;
+  bookingId: number;
+  notes: string;
+  createdAt: string;
+  status: string;
+  ProposalItem: ReportDetailProposalItem[];
+}
+
 export interface ReportDetailBooking {
   id: number;
   customerId: number;
@@ -271,10 +309,11 @@ export interface ReportDetailBooking {
   deletedAt: string | null;
   createdAt: string;
   updatedAt: string;
-  staffId: number;
+  staffId: number | null;
   serviceRequestId: number;
   completedAt: string | null;
-  Proposal: unknown | null;
+  serviceRequest: ReportDetailServiceRequest;
+  Proposal: ReportDetailProposal | null;
 }
 
 export interface ReportDetailCustomerProfile {
@@ -289,7 +328,7 @@ export interface ReportDetailCustomerProfile {
     name: string;
     phone: string;
     email: string;
-    avatar: string;
+    avatar: string | null;
   };
 }
 
@@ -306,7 +345,7 @@ export interface ReportDetailServiceProvider {
   logo: string | null;
   taxId: string;
   verificationStatus: string;
-  verifiedAt: string;
+  verifiedAt: string | null;
   verifiedById: number | null;
   user: {
     name: string;
@@ -333,8 +372,8 @@ export interface ReportDetailResponse {
   note: string | null;
   reviewResponse: string | null;
   Booking: ReportDetailBooking;
-  CustomerProfile: ReportDetailCustomerProfile;
-  ServiceProvider: ReportDetailServiceProvider;
+  CustomerProfile?: ReportDetailCustomerProfile;
+  ServiceProvider?: ReportDetailServiceProvider;
 }
 
 export interface ManageBookingResponse {
@@ -352,12 +391,16 @@ export interface GetBookingsParams {
   search?: string;
 }
 
+// Default limit for better performance
+export const DEFAULT_BOOKINGS_LIMIT = 100;
+
 export const serviceManageBooking = {
   getBookings: async (params?: GetBookingsParams) => {
     const queryParams = new URLSearchParams();
 
     if (params?.page) queryParams.append('page', params.page.toString());
-    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.limit)
+      queryParams.append('limit', (params?.limit || DEFAULT_BOOKINGS_LIMIT).toString());
     if (params?.status) queryParams.append('status', params.status);
     if (params?.search) queryParams.append('search', params.search);
 

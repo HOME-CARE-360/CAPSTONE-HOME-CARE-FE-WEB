@@ -395,34 +395,6 @@ export default function ManageWithdrawPage() {
                                 <span className="text-xs sm:text-sm">Chi tiết</span>
                               </Button>
                             </div>
-
-                            {/* Status Analysis */}
-                            {(() => {
-                              const user =
-                                withdraw.User || withdraw.User_WithdrawalRequest_userIdToUser;
-                              const wallet = user?.Wallet;
-                              const canWithdraw = wallet && wallet.balance >= withdraw.amount;
-                              const isProcessed = withdraw.status !== 'PENDING';
-
-                              if (isProcessed) return null;
-
-                              return (
-                                <div className="text-center">
-                                  {canWithdraw ? (
-                                    <Badge className="bg-green-100 text-green-700 border-green-200 text-xs">
-                                      <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                                      <span className="hidden sm:inline">Có thể rút tiền</span>
-                                      <span className="sm:hidden">Có thể rút</span>
-                                    </Badge>
-                                  ) : (
-                                    <Badge className="bg-red-100 hover:bg-red-200 text-red-700 border-red-200 text-xs">
-                                      <span className="hidden sm:inline">Số dư không đủ</span>
-                                      <span className="sm:hidden">Không đủ</span>
-                                    </Badge>
-                                  )}
-                                </div>
-                              );
-                            })()}
                           </div>
                         </div>
                       </CardContent>

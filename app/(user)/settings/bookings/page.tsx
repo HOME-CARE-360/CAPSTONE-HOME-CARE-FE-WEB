@@ -833,7 +833,8 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {booking.ServiceRequest?.status?.toUpperCase() === 'PENDING' &&
-              booking.status.toUpperCase() !== 'CANCELLED' && (
+              booking.status.toUpperCase() !== 'CANCELLED' &&
+              !booking.Staff_Booking_staffIdToStaff && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -882,7 +883,7 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
                 )}
               </Button>
             )}
-            {/* Show report button based on status, date logic, and existing reports */}
+            {/* Show report button based on status, date logic, payment status, and existing reports */}
             {(() => {
               const isStaffCompleted = booking.status?.toUpperCase() === 'STAFF_COMPLETED';
               const isPending = booking.status?.toUpperCase() === 'PENDING';
@@ -907,12 +908,46 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
               }
 
               if (isPending) {
-                // For pending bookings, check if preferredDate is coming (future)
+                // For pending bookings, check if preferredDate is coming (future) or if there's pending payment
                 const preferredDate = new Date(booking.ServiceRequest.preferredDate);
                 const now = new Date();
                 const isPreferredDateComing = preferredDate < now;
 
-                if (isPreferredDateComing) {
+                // Check if the latest payment transaction is pending
+                let hasLatestPendingPayment = false;
+                if (
+                  Array.isArray(booking.ServiceRequest?.PaymentTransaction) &&
+                  booking.ServiceRequest.PaymentTransaction.length > 0
+                ) {
+                  // Sort by createdAt to get the latest payment transaction
+                  const sortedTransactions = [...booking.ServiceRequest.PaymentTransaction].sort(
+                    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+                  );
+                  const latestPayment = sortedTransactions[0];
+                  hasLatestPendingPayment = latestPayment.status === 'PENDING';
+                }
+
+                // Don't show report button if the latest payment is pending
+                if (hasLatestPendingPayment) {
+                  return null;
+                }
+
+                // Check if booking is pending for more than 30 minutes and staff hasn't checked in
+                const bookingCreatedAt = new Date(booking.createdAt);
+                const thirtyMinutesAgo = new Date(now.getTime() - 30 * 60 * 1000);
+                const isPendingMoreThan30Minutes = bookingCreatedAt < thirtyMinutesAgo;
+
+                // Check if there's a staff assigned but hasn't checked in
+                const hasStaffAssigned = Boolean(booking.Staff_Booking_staffIdToStaff?.User?.name);
+                const staffHasNotCheckedIn =
+                  !bookingDetailData?.data?.WorkLog ||
+                  bookingDetailData.data.WorkLog.length === 0 ||
+                  !bookingDetailData.data.WorkLog.some(workLog => workLog.checkIn);
+
+                if (
+                  isPreferredDateComing ||
+                  (isPendingMoreThan30Minutes && hasStaffAssigned && staffHasNotCheckedIn)
+                ) {
                   return (
                     <Button
                       variant="outline"

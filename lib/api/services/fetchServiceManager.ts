@@ -15,6 +15,7 @@ export interface ServiceManager {
   price: number;
   discount: number;
   duration: number;
+  unit: 'PER_HOUR' | 'PER_JOB';
   category: Category;
   attachedItems: AttachedItem[];
   status: StatusService;
@@ -129,6 +130,7 @@ export interface ServiceManagerRequest {
   virtualPrice: number;
   durationMinutes: number;
   categoryId: number;
+  unit: 'PER_HOUR' | 'PER_JOB';
 }
 
 export interface ServiceItemRequest {
@@ -152,6 +154,7 @@ export interface ServiceManagerUpdateRequest {
   durationMinutes?: number;
   serviceItemsId?: number[];
   categoryId?: number;
+  unit?: 'PER_HOUR' | 'PER_JOB';
 }
 
 export interface ServiceItemUpdateRequest {
@@ -321,7 +324,7 @@ export const serviceManagerService = {
       name: '',
       brand: '',
       isActive: undefined,
-      limit: 10,
+      limit: 100,
       page: 1,
     }
   ): Promise<ServiceItemResponse> => {

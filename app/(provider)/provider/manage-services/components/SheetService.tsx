@@ -77,6 +77,9 @@ const serviceFormSchema = z
       .min(60, 'Thời gian phải ít nhất 60 phút')
       .max(480, 'Thời gian không được quá 8 giờ (480 phút)'),
     categoryId: z.number().min(1, 'Vui lòng chọn loại dịch vụ'),
+    unit: z.enum(['PER_HOUR', 'PER_JOB'], {
+      required_error: 'Vui lòng chọn đơn vị tính',
+    }),
     serviceItemsId: z.array(z.number()).optional(),
   })
   .refine(data => data.virtualPrice <= data.basePrice, {
@@ -141,6 +144,7 @@ export function SheetService({ service, trigger, open, onOpenChange }: SheetServ
       virtualPrice: 0,
       durationMinutes: 30,
       categoryId: 0,
+      unit: 'PER_HOUR' as const,
       serviceItemsId: [],
     },
   });
@@ -173,6 +177,7 @@ export function SheetService({ service, trigger, open, onOpenChange }: SheetServ
           durationMinutes: detail.durationMinutes,
           // Detail response category lacks id, fallback to provided service's category id if available
           categoryId: service?.category?.id || 0,
+          unit: service?.unit || 'PER_HOUR',
           serviceItemsId: detail.attachedItems?.map(ai => ai.serviceItem.id) || [],
         });
 
@@ -197,6 +202,7 @@ export function SheetService({ service, trigger, open, onOpenChange }: SheetServ
         virtualPrice: 0,
         durationMinutes: 30,
         categoryId: 0,
+        unit: 'PER_HOUR' as const,
         serviceItemsId: [],
       });
       setUploadedImages([]);
@@ -311,6 +317,7 @@ export function SheetService({ service, trigger, open, onOpenChange }: SheetServ
           ...data,
           images: imageUrls,
           serviceItemsId: data.serviceItemsId ?? [],
+          unit: data.unit,
         };
 
         createService(serviceData, {
@@ -478,144 +485,177 @@ export function SheetService({ service, trigger, open, onOpenChange }: SheetServ
                 )}
               </div>
 
-              {/* Service Items Selection */}
+              {/* Unit Selection */}
               <div className="space-y-2">
-                <Label htmlFor="serviceItems">Vật tư</Label>
-
-                {/* Display selected service items */}
-                {(form.watch('serviceItemsId') || []).length > 0 && (
-                  <div className="space-y-2">
-                    <p className="text-sm text-gray-600">Đã chọn:</p>
-                    <div className="flex flex-wrap gap-2">
-                      {(form.watch('serviceItemsId') || []).map((serviceItemId: number) => {
-                        const serviceItem = serviceItems?.data?.data?.find(
-                          item => item.id === serviceItemId
-                        );
-                        return (
-                          <div
-                            key={serviceItemId}
-                            className="flex items-center gap-2 bg-blue-100 text-blue-800 px-3 py-2 rounded-md text-sm"
-                          >
-                            <span className="font-medium">
-                              {serviceItem?.name || `Service ${serviceItemId}`}
-                            </span>
-                            <span className="text-blue-600">
-                              ({formatCurrencyVi(serviceItem?.unitPrice || 0)})
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const currentServiceItems = form.getValues('serviceItemsId') || [];
-                                const updatedItems = currentServiceItems.filter(
-                                  id => id !== serviceItemId
-                                );
-                                form.setValue('serviceItemsId', updatedItems);
-                              }}
-                              className="text-blue-600 hover:text-blue-800 ml-1"
-                            >
-                              ×
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* Price Suggestion */}
-                    <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-sm font-medium text-green-800">💡 Gợi ý giá</span>
-                      </div>
-
-                      {/* Service Items Total */}
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Tổng giá vật tư:</span>
-                          <span className="font-medium text-gray-800">
-                            {formatCurrencyVi(calculateServiceItemsTotal())} VNĐ
-                          </span>
-                        </div>
-
-                        {/* Suggested Service Fee */}
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Phí dịch vụ (30%):</span>
-                          <span className="font-medium text-green-600">
-                            {formatCurrencyVi(Math.round(calculateServiceItemsTotal() * 0.3))} VNĐ
-                          </span>
-                        </div>
-
-                        {/* Total Suggested Price */}
-                        <div className="pt-2 border-t border-green-200">
-                          <div className="flex justify-between">
-                            <span className="font-medium text-green-800">Giá đề xuất:</span>
-                            <span className="font-bold text-green-800 text-lg">
-                              {formatCurrencyVi(Math.round(calculateServiceItemsTotal() * 1.3))} VNĐ
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Quick Price Set Buttons */}
-                        <div className="flex gap-2 pt-2">
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            className="text-xs h-7 px-2 bg-white hover:bg-green-50 border-green-300 text-green-700"
-                            onClick={() => {
-                              const suggestedPrice = Math.round(calculateServiceItemsTotal() * 1.3);
-                              form.setValue('virtualPrice', suggestedPrice);
-                              form.setValue('basePrice', suggestedPrice);
-                            }}
-                          >
-                            Áp dụng giá đề xuất
-                          </Button>
-
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            className="text-xs h-7 px-2 bg-white hover:bg-green-50 border-green-300 text-green-700"
-                            onClick={() => {
-                              const materialsCost = calculateServiceItemsTotal();
-                              form.setValue('virtualPrice', materialsCost);
-                              form.setValue('basePrice', materialsCost);
-                            }}
-                          >
-                            Chỉ tính vật tư
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
+                <Label htmlFor="unit">Đơn vị tính *</Label>
                 <Select
-                  value={''}
+                  value={form.watch('unit') || ''}
                   onValueChange={value => {
-                    const currentServiceItems = form.getValues('serviceItemsId') || [];
-                    const parsedValue = parseInt(value);
-                    if (!currentServiceItems.includes(parsedValue)) {
-                      form.setValue('serviceItemsId', [...currentServiceItems, parsedValue]);
+                    form.setValue('unit', value as 'PER_HOUR' | 'PER_JOB');
+                    // Clear service items when switching to PER_HOUR
+                    if (value === 'PER_HOUR') {
+                      form.setValue('serviceItemsId', []);
                     }
                   }}
-                  disabled={isSubmitting || isServiceItemsLoading}
+                  disabled={isSubmitting}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Chọn service items" />
+                    <SelectValue placeholder="Chọn đơn vị tính" />
                   </SelectTrigger>
                   <SelectContent>
-                    {serviceItems?.data?.data
-                      ?.filter(
-                        (serviceItem: ServiceItem) =>
-                          !(form.watch('serviceItemsId') || []).includes(serviceItem.id)
-                      )
-                      .map((serviceItem: ServiceItem) => (
-                        <SelectItem key={serviceItem.id} value={serviceItem.id.toString()}>
-                          {serviceItem.name}
-                        </SelectItem>
-                      ))}
+                    <SelectItem value="PER_HOUR">Theo giờ</SelectItem>
+                    <SelectItem value="PER_JOB">Theo công việc</SelectItem>
                   </SelectContent>
                 </Select>
+                {form.formState.errors.unit && (
+                  <p className="text-sm text-red-600">{form.formState.errors.unit.message}</p>
+                )}
               </div>
+
+              {/* Service Items Selection - Only show for PER_JOB */}
+              {form.watch('unit') === 'PER_JOB' && (
+                <div className="space-y-2">
+                  <Label htmlFor="serviceItems">Vật tư *</Label>
+
+                  {/* Display selected service items */}
+                  {(form.watch('serviceItemsId') || []).length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-sm text-gray-600">Đã chọn:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {(form.watch('serviceItemsId') || []).map((serviceItemId: number) => {
+                          const serviceItem = serviceItems?.data?.data?.find(
+                            item => item.id === serviceItemId
+                          );
+                          return (
+                            <div
+                              key={serviceItemId}
+                              className="flex items-center gap-2 bg-blue-100 text-blue-800 px-3 py-2 rounded-md text-sm"
+                            >
+                              <span className="font-medium">
+                                {serviceItem?.name || `Service ${serviceItemId}`}
+                              </span>
+                              <span className="text-blue-600">
+                                ({formatCurrencyVi(serviceItem?.unitPrice || 0)})
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const currentServiceItems =
+                                    form.getValues('serviceItemsId') || [];
+                                  const updatedItems = currentServiceItems.filter(
+                                    id => id !== serviceItemId
+                                  );
+                                  form.setValue('serviceItemsId', updatedItems);
+                                }}
+                                className="text-blue-600 hover:text-blue-800 ml-1"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Price Suggestion */}
+                      <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-sm font-medium text-green-800">💡 Gợi ý giá</span>
+                        </div>
+
+                        {/* Service Items Total */}
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Tổng giá vật tư:</span>
+                            <span className="font-medium text-gray-800">
+                              {formatCurrencyVi(calculateServiceItemsTotal())} VNĐ
+                            </span>
+                          </div>
+
+                          {/* Suggested Service Fee */}
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Phí dịch vụ (30%):</span>
+                            <span className="font-medium text-green-600">
+                              {formatCurrencyVi(Math.round(calculateServiceItemsTotal() * 0.3))} VNĐ
+                            </span>
+                          </div>
+
+                          {/* Total Suggested Price */}
+                          <div className="pt-2 border-t border-green-200">
+                            <div className="flex justify-between">
+                              <span className="font-medium text-green-800">Giá đề xuất:</span>
+                              <span className="font-bold text-green-800 text-lg">
+                                {formatCurrencyVi(Math.round(calculateServiceItemsTotal() * 1.3))}{' '}
+                                VNĐ
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Quick Price Set Buttons */}
+                          <div className="flex gap-2 pt-2">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="text-xs h-7 px-2 bg-white hover:bg-green-50 border-green-300 text-green-700"
+                              onClick={() => {
+                                const suggestedPrice = Math.round(
+                                  calculateServiceItemsTotal() * 1.3
+                                );
+                                form.setValue('virtualPrice', suggestedPrice);
+                                form.setValue('basePrice', suggestedPrice);
+                              }}
+                            >
+                              Áp dụng giá đề xuất
+                            </Button>
+
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="text-xs h-7 px-2 bg-white hover:bg-green-50 border-green-300 text-green-700"
+                              onClick={() => {
+                                const materialsCost = calculateServiceItemsTotal();
+                                form.setValue('virtualPrice', materialsCost);
+                                form.setValue('basePrice', materialsCost);
+                              }}
+                            >
+                              Chỉ tính vật tư
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <Select
+                    value={''}
+                    onValueChange={value => {
+                      const currentServiceItems = form.getValues('serviceItemsId') || [];
+                      const parsedValue = parseInt(value);
+                      if (!currentServiceItems.includes(parsedValue)) {
+                        form.setValue('serviceItemsId', [...currentServiceItems, parsedValue]);
+                      }
+                    }}
+                    disabled={isSubmitting || isServiceItemsLoading}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Chọn service items" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {serviceItems?.data?.data
+                        ?.filter(
+                          (serviceItem: ServiceItem) =>
+                            !(form.watch('serviceItemsId') || []).includes(serviceItem.id)
+                        )
+                        .map((serviceItem: ServiceItem) => (
+                          <SelectItem key={serviceItem.id} value={serviceItem.id.toString()}>
+                            {serviceItem.name}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               {/* Price Fields */}
               <div className="grid grid-cols-2 gap-4">

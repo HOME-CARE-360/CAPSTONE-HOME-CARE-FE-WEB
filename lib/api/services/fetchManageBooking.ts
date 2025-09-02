@@ -214,6 +214,7 @@ export enum ReportReason {
   POOR_SERVICE_QUALITY = 'POOR_SERVICE_QUALITY',
   STAFF_BEHAVIOR = 'STAFF_BEHAVIOR',
   TECHNICAL_ISSUES = 'TECHNICAL_ISSUES',
+  STAFF_NO_SHOW = 'STAFF_NO_SHOW',
 }
 
 export interface ReportBookingRequest {
@@ -392,15 +393,14 @@ export interface GetBookingsParams {
 }
 
 // Default limit for better performance
-export const DEFAULT_BOOKINGS_LIMIT = 100;
+// Removed default limit enforcement to rely on caller-provided pagination
 
 export const serviceManageBooking = {
   getBookings: async (params?: GetBookingsParams) => {
     const queryParams = new URLSearchParams();
 
     if (params?.page) queryParams.append('page', params.page.toString());
-    if (params?.limit)
-      queryParams.append('limit', (params?.limit || DEFAULT_BOOKINGS_LIMIT).toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
     if (params?.status) queryParams.append('status', params.status);
     if (params?.search) queryParams.append('search', params.search);
 

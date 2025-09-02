@@ -78,6 +78,7 @@ const reasonTextMap: Record<string, string> = {
   TECHNICAL_ISSUES: 'Vấn đề kỹ thuật',
   NO_SHOW: 'Không xuất hiện',
   INVALID_ADDRESS: 'Địa chỉ không hợp lệ',
+  STAFF_NO_SHOW: 'Nhân viên không đến đúng giờ',
 };
 
 // Vietnamese translations for user types
@@ -158,7 +159,6 @@ export default function ManageReportPage() {
       status: 'PENDING' | 'RESOLVED' | 'REJECTED';
       reviewedById?: number;
       note?: string;
-      paymentTransactionId?: number;
       amount?: number;
       reporterId?: number;
       reporterType?: 'CUSTOMER' | 'PROVIDER';
@@ -193,21 +193,7 @@ export default function ManageReportPage() {
         }
       }
 
-      // Add paymentTransactionId if reporter is CUSTOMER and has payment transactions
-      if (
-        reportDetail?.reporterType === 'CUSTOMER' &&
-        reportDetail?.Booking?.ServiceRequest?.PaymentTransaction
-      ) {
-        const paymentTransactions = reportDetail.Booking.ServiceRequest.PaymentTransaction;
-        if (paymentTransactions.length > 0) {
-          // Sort by createdAt to get the latest payment transaction
-          const sortedTransactions = [...paymentTransactions].sort(
-            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          );
-          const latestPayment = sortedTransactions[0];
-          payload.paymentTransactionId = latestPayment.id;
-        }
-      }
+      // (Removed) No longer linking payment transaction ID when resolving
     }
 
     updateReport(payload, {
@@ -703,20 +689,6 @@ export default function ManageReportPage() {
                         })()} VNĐ`
                       : `Số tiền = ${bookingDepositAmount.toLocaleString('vi-VN')} VNĐ (đề xuất bị từ chối)`}
                   </p>
-                  {reportDetail?.reporterType === 'CUSTOMER' &&
-                    reportDetail?.Booking?.ServiceRequest?.PaymentTransaction &&
-                    reportDetail.Booking.ServiceRequest.PaymentTransaction.length > 0 && (
-                      <p className="text-xs text-blue-600 bg-blue-50 p-2 rounded">
-                        🔗 Giao dịch thanh toán sẽ được liên kết tự động (ID:{' '}
-                        {
-                          [...reportDetail.Booking.ServiceRequest.PaymentTransaction].sort(
-                            (a, b) =>
-                              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-                          )[0]?.id
-                        }
-                        )
-                      </p>
-                    )}
                 </div>
               </div>
             )}
@@ -1223,6 +1195,16 @@ export default function ManageReportPage() {
                                                 #{item.serviceId}
                                               </p>
                                             </div>
+                                            {item.Service?.name && (
+                                              <div className="md:col-span-2">
+                                                <p className="text-xs text-muted-foreground">
+                                                  Tên dịch vụ
+                                                </p>
+                                                <p className="text-sm font-medium truncate">
+                                                  {item.Service.name}
+                                                </p>
+                                              </div>
+                                            )}
                                             <div>
                                               <p className="text-xs text-muted-foreground">
                                                 Số lượng

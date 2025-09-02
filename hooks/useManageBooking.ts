@@ -14,7 +14,6 @@ import {
   GetReportListResponse,
   ReportDetailResponse,
   UpdateReportBookingRequest,
-  DEFAULT_BOOKINGS_LIMIT,
 } from '@/lib/api/services/fetchManageBooking';
 import { useState, useMemo } from 'react';
 import { toast } from 'sonner';
@@ -75,6 +74,7 @@ export const useBookingFilters = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [limit, setLimit] = useState(10);
   const [dateRange, setDateRange] = useState<{
     from?: Date;
     to?: Date;
@@ -83,11 +83,11 @@ export const useBookingFilters = () => {
   const params: GetBookingsParams = useMemo(
     () => ({
       page: currentPage,
-      limit: DEFAULT_BOOKINGS_LIMIT,
+      limit,
       status: statusFilter,
       search: searchTerm,
     }),
-    [currentPage, statusFilter, searchTerm]
+    [currentPage, statusFilter, searchTerm, limit]
   );
 
   const handlePageChange = (page: number) => {
@@ -104,6 +104,11 @@ export const useBookingFilters = () => {
     setCurrentPage(1); // Reset to first page when searching
   };
 
+  const handleLimitChange = (newLimit: number) => {
+    setLimit(newLimit);
+    setCurrentPage(1);
+  };
+
   const handleDateRangeChange = (range: { from?: Date; to?: Date }) => {
     setDateRange(range);
     setCurrentPage(1); // Reset to first page when date filtering
@@ -118,11 +123,13 @@ export const useBookingFilters = () => {
 
   return {
     currentPage,
+    limit,
     statusFilter,
     searchTerm,
     dateRange,
     params,
     handlePageChange,
+    handleLimitChange,
     handleStatusFilter,
     handleSearch,
     handleDateRangeChange,

@@ -179,6 +179,19 @@ export interface ProposalItem {
   createdAt: string;
   status: string;
   price: number;
+  Service?: {
+    id: number;
+    name: string;
+    basePrice?: number;
+    virtualPrice?: number;
+    images?: string[];
+    durationMinutes?: number;
+    providerId?: number;
+    description?: string;
+    categoryId?: number;
+    unit?: string;
+    status?: string;
+  };
 }
 
 export interface Proposal {
@@ -310,7 +323,7 @@ export interface UpdateReportRequest {
   status: 'PENDING' | 'REJECTED' | 'RESOLVED';
   reviewedById?: number;
   note?: string | null;
-  paymentTransactionId?: number;
+  // paymentTransactionId?: number;
   amount?: number;
   reporterId?: number;
   reporterType?: 'CUSTOMER' | 'PROVIDER';

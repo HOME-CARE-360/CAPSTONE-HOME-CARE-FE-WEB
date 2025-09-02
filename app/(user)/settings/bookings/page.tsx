@@ -173,6 +173,7 @@ enum ReportReason {
   POOR_SERVICE_QUALITY = 'POOR_SERVICE_QUALITY',
   STAFF_BEHAVIOR = 'STAFF_BEHAVIOR',
   TECHNICAL_ISSUES = 'TECHNICAL_ISSUES',
+  STAFF_NO_SHOW = 'STAFF_NO_SHOW',
 }
 
 // Report reason labels
@@ -181,6 +182,7 @@ const getReportReasonLabel = (reason: ReportReason): string => {
     [ReportReason.POOR_SERVICE_QUALITY]: 'Chất lượng dịch vụ kém',
     [ReportReason.STAFF_BEHAVIOR]: 'Thái độ nhân viên không tốt',
     [ReportReason.TECHNICAL_ISSUES]: 'Vấn đề kỹ thuật',
+    [ReportReason.STAFF_NO_SHOW]: 'Nhân viên không đến đúng giờ',
   };
   return map[reason] || reason;
 };
@@ -772,7 +774,7 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
       {
         description: values.description,
         imageUrls: values.imageUrls,
-        note: values.note,
+        note: '',
         reporterType: 'CUSTOMER',
         reason: values.reason,
         reportedCustomerId: booking.customerId,
@@ -854,42 +856,51 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
                   )}
                 </Button>
               )}
-            {booking.status?.toUpperCase() === 'STAFF_COMPLETED' && (
-              <Button
-                variant="default"
-                size="sm"
-                disabled={isCompleting}
-                onClick={() =>
-                  completeBooking(
-                    { bookingId: booking.id },
-                    {
-                      onSuccess: () => {
-                        queryClient.invalidateQueries({ queryKey: ['users', 'bookings'] });
-                      },
-                    }
-                  )
-                }
-                aria-label="Hoàn thành đơn đặt này"
-              >
-                {isCompleting ? (
-                  <span className="flex items-center gap-2">
-                    <Loader2 className="animate-spin h-4 w-4" />
-                    Đang xử lý...
-                  </span>
-                ) : (
-                  <>
-                    <CheckCircle className="h-4 w-4 mr-1" /> Hoàn thành
-                  </>
-                )}
-              </Button>
-            )}
+            {booking.status?.toUpperCase() === 'STAFF_COMPLETED' &&
+              !(
+                Array.isArray(booking.BookingReport) &&
+                booking.BookingReport.some(report => report.status === 'PENDING')
+              ) && (
+                <Button
+                  variant="default"
+                  size="sm"
+                  disabled={isCompleting}
+                  onClick={() =>
+                    completeBooking(
+                      { bookingId: booking.id },
+                      {
+                        onSuccess: () => {
+                          queryClient.invalidateQueries({ queryKey: ['users', 'bookings'] });
+                        },
+                      }
+                    )
+                  }
+                  aria-label="Hoàn thành đơn đặt này"
+                >
+                  {isCompleting ? (
+                    <span className="flex items-center gap-2">
+                      <Loader2 className="animate-spin h-4 w-4" />
+                      Đang xử lý...
+                    </span>
+                  ) : (
+                    <>
+                      <CheckCircle className="h-4 w-4 mr-1" /> Hoàn thành
+                    </>
+                  )}
+                </Button>
+              )}
             {/* Show report button based on status, date logic, payment status, and existing reports */}
             {(() => {
               const isStaffCompleted = booking.status?.toUpperCase() === 'STAFF_COMPLETED';
               const isPending = booking.status?.toUpperCase() === 'PENDING';
 
               // Don't show report button if there are existing reports
-              if (hasExistingReports) {
+              if (
+                hasExistingReports ||
+                (isStaffCompleted &&
+                  Array.isArray(booking.BookingReport) &&
+                  booking.BookingReport.length > 0)
+              ) {
                 return null;
               }
 
@@ -932,22 +943,15 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
                   return null;
                 }
 
-                // Check if booking is pending for more than 30 minutes and staff hasn't checked in
+                // Check if booking is pending for more than 30 minutes and staff has been assigned
                 const bookingCreatedAt = new Date(booking.createdAt);
                 const thirtyMinutesAgo = new Date(now.getTime() - 30 * 60 * 1000);
                 const isPendingMoreThan30Minutes = bookingCreatedAt < thirtyMinutesAgo;
 
-                // Check if there's a staff assigned but hasn't checked in
+                // Check if there's a staff assigned
                 const hasStaffAssigned = Boolean(booking.Staff_Booking_staffIdToStaff?.User?.name);
-                const staffHasNotCheckedIn =
-                  !bookingDetailData?.data?.WorkLog ||
-                  bookingDetailData.data.WorkLog.length === 0 ||
-                  !bookingDetailData.data.WorkLog.some(workLog => workLog.checkIn);
 
-                if (
-                  isPreferredDateComing ||
-                  (isPendingMoreThan30Minutes && hasStaffAssigned && staffHasNotCheckedIn)
-                ) {
+                if (isPreferredDateComing || (isPendingMoreThan30Minutes && hasStaffAssigned)) {
                   return (
                     <Button
                       variant="outline"
@@ -1486,8 +1490,8 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
                               >
                                 {report.status === 'PENDING'
                                   ? 'Chờ xử lý'
-                                  : report.status === 'REVIEWED'
-                                    ? 'Đã xem xét'
+                                  : report.status === 'REJECTED'
+                                    ? 'Không giải quyết'
                                     : report.status === 'RESOLVED'
                                       ? 'Đã giải quyết'
                                       : report.status}
@@ -1500,15 +1504,36 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
                                   ? 'Chất lượng dịch vụ kém'
                                   : report.reason === 'STAFF_BEHAVIOR'
                                     ? 'Thái độ nhân viên không tốt'
-                                    : report.reason === 'TECHNICAL_ISSUES'
-                                      ? 'Vấn đề kỹ thuật'
-                                      : report.reason}
+                                    : report.reason === 'STAFF_NO_SHOW'
+                                      ? 'Nhân viên không đến đúng giờ'
+                                      : report.reason === 'INVALID_ADDRESS'
+                                        ? 'Địa chỉ không hợp lý'
+                                        : report.reason === 'TECHNICAL_ISSUES'
+                                          ? 'Vấn đề kỹ thuật'
+                                          : report.reason}
                               </p>
                             </div>
                             <div>
                               <span className="text-muted-foreground">Mô tả:</span>
                               <p className="font-medium">{report.description}</p>
                             </div>
+                            {report.imageUrls && (
+                              <div>
+                                <span className="text-muted-foreground">Hình ảnh:</span>
+                                <div className="flex flex-wrap gap-2">
+                                  {report.imageUrls.map((imageUrl, index) => (
+                                    <Image
+                                      key={index}
+                                      src={imageUrl}
+                                      alt={`Report Image ${index + 1}`}
+                                      width={100}
+                                      height={100}
+                                      className="rounded-lg object-cover"
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                             {report.note && (
                               <div>
                                 <span className="text-muted-foreground">Ghi chú:</span>
@@ -1603,6 +1628,9 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
                   <SelectItem value={ReportReason.STAFF_BEHAVIOR}>
                     {getReportReasonLabel(ReportReason.STAFF_BEHAVIOR)}
                   </SelectItem>
+                  <SelectItem value={ReportReason.STAFF_NO_SHOW}>
+                    {getReportReasonLabel(ReportReason.STAFF_NO_SHOW)}
+                  </SelectItem>
                   <SelectItem value={ReportReason.TECHNICAL_ISSUES}>
                     {getReportReasonLabel(ReportReason.TECHNICAL_ISSUES)}
                   </SelectItem>
@@ -1618,15 +1646,16 @@ const BookingCard = ({ booking }: { booking: CustomerBooking['data']['bookings']
                 {...register('description', { required: true, minLength: 10 })}
               />
             </div>
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <Label htmlFor={`note-${booking.id}`}>Ghi chú</Label>
               <Textarea
+
                 id={`note-${booking.id}`}
                 placeholder="Ghi chú cho nhân viên"
                 aria-invalid={!!errors.note}
                 {...register('note', { required: true, minLength: 10 })}
               />
-            </div>
+            </div> */}
             <div className="space-y-2">
               <Label>Hình ảnh minh họa (tùy chọn)</Label>
               <ImageUpload
@@ -1762,7 +1791,9 @@ const BookingSkeleton = () => (
 );
 
 export default function BookingsPage() {
-  const { data: bookingData, isLoading, error } = useCustomerBooking();
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const { data: bookingData, isLoading, error } = useCustomerBooking({ page, limit });
 
   const bookings: BookingItem[] = isBookingArray(bookingData?.bookings)
     ? bookingData!.bookings
@@ -1886,6 +1917,43 @@ export default function BookingsPage() {
           </TabsContent>
         ))}
       </Tabs>
+
+      {/* Pagination Controls */}
+      <div className="flex items-center justify-between mt-4">
+        <div className="text-sm text-muted-foreground">
+          Trang <span className="font-medium">{bookingData?.page ?? page}</span> /{' '}
+          <span className="font-medium">{bookingData?.totalPages ?? 1}</span> • Tổng{' '}
+          <span className="font-medium">{bookingData?.totalItems ?? 0}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage(p => Math.max(1, p - 1))}
+            disabled={(bookingData?.page ?? page) <= 1 || isLoading}
+          >
+            Trước
+          </Button>
+          <Select value={String(limit)} onValueChange={v => setLimit(Number(v))}>
+            <SelectTrigger className="w-[120px] h-9">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="10">10 / trang</SelectItem>
+              <SelectItem value="20">20 / trang</SelectItem>
+              <SelectItem value="50">50 / trang</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage(p => Math.min(bookingData?.totalPages ?? p + 1, p + 1))}
+            disabled={(bookingData?.page ?? page) >= (bookingData?.totalPages ?? 1) || isLoading}
+          >
+            Sau
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

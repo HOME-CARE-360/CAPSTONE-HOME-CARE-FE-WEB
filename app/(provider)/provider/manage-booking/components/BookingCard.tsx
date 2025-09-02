@@ -188,7 +188,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
   const [reportSheetOpen, setReportSheetOpen] = useState(false);
   const [reportReason, setReportReason] = useState<ReportReason>(ReportReason.NO_SHOW);
   const [reportDescription, setReportDescription] = useState('');
-  const [reportNote, setReportNote] = useState('');
+  const [, setReportNote] = useState('');
   const [reportImages, setReportImages] = useState<string[]>([]);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
 
@@ -206,7 +206,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
       {
         description: reportDescription.trim(),
         imageUrls: reportImages,
-        note: reportNote.trim(),
+        note: '',
         reporterType: 'PROVIDER',
         reason: reportReason,
         reportedCustomerId: booking.customerId,
@@ -1764,7 +1764,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
               />
             </div>
 
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <Label>Ghi chú</Label>
               <Textarea
                 value={reportNote}
@@ -1772,7 +1772,7 @@ export function BookingCard({ booking, isDragging, isLoading, onStaffAssigned }:
                 rows={2}
                 placeholder="Ghi chú bổ sung (tùy chọn)"
               />
-            </div>
+            </div> */}
 
             <div className="space-y-2">
               <Label>Hình ảnh</Label>

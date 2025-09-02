@@ -13,6 +13,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 const ACTIVE_COLUMNS = [
   {
@@ -311,6 +319,62 @@ export function BookingKanban({ onRefresh }: BookingKanbanProps) {
           {renderKanbanColumns(COMPLETED_COLUMNS)}
         </TabsContent>
       </Tabs>
+
+      {/* Pagination Controls */}
+      <div className="flex items-center justify-between">
+        <div className="text-sm text-muted-foreground">
+          Trang <span className="font-medium">{bookings?.page ?? filters.currentPage}</span> /{' '}
+          <span className="font-medium">{bookings?.totalPages ?? 1}</span> • Tổng{' '}
+          <span className="font-medium">{bookings?.totalItems ?? 0}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              filters.handlePageChange(Math.max(1, (bookings?.page ?? filters.currentPage) - 1))
+            }
+            disabled={(bookings?.page ?? filters.currentPage) <= 1 || isLoading}
+          >
+            Trước
+          </Button>
+          <Select
+            value={String(filters.limit)}
+            onValueChange={v => {
+              const newLimit = Number(v);
+              if (!Number.isNaN(newLimit)) {
+                filters.handleLimitChange(newLimit);
+              }
+            }}
+          >
+            <SelectTrigger className="w-[120px] h-9">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="10">10 / trang</SelectItem>
+              <SelectItem value="20">20 / trang</SelectItem>
+              <SelectItem value="50">50 / trang</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              filters.handlePageChange(
+                Math.min(
+                  bookings?.totalPages ?? filters.currentPage + 1,
+                  (bookings?.page ?? filters.currentPage) + 1
+                )
+              )
+            }
+            disabled={
+              (bookings?.page ?? filters.currentPage) >= (bookings?.totalPages ?? 1) || isLoading
+            }
+          >
+            Sau
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

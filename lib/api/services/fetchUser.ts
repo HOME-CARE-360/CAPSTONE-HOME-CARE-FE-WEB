@@ -207,6 +207,7 @@ export interface CustomerBooking {
         createdAt: string;
         orderCode: string;
       };
+      BookingReport?: BookingReport[];
     }[];
     totalItems: number;
     page: number;
@@ -215,6 +216,12 @@ export interface CustomerBooking {
   };
   statusCode: number;
   timestamp: string;
+}
+
+export interface CustomerBookingParams {
+  page?: number;
+  limit?: number;
+  // Future extensibility: status/search can be added here when server supports
 }
 
 export interface FavoriteResponse {
@@ -539,7 +546,7 @@ export interface BookingReport {
   reason: string;
   description: string;
   imageUrls: string[];
-  status: 'PENDING' | 'REVIEWED' | 'RESOLVED';
+  status: 'PENDING' | 'REJECTED' | 'RESOLVED';
   createdAt: string;
   reviewedAt: string | null;
   reviewedById: number | null;
@@ -955,8 +962,12 @@ export const userService = {
     }
   },
 
-  getCustomerBooking: async (): Promise<CustomerBooking> => {
-    const response = await apiService.get<CustomerBooking>('/users/my-bookings');
+  getCustomerBooking: async (params?: CustomerBookingParams): Promise<CustomerBooking> => {
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append('page', String(params.page));
+    if (params?.limit) queryParams.append('limit', String(params.limit));
+    const url = `/users/my-bookings${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    const response = await apiService.get<CustomerBooking>(url);
     return response.data;
   },
 
@@ -1286,13 +1297,29 @@ export interface PaginatedTransactionsMeta {
 }
 
 export interface ProposalPaymentsSection {
-  items: unknown[];
+  items: ProposalPaymentItem[];
   totalItems: number;
   page: number;
   limit: number;
   totalPages: number;
   sortBy?: string;
   sortOrder?: string;
+}
+
+export interface ProposalPaymentItem {
+  id: number;
+  bookingId: number;
+  amount: number;
+  status: string; // PAID | SUCCESS | FAILED | REFUNDED | PENDING
+  method: string; // WALLET | BANK_TRANSFER | etc
+  createdAt: string;
+  orderCode: string;
+  bookingStatus?: string;
+  provider?: {
+    name: string;
+    phone: string;
+    email: string;
+  } | null;
 }
 
 export interface WalletSection extends PaginatedTransactionsMeta {

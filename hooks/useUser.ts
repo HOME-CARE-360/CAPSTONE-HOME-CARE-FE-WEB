@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/lib/store/authStore';
 import userService, {
   CustomerBooking,
+  CustomerBookingParams,
   GetUserInformationResponse,
   UpdateBankAccountRequest,
   AddOrRemoveFavoriteResponse,
@@ -164,16 +165,20 @@ export const useUpdateBankAccount = () => {
   });
 };
 
-export const useCustomerBooking = () => {
+export const useCustomerBooking = (params?: CustomerBookingParams) => {
   const isAuthenticated = useAuthStore(state => state.isAuthenticated);
 
   return useQuery({
-    queryKey: ['users', 'booking'],
-    queryFn: () => userService.getCustomerBooking(),
+    queryKey: ['users', 'booking', params],
+    queryFn: () => userService.getCustomerBooking(params),
     enabled: isAuthenticated,
     select: (data: CustomerBooking) => ({
       bookings: Array.isArray(data.data.bookings) ? data.data.bookings : [data.data.bookings],
       message: data.message,
+      page: data.data.page,
+      pageSize: data.data.pageSize,
+      totalPages: data.data.totalPages,
+      totalItems: data.data.totalItems,
     }),
   });
 };

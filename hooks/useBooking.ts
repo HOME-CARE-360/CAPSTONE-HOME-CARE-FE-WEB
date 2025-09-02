@@ -264,17 +264,41 @@ export const useCompleteBooking = () => {
       toast.success('Hoàn thành đơn hàng thành công!');
       window.location.reload();
     },
-    onError: (error: Error) => {
-      let errorMessage = 'Đã xảy ra lỗi không mong muốn';
-      if (typeof error === 'object' && error !== null && 'message' in error) {
-        const errorObj = error as { message: string | ValidationError[] };
-        if (Array.isArray(errorObj.message)) {
-          errorMessage = errorObj.message[0]?.message || errorMessage;
-        } else if (typeof errorObj.message === 'string') {
-          errorMessage = errorObj.message;
+    onError: (err: unknown) => {
+      let userMessage = 'Đã xảy ra lỗi không mong muốn';
+
+      if (typeof err === 'object' && err !== null) {
+        type ApiErrMessage = string | { message?: string; path?: unknown };
+        interface ApiErrShape {
+          statusCode?: number;
+          error?: string;
+          message?: ApiErrMessage;
+          details?: unknown;
+        }
+        const anyErr = err as ApiErrShape;
+
+        // Handle transaction not paid error
+        const transactionNotPaidByError =
+          typeof anyErr.error === 'string' && anyErr.error.includes('transaction is not paid');
+        const transactionNotPaidByCode =
+          typeof anyErr.message === 'object' &&
+          anyErr.message?.message === 'Error.TransactionNotPaid';
+
+        if (transactionNotPaidByError || transactionNotPaidByCode) {
+          userMessage = 'Giao dịch chưa được thanh toán. Không thể hoàn thành đơn hàng.';
+          toast.error(userMessage);
+          return;
+        }
+
+        // Generic API error extraction
+        if (typeof anyErr.message === 'string' || Array.isArray(anyErr.message as never)) {
+          userMessage = getErrorMessage(anyErr as never);
+          toast.error(userMessage);
+          return;
         }
       }
-      toast.error(errorMessage);
+
+      toast.error(userMessage);
     },
   });
 

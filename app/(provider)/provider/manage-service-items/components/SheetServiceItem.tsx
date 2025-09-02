@@ -65,7 +65,7 @@ export function SheetServiceItem({
       warrantyPeriod: 12,
       brand: '',
       model: '',
-      stockQuantity: 0,
+      stockQuantity: 9999,
       isActive: true,
     },
   });
@@ -281,7 +281,7 @@ export function SheetServiceItem({
 
             {/* Stock and Unit */}
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
+              {/* <div className="space-y-2">
                 <Label htmlFor="stockQuantity">Số lượng tồn kho *</Label>
                 <Input
                   id="stockQuantity"
@@ -295,7 +295,7 @@ export function SheetServiceItem({
                     {form.formState.errors.stockQuantity.message}
                   </p>
                 )}
-              </div>
+              </div> */}
 
               {/* <div className="space-y-2">
                 <Label htmlFor="unit">Đơn vị *</Label>

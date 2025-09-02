@@ -146,7 +146,7 @@ export function ServiceItemCard({ serviceItem, onEdit }: ServiceItemCardProps) {
         {/* Service Item Name */}
         <div className=" flex justify-between items-center">
           <span className="text-base font-medium line-clamp-2">{serviceItem.name}</span>
-          <span className="font-medium text-sm">{serviceItem.stockQuantity} cái</span>
+          {/* <span className="font-medium text-sm">{serviceItem.stockQuantity} cái</span> */}
         </div>
 
         {/* Action Buttons */}

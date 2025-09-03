@@ -741,18 +741,18 @@ export default function ManageWithdrawPage() {
                             Từ chối
                           </div>
                         </SelectItem>
-                        <SelectItem value="CANCELLED">
+                        {/* <SelectItem value="CANCELLED">
                           <div className="flex items-center gap-2">
                             <XCircle className="h-4 w-4 text-red-600" />
                             Đã hủy
                           </div>
-                        </SelectItem>
-                        <SelectItem value="APPROVED">
+                        </SelectItem> */}
+                        {/* <SelectItem value="APPROVED">
                           <div className="flex items-center gap-2">
                             <CheckCircle className="h-4 w-4 text-green-600" />
                             Đã duyệt
                           </div>
-                        </SelectItem>
+                        </SelectItem> */}
                         <SelectItem value="COMPLETED">
                           <div className="flex items-center gap-2">
                             <CheckCircle className="h-4 w-4 text-green-600" />
@@ -781,7 +781,7 @@ export default function ManageWithdrawPage() {
 
               {/* Footer with conditional button */}
               <SheetFooter className="gap-2 pt-4 sm:pt-6">
-                {detail.status !== 'COMPLETED' && detail.status !== 'REJECTED' ? (
+                {detail.status !== 'COMPLETED' && detail.status !== 'CANCELLED' ? (
                   <Button
                     onClick={() => {
                       if (!selectedId) return;

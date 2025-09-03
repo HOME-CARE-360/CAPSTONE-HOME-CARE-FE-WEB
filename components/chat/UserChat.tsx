@@ -448,7 +448,7 @@ export function UserChat() {
             </ScrollArea>
 
             {/* Message Input */}
-            <div className="absolute bottom-0 left-0 right-0 px-3 sm:px-4 lg:px-6 py-3 sm:py-4 border-t border-gray-100 bg-white flex-shrink-0">
+            <div className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 border-t border-gray-100 bg-white flex-shrink-0">
               <div className="flex items-end gap-2 sm:gap-3 max-w-4xl mx-auto">
                 <div className="flex-1 min-w-0 max-w-2xl">
                   <Textarea

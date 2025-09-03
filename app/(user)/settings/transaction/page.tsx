@@ -62,7 +62,14 @@ export default function TransactionsPage() {
   };
 
   const totals = useMemo(() => {
-    const inSum = moneyIn.reduce((sum, t) => sum + (t.amountIn || 0), 0);
+    // Only count SUCCESS and REFUNDED for total in per requirement
+    const inSum = moneyIn
+      .filter(
+        t =>
+          (t.status || '').toUpperCase() === 'SUCCESS' ||
+          (t.status || '').toUpperCase() === 'REFUNDED'
+      )
+      .reduce((sum, t) => sum + (t.amountIn || 0), 0);
     // Only count SUCCESS for total out per requirement
     const outSum = moneyOut
       .filter(

@@ -391,7 +391,7 @@ export default function ProviderChat() {
               </ScrollArea>
 
               {/* Message Input */}
-              <div className="absolute bottom-0 left-0 right-0 px-3 sm:px-6 py-3 sm:py-4 border-t border-gray-100 bg-white flex-shrink-0">
+              <div className="px-3 sm:px-6 py-3 sm:py-4 border-t border-gray-100 bg-white flex-shrink-0">
                 <div className="flex items-end gap-2 sm:gap-3">
                   <div className="flex-1 min-w-0">
                     <Textarea
